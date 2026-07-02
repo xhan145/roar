@@ -3,7 +3,7 @@
 # Downloads WiX 3.14 portable binaries to build/wix on first run.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION="0.2.0"
+VERSION=$(venv/Scripts/python.exe -c "import paths; print(paths.APP_VERSION)")
 WIX=build/wix
 [ -d dist/FlowLocal ] || { echo "run PyInstaller first"; exit 1; }
 if [ ! -f "$WIX/heat.exe" ]; then
@@ -14,7 +14,7 @@ if [ ! -f "$WIX/heat.exe" ]; then
 fi
 "$WIX/heat.exe" dir dist/FlowLocal -cg AppFiles -dr INSTALLDIR \
   -srd -sreg -scom -ag -sfrag -template fragment -out build/harvest.wxs
-"$WIX/candle.exe" -nologo -arch x64 -out build/ \
+"$WIX/candle.exe" -nologo -arch x64 -dAppVersion="$VERSION" -out build/ \
   build/harvest.wxs installer/flowlocal.wxs
 "$WIX/light.exe" -nologo -b dist/FlowLocal -sval \
   -out "dist/FlowLocal-$VERSION.msi" build/harvest.wixobj build/flowlocal.wixobj

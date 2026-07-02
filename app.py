@@ -69,6 +69,9 @@ class FlowLocalApp:
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
         self._stop_watch = threading.Event()
+        # serializes self.cfg mutation+save between menu handlers (tray
+        # thread) and the config watcher (its own thread)
+        self.cfg_lock = threading.RLock()
         self.icon = pystray.Icon("FlowLocal", tray_icons.make_icon(self.LOADING),
                                  "FlowLocal", menu=self._build_menu())
         self.worker = threading.Thread(target=self._worker, daemon=True)
@@ -114,14 +117,15 @@ class FlowLocalApp:
                 self._finish_recording()
 
     def _on_toggle(self):
-        if self.state == self.RECORDING:
-            if self.session_mode == "ptt":
-                self.session_mode = "toggle"  # upgrade held PTT into a toggle session
-                self.notify("Toggle dictation on — press the toggle hotkey to stop")
+        with self.state_lock:
+            if self.state == self.RECORDING:
+                if self.session_mode == "ptt":
+                    self.session_mode = "toggle"  # upgrade held PTT into a toggle session
+                    self.notify("Toggle dictation on — press the toggle hotkey to stop")
+                else:
+                    self._finish_recording()
             else:
-                self._finish_recording()
-        else:
-            self._start_recording("toggle")
+                self._start_recording("toggle")
 
     def _register_hotkeys(self):
         keyboard.hook(self._on_key_event)
@@ -255,40 +259,48 @@ class FlowLocalApp:
             self.notify("No transcript yet — hold the hotkey and speak first")
 
     def _set_model(self, name):
-        self.cfg["model"] = name
-        config_mod.save(self.cfg)
+        with self.cfg_lock:
+            self.cfg["model"] = name
+            config_mod.save(self.cfg)
         self.jobs.put(("reload", name))
 
     def _set_device(self, idx):
-        self.cfg["input_device"] = idx
-        self.recorder.device = idx
-        config_mod.save(self.cfg)
+        with self.cfg_lock:
+            self.cfg["input_device"] = idx
+            self.recorder.device = idx
+            config_mod.save(self.cfg)
 
     def _toggle_paste(self):
-        self.cfg["paste_fallback"] = not self.cfg["paste_fallback"]
-        config_mod.save(self.cfg)
+        with self.cfg_lock:
+            self.cfg["paste_fallback"] = not self.cfg["paste_fallback"]
+            config_mod.save(self.cfg)
 
     def _open_config(self):
         subprocess.Popen(["notepad.exe", config_mod.PATH])
 
     def _watch_config(self):
         """Hot-apply external edits to config.json (settings process or hand
-        edits). Menu actions mutate self.cfg before saving, so their own
-        writes diff to no-ops here."""
+        edits). Compares file CONTENT, not mtime — this filesystem's mtime
+        granularity (~10ms) can swallow back-to-back writes. cfg_lock
+        serializes against menu handlers, whose own writes diff to no-ops."""
+        import hashlib
         last = None
         while not self._stop_watch.is_set():
             try:
-                mtime = os.path.getmtime(config_mod.PATH)
+                with open(config_mod.PATH, "rb") as f:
+                    digest = hashlib.sha1(f.read()).hexdigest()
                 if last is None:
-                    last = mtime
-                elif mtime != last:
-                    last = mtime
-                    new_cfg = config_mod.load()
-                    for action, arg in diff_config(self.cfg, new_cfg):
+                    last = digest
+                elif digest != last:
+                    last = digest
+                    with self.cfg_lock:
+                        new_cfg = config_mod.load()
+                        actions = diff_config(self.cfg, new_cfg)
+                        self.cfg.update(new_cfg)
+                    for action, arg in actions:
                         if action == "rehook":
                             keyboard.unhook_all()
                             self.pressed.clear()
-                            self.cfg.update(new_cfg)
                             self.ptt_chord = parse_chord(self.cfg["hotkey_ptt"])
                             self._register_hotkeys()
                             self.notify("Hotkeys updated")
@@ -296,7 +308,6 @@ class FlowLocalApp:
                             self.jobs.put(("reload", arg))
                         elif action == "set_device":
                             self.recorder.device = arg
-                    self.cfg.update(new_cfg)
             except OSError:
                 pass  # config briefly missing/locked — retry next tick
             self._stop_watch.wait(2.0)
@@ -350,6 +361,19 @@ def main():
 
     if not paths.is_frozen():
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    # Self-heal a stale autostart entry (e.g. MSI reinstalled to a new path,
+    # or the old entry survived an uninstall — WiX can't remove single
+    # per-user Run values). If autostart is on, point it at THIS binary.
+    try:
+        import autostart
+        current = autostart.get(paths.APP_NAME)
+        desired = autostart.default_command()
+        if current is not None and current != desired:
+            autostart.set_enabled(paths.APP_NAME, desired, True)
+    except OSError:
+        pass
+
     cfg = config_mod.load()
     if args.smoke:  # deterministic, small, CPU-only for the self-test
         cfg["model"] = "small.en"

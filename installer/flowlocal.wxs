@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="FlowLocal" Language="1033" Version="0.2.0"
+  <Product Id="*" Name="FlowLocal" Language="1033" Version="$(var.AppVersion)"
            Manufacturer="xhan145"
            UpgradeCode="a7a83e4a-83a0-4834-8edc-8dc058eb254f">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser"

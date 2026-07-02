@@ -133,9 +133,15 @@ def run_settings(smoke=False):
               flush=True)
         os.startfile(config_mod.PATH)
         return 1
+    html = paths.resource_path("settings.html")
+    if not os.path.exists(html):
+        print(f"FlowLocal: settings.html missing at {html}; opening config.json",
+              flush=True)
+        os.startfile(config_mod.PATH)
+        return 1
     api = SettingsAPI()
     window = webview.create_window(
-        "FlowLocal Settings", url=paths.resource_path("settings.html"),
+        "FlowLocal Settings", url=html,
         js_api=api, width=900, height=640, min_size=(760, 560),
         background_color="#0B0E14")
 
