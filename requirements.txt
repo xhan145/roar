@@ -1,0 +1,9 @@
+faster-whisper==1.2.1
+ctranslate2==4.8.0
+sounddevice==0.5.5
+keyboard==0.13.5
+pystray==0.19.5
+Pillow==12.3.0
+pyperclip==1.11.0
+numpy==2.5.0
+pytest==9.1.1

@@ -1,0 +1,3 @@
+# Optional: enables CUDA inference (cuBLAS + cuDNN DLLs). CPU works without this file.
+nvidia-cublas-cu12>=12.4,<13
+nvidia-cudnn-cu12>=9.1,<10
