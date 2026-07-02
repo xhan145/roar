@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="FlowLocal" Language="1033" Version="0.2.0"
+           Manufacturer="xhan145"
+           UpgradeCode="a7a83e4a-83a0-4834-8edc-8dc058eb254f">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser"
+             Description="FlowLocal - local voice-to-text dictation" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of FlowLocal is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="ProgramsFolder" Name="Programs">
+          <Directory Id="INSTALLDIR" Name="FlowLocal" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="AppMenuFolder" Name="FlowLocal" />
+      </Directory>
+    </Directory>
+    <DirectoryRef Id="AppMenuFolder">
+      <Component Id="StartMenuShortcut"
+                 Guid="ba071046-31e9-4dde-95ba-54fdc712cd9e">
+        <Shortcut Id="AppShortcut" Name="FlowLocal"
+                  Target="[INSTALLDIR]FlowLocal.exe"
+                  WorkingDirectory="INSTALLDIR" />
+        <RemoveFolder Id="RemoveAppMenu" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\FlowLocal" Name="installed"
+                       Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </DirectoryRef>
+    <Feature Id="Main" Title="FlowLocal" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+  </Product>
+</Wix>
