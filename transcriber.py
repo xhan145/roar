@@ -26,8 +26,12 @@ def resolve_model(name: str, device: str) -> str:
 
 
 def _add_nvidia_dll_dirs():
-    """Make pip-installed cuBLAS/cuDNN DLLs (requirements-gpu.txt) loadable."""
-    for pkg in ("nvidia.cublas", "nvidia.cudnn"):
+    """Make pip-installed cuBLAS/cuDNN DLLs (requirements-gpu.txt) loadable.
+
+    ctranslate2 loads these via a plain LoadLibrary, which searches PATH but
+    NOT os.add_dll_directory() entries — so prepend to PATH as well.
+    """
+    for pkg in ("nvidia.cublas", "nvidia.cudnn", "nvidia.cuda_nvrtc"):
         try:
             spec = importlib.util.find_spec(pkg)
         except (ImportError, ModuleNotFoundError):
@@ -36,6 +40,7 @@ def _add_nvidia_dll_dirs():
             bin_dir = pathlib.Path(list(spec.submodule_search_locations)[0]) / "bin"
             if bin_dir.is_dir():
                 os.add_dll_directory(str(bin_dir))
+                os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
 
 
 class Transcriber:

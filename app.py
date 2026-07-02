@@ -152,6 +152,10 @@ class FlowLocalApp:
     def _worker(self):
         try:
             self.transcriber.load()
+            # Warm-up inference: the first CUDA call pays a one-time kernel
+            # autotune cost (~13s measured). Pay it now, not on first dictation.
+            import numpy as np
+            self.transcriber.transcribe(np.zeros(8000, dtype=np.float32))
             self.log(f"model loaded: {self.transcriber.description()}")
         except Exception as e:
             self.notify(f"Model load failed: {e}. Check your internet connection "
