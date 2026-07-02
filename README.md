@@ -26,6 +26,16 @@ Both are configurable in `config.json` (`hotkey_ptt`, `hotkey_toggle`), using [`
 
 > **Note:** Win+Ctrl+Space is also the Windows shortcut to switch input methods. If you use multiple input languages, change `hotkey_toggle`.
 
+## Settings
+
+Tray icon → **Settings…** opens the settings window (dark "Deep Focus" UI):
+
+- **Instant apply:** start with Windows, tones, paste fallback, silence sensitivity, microphone.
+- **Apply button:** hotkeys (click *Set*, hold the combo you want) and model — the tray app picks changes up within a couple of seconds, no restart.
+- **Privacy** and **History** tabs are placeholders for upcoming features.
+
+Settings write to the same `config.json` — hand edits also hot-apply while the app runs.
+
 ## Tray icon
 
 The microphone icon shows state by color **and** shape: gray = idle, gray + arc = loading, red + dot = recording, blue + arc = transcribing, amber + ! = error. Menu:
@@ -96,9 +106,13 @@ The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\
 - CUDA DLLs are bundled (spec prunes ~780 MB of cuDNN kernels Whisper doesn't use). On machines without an NVIDIA GPU it falls back to CPU automatically.
 - One-dir (not one-file) is deliberate: a one-file exe would re-extract the GB-scale bundle on every launch.
 
+### MSI installer
+
+`bash scripts/build_msi.sh` builds `dist/FlowLocal-0.2.0.msi` (WiX 3.14 downloads automatically on first run). Per-user install — no admin needed: files go to `%LOCALAPPDATA%\Programs\FlowLocal` with a Start Menu shortcut; uninstall from Windows Settings → Apps.
+
 ## Development
 
-Run the test suite (34 tests: unit + real-speech transcription + focused-window injection + app smoke test). The injection tests type into a small window they open — run while the desktop is otherwise idle:
+Run the test suite (47 tests: unit + real-speech transcription + focused-window injection + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v
