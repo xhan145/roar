@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FlowLocal Settings</title>
+<style>
+  :root {
+    --bg: #0B0E14; --side: #070A0F; --card: #121722; --border: #1E2635;
+    --text: #E8ECF4; --muted: #9AA4BC; --disabled: #3E4557;
+    --accent: #2563EB; --glow: rgba(37, 99, 235, .35);
+    --err: #F87171; --ok: #34D399;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.55 "Segoe UI", system-ui, sans-serif;
+    display: flex; overflow: hidden;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---- sidebar ---- */
+  aside {
+    width: 200px; flex: none; background: var(--side);
+    padding: 16px 10px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 8px; padding: 0 10px 16px;
+    color: var(--muted); font-size: 12px; letter-spacing: .08em;
+  }
+  .brand .dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 8px var(--glow);
+  }
+  .nav {
+    display: block; width: 100%; text-align: left; background: none;
+    border: 1px solid transparent; border-radius: 6px;
+    padding: 8px 12px; color: var(--muted); cursor: pointer;
+  }
+  .nav:hover:not(:disabled) { color: var(--text); background: rgba(37,99,235,.08); }
+  .nav[aria-current="true"] {
+    background: rgba(37, 99, 235, .25); border-color: rgba(37, 99, 235, .5);
+    color: #fff; box-shadow: 0 0 12px rgba(37, 99, 235, .25);
+  }
+  .nav:disabled { color: var(--disabled); cursor: default; }
+  .nav .soon { font-size: 10px; letter-spacing: .05em; opacity: .8; }
+
+  /* ---- main ---- */
+  main { flex: 1; overflow-y: auto; padding: 26px 32px; }
+  section { display: none; max-width: 560px; }
+  section.active { display: block; }
+  h1 {
+    font-size: 16px; font-weight: 700; letter-spacing: .02em;
+    text-transform: uppercase; margin-bottom: 18px;
+  }
+  .row {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .row.flex { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .row .hint { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .msg { font-size: 12.5px; margin-top: 8px; min-height: 1em; }
+  .msg.err { color: var(--err); }
+  .msg.ok { color: var(--ok); }
+
+  /* ---- controls ---- */
+  .toggle {
+    width: 40px; height: 21px; border-radius: 11px; border: none;
+    background: #242C3D; position: relative; cursor: pointer; flex: none;
+  }
+  .toggle::after {
+    content: ""; position: absolute; left: 2px; top: 2px;
+    width: 17px; height: 17px; border-radius: 50%; background: var(--muted);
+  }
+  .toggle[aria-pressed="true"] { background: var(--accent); box-shadow: 0 0 10px var(--glow); }
+  .toggle[aria-pressed="true"]::after { left: auto; right: 2px; background: #fff; }
+
+  .btn {
+    background: rgba(37, 99, 235, .18); border: 1px solid rgba(37, 99, 235, .5);
+    color: #fff; border-radius: 8px; padding: 7px 16px; cursor: pointer;
+  }
+  .btn:hover { background: rgba(37, 99, 235, .32); box-shadow: 0 0 10px var(--glow); }
+  .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); }
+
+  .chip {
+    display: inline-block; background: #0E1320; border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px; font-family: Consolas, monospace;
+    font-size: 13px; min-width: 120px; text-align: center;
+  }
+  .chip.pending { border-color: var(--accent); box-shadow: 0 0 8px var(--glow); }
+
+  select, input[type="range"] { accent-color: var(--accent); }
+  select {
+    background: #0E1320; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; max-width: 320px; width: 100%;
+  }
+  input[type="range"] { width: 100%; }
+  .radio { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; cursor: pointer; }
+  .radio input { margin-top: 4px; accent-color: var(--accent); }
+  .radio .cap { color: var(--muted); font-size: 12.5px; }
+
+  .locked { text-align: center; color: var(--muted); padding: 40px 20px; }
+  .locked .icon { font-size: 30px; margin-bottom: 10px; }
+  .pathlink { color: var(--accent); cursor: pointer; text-decoration: underline; word-break: break-all; }
+  .kv { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .toggle, .toggle::after, .btn { transition: all .15s ease-out; }
+  }
+</style>
+</head>
+<body>
+  <aside>
+    <div class="brand"><span class="dot"></span> FLOWLOCAL</div>
+    <button class="nav" data-s="general" aria-current="true">General</button>
+    <button class="nav" data-s="hotkeys">Hotkeys</button>
+    <button class="nav" data-s="voice">Voice &amp; Mic</button>
+    <button class="nav" data-s="transcription">Transcription</button>
+    <button class="nav" data-s="privacy" disabled>Privacy <span class="soon">· soon</span></button>
+    <button class="nav" data-s="history" disabled>History <span class="soon">· soon</span></button>
+    <button class="nav" data-s="about">About</button>
+  </aside>
+
+  <main>
+    <section id="general" class="active">
+      <h1>General</h1>
+      <div class="row flex">
+        <div>Start FlowLocal with Windows<div class="hint">Adds a per-user registry entry — no admin needed</div></div>
+        <button class="toggle" id="t-autostart" aria-pressed="false" aria-label="Start with Windows"></button>
+      </div>
+      <div class="row flex">
+        <div>Audio feedback tones<div class="hint">Short beeps on record start / stop / error</div></div>
+        <button class="toggle" id="t-tones" aria-pressed="true" aria-label="Audio feedback tones"></button>
+      </div>
+      <div class="msg" id="m-general"></div>
+    </section>
+
+    <section id="hotkeys">
+      <h1>Hotkeys</h1>
+      <div class="row flex">
+        <div>Push-to-talk (hold)<div class="hint">Record while held, type on release</div></div>
+        <span class="chip" id="c-ptt">…</span>
+        <button class="btn" id="b-cap-ptt">Set</button>
+      </div>
+      <div class="row flex">
+        <div>Toggle dictation<div class="hint">Press to start, press again to stop</div></div>
+        <span class="chip" id="c-toggle">…</span>
+        <button class="btn" id="b-cap-toggle">Set</button>
+      </div>
+      <div class="hint" style="margin:2px 2px 10px;">Heads-up: Win+Ctrl+Space is also Windows' input-method switch if you use multiple keyboard languages.</div>
+      <button class="btn primary" id="b-apply-hotkeys" disabled>Apply</button>
+      <div class="msg" id="m-hotkeys"></div>
+    </section>
+
+    <section id="voice">
+      <h1>Voice &amp; Mic</h1>
+      <div class="row">
+        <div style="margin-bottom:8px;">Input device</div>
+        <select id="s-device" aria-label="Input device"></select>
+      </div>
+      <div class="row">
+        <div>Silence sensitivity</div>
+        <div class="hint" style="margin-bottom:8px;">Left: quiet rooms &amp; soft voices get through · Right: only clear speech triggers typing</div>
+        <input type="range" id="r-sens" min="0" max="100" step="1" aria-label="Silence sensitivity">
+      </div>
+      <div class="row flex">
+        <div>Fallback paste mode<div class="hint">Paste via clipboard (Ctrl+V) for apps that block typed input; your clipboard is restored after</div></div>
+        <button class="toggle" id="t-paste" aria-pressed="false" aria-label="Fallback paste mode"></button>
+      </div>
+      <div class="msg" id="m-voice"></div>
+    </section>
+
+    <section id="transcription">
+      <h1>Transcription</h1>
+      <div class="row" id="model-list"></div>
+      <button class="btn primary" id="b-apply-model" disabled>Apply</button>
+      <div class="msg" id="m-model"></div>
+    </section>
+
+    <section id="privacy">
+      <h1>Privacy</h1>
+      <div class="row locked"><div class="icon">🔒</div>Audio retention controls and privacy options arrive in the next update. Today, audio is processed in memory and never written to disk.</div>
+    </section>
+
+    <section id="history">
+      <h1>History</h1>
+      <div class="row locked"><div class="icon">📊</div>Dictation history, word-use stats and your speech profile arrive in an upcoming update.</div>
+    </section>
+
+    <section id="about">
+      <h1>About</h1>
+      <div class="row">
+        <div class="kv">Version <b id="a-version" style="color:var(--text)"></b></div>
+        <div class="kv">Config: <span class="pathlink" id="a-config" role="button" tabindex="0"></span></div>
+        <div class="kv">Log: <span class="pathlink" id="a-log" role="button" tabindex="0"></span></div>
+        <div class="kv" style="margin-top:10px;">100% local — audio and text never leave this machine.</div>
+      </div>
+    </section>
+  </main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+let state = null;
+let pending = { ptt: null, toggle: null, model: null };
+
+/* ---- navigation ---- */
+document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click", () => {
+  if (b.disabled) return;
+  document.querySelectorAll(".nav").forEach(n => n.setAttribute("aria-current", "false"));
+  b.setAttribute("aria-current", "true");
+  document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
+  $(b.dataset.s).classList.add("active");
+}));
+
+/* ---- helpers ---- */
+const api = () => window.pywebview.api;
+function msg(id, text, cls) {
+  const el = $(id); el.textContent = text || ""; el.className = "msg " + (cls || "");
+  if (cls === "ok") setTimeout(() => { if (el.textContent === text) el.textContent = ""; }, 2500);
+}
+function setToggle(el, on) { el.setAttribute("aria-pressed", on ? "true" : "false"); }
+function isOn(el) { return el.getAttribute("aria-pressed") === "true"; }
+
+/* sensitivity slider <-> threshold, log scale 0.001..0.02 */
+const LG_MIN = Math.log10(0.001), LG_MAX = Math.log10(0.02);
+const sliderToThreshold = s => +Math.pow(10, LG_MIN + (LG_MAX - LG_MIN) * (s / 100)).toFixed(5);
+const thresholdToSlider = t => Math.round((Math.log10(Math.min(0.02, Math.max(0.001, t))) - LG_MIN) / (LG_MAX - LG_MIN) * 100);
+
+const MODEL_CAPS = {
+  "auto": "Pick by hardware — GPU: distil-large-v3, CPU: small.en (recommended)",
+  "tiny.en": "Fastest, lowest accuracy — quick notes",
+  "base.en": "Fast, light accuracy",
+  "small.en": "Good accuracy, solid CPU default",
+  "medium.en": "High accuracy, slow on CPU",
+  "distil-large-v3": "Best accuracy — needs a GPU to be fast"
+};
+
+/* ---- init ---- */
+async function init() {
+  state = await api().get_state();
+  const c = state.config;
+  setToggle($("t-autostart"), state.autostart);
+  setToggle($("t-tones"), c.tones_enabled);
+  setToggle($("t-paste"), c.paste_fallback);
+  $("c-ptt").textContent = c.hotkey_ptt;
+  $("c-toggle").textContent = c.hotkey_toggle;
+  $("r-sens").value = thresholdToSlider(c.silence_rms_threshold);
+  const sel = $("s-device");
+  sel.innerHTML = "";
+  state.devices.forEach(([idx, name]) => {
+    const o = document.createElement("option");
+    o.value = JSON.stringify(idx); o.textContent = name;
+    if (String(idx) === String(c.input_device)) o.selected = true;
+    sel.appendChild(o);
+  });
+  const ml = $("model-list");
+  ml.innerHTML = "";
+  state.models.forEach(m => {
+    const l = document.createElement("label"); l.className = "radio";
+    const r = document.createElement("input");
+    r.type = "radio"; r.name = "model"; r.value = m; r.checked = (m === c.model);
+    r.addEventListener("change", () => { pending.model = m; $("b-apply-model").disabled = false; });
+    const d = document.createElement("div");
+    d.innerHTML = "<div>" + m + "</div><div class='cap'>" + (MODEL_CAPS[m] || "") + "</div>";
+    l.appendChild(r); l.appendChild(d); ml.appendChild(l);
+  });
+  $("a-version").textContent = state.version;
+  $("a-config").textContent = state.config_path;
+  $("a-log").textContent = state.log_path;
+}
+window.addEventListener("pywebviewready", init);
+
+/* ---- instant handlers ---- */
+$("t-autostart").addEventListener("click", async () => {
+  const want = !isOn($("t-autostart"));
+  const r = await api().set_autostart(want);
+  if (r.ok) { setToggle($("t-autostart"), want); msg("m-general", want ? "Will start with Windows" : "Autostart removed", "ok"); }
+  else msg("m-general", r.error, "err");
+});
+$("t-tones").addEventListener("click", async () => {
+  const want = !isOn($("t-tones"));
+  const r = await api().set_value("tones_enabled", want);
+  if (r.ok) setToggle($("t-tones"), want); else msg("m-general", r.error, "err");
+});
+$("t-paste").addEventListener("click", async () => {
+  const want = !isOn($("t-paste"));
+  const r = await api().set_value("paste_fallback", want);
+  if (r.ok) setToggle($("t-paste"), want); else msg("m-voice", r.error, "err");
+});
+$("s-device").addEventListener("change", async e => {
+  const r = await api().set_value("input_device", JSON.parse(e.target.value));
+  msg("m-voice", r.ok ? "Microphone switched" : r.error, r.ok ? "ok" : "err");
+});
+let sensTimer = null;
+$("r-sens").addEventListener("input", e => {
+  clearTimeout(sensTimer);
+  sensTimer = setTimeout(async () => {
+    const r = await api().set_value("silence_rms_threshold", sliderToThreshold(+e.target.value));
+    if (!r.ok) msg("m-voice", r.error, "err");
+  }, 300);
+});
+
+/* ---- hotkey capture + apply ---- */
+async function capture(which) {
+  const btn = $(which === "ptt" ? "b-cap-ptt" : "b-cap-toggle");
+  const chip = $(which === "ptt" ? "c-ptt" : "c-toggle");
+  btn.disabled = true; btn.textContent = "press keys…";
+  const r = await api().capture_hotkey();
+  btn.disabled = false; btn.textContent = "Set";
+  if (r.error) { msg("m-hotkeys", r.error, "err"); return; }
+  pending[which] = r.hotkey;
+  chip.textContent = r.hotkey;
+  chip.classList.add("pending");
+  $("b-apply-hotkeys").disabled = false;
+  msg("m-hotkeys", "Press Apply to activate", "");
+}
+$("b-cap-ptt").addEventListener("click", () => capture("ptt"));
+$("b-cap-toggle").addEventListener("click", () => capture("toggle"));
+$("b-apply-hotkeys").addEventListener("click", async () => {
+  const ptt = pending.ptt || state.config.hotkey_ptt;
+  const toggle = pending.toggle || state.config.hotkey_toggle;
+  const r = await api().apply_hotkeys(ptt, toggle);
+  if (r.ok) {
+    state.config.hotkey_ptt = ptt; state.config.hotkey_toggle = toggle;
+    pending.ptt = pending.toggle = null;
+    document.querySelectorAll(".chip").forEach(ch => ch.classList.remove("pending"));
+    $("b-apply-hotkeys").disabled = true;
+    msg("m-hotkeys", "Hotkeys applied — the tray app picks them up within a couple of seconds", "ok");
+  } else msg("m-hotkeys", r.error, "err");
+});
+
+/* ---- model apply ---- */
+$("b-apply-model").addEventListener("click", async () => {
+  if (!pending.model) return;
+  const r = await api().apply_model(pending.model);
+  if (r.ok) {
+    state.config.model = pending.model; pending.model = null;
+    $("b-apply-model").disabled = true;
+    msg("m-model", "Model change applied — the tray app reloads it in the background", "ok");
+  } else msg("m-model", r.error, "err");
+});
+
+/* ---- about links ---- */
+["a-config", "a-log"].forEach(id => {
+  const open = () => api().open_path($(id).textContent);
+  $(id).addEventListener("click", open);
+  $(id).addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") open(); });
+});
+</script>
+</body>
+</html>

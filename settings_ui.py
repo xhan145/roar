@@ -142,7 +142,17 @@ def run_settings(smoke=False):
     def on_shown():
         print("FlowLocal: settings window ready", flush=True)
         if smoke:
-            threading.Timer(2.5, window.destroy).start()
+            def probe_and_close():
+                try:
+                    navs = window.evaluate_js(
+                        "document.querySelectorAll('.nav').length")
+                    ver = window.evaluate_js(
+                        "document.getElementById('a-version').textContent")
+                    print(f"FlowLocal: settings probe navs={navs} version={ver}",
+                          flush=True)
+                finally:
+                    window.destroy()
+            threading.Timer(2.5, probe_and_close).start()
 
     window.events.shown += on_shown
     webview.start()

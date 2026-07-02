@@ -232,10 +232,19 @@ class FlowLocalApp:
             Item("Input device", Menu(device_items)),
             Item("Fallback paste mode", self._toggle_paste,
                  checked=lambda item: self.cfg["paste_fallback"]),
+            Item("Settings…", self._open_settings),
             Item("Open config", self._open_config),
             Menu.SEPARATOR,
             Item("Quit", self._quit),
         )
+
+    def _open_settings(self):
+        if paths.is_frozen():
+            subprocess.Popen([sys.executable, "--settings"])
+        else:
+            app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    "app.py")
+            subprocess.Popen([sys.executable, app_path, "--settings"])
 
     def _copy_last(self):
         import pyperclip
@@ -324,9 +333,15 @@ def main():
     parser = argparse.ArgumentParser(description="FlowLocal — local voice-to-text")
     parser.add_argument("--smoke", action="store_true",
                         help="start, load model, then exit (self-test)")
+    parser.add_argument("--settings", action="store_true",
+                        help="open the settings window instead of the tray app")
     args = parser.parse_args()
 
     paths.redirect_output_when_frozen()
+
+    if args.settings:
+        import settings_ui
+        sys.exit(settings_ui.run_settings(smoke=args.smoke))
 
     mutex = acquire_single_instance()
     if mutex is None:

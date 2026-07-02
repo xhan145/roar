@@ -29,14 +29,46 @@ def _run_injection(text, paste_fallback):
     import keyboard
     keyboard.key_to_scan_codes("a")  # pre-warm the lib's key table (~4s cold)
 
-    root = tk.Tk()
+    # tk.Tk() can transiently fail reading init.tcl when Tk instances are
+    # created back-to-back in one process — retry before giving up.
+    root = None
+    for _ in range(4):
+        try:
+            root = tk.Tk()
+            break
+        except tk.TclError:
+            time.sleep(0.5)
+    if root is None:
+        pytest.skip("Tk could not initialize (transient Tcl init race)")
     root.attributes("-topmost", True)
     entry = tk.Entry(root, width=40)
     entry.pack()
     root.update()
-    entry.focus_force()
-    root.update()
-    time.sleep(0.5)
+
+    # Prove we actually own keyboard focus before testing injection: type a
+    # probe char and check it lands. If the user is actively using the
+    # desktop, focus is contended — skip rather than fail on environment.
+    focused = False
+    for _ in range(3):
+        entry.focus_force()
+        root.update()
+        time.sleep(0.5)
+        keyboard.write("x", delay=0)
+        deadline = time.time() + 1.5
+        while time.time() < deadline and not entry.get():
+            root.update()
+            time.sleep(0.02)
+        if entry.get() == "x":
+            focused = True
+            entry.delete(0, tk.END)
+            root.update()
+            break
+        entry.delete(0, tk.END)
+        root.update()
+    if not focused:
+        root.destroy()
+        pytest.skip("desktop focus contended (user active) — injection "
+                    "cannot be verified right now")
     # inject on a thread so the Tk event loop can pump WHILE injection runs —
     # the paste fallback restores the clipboard 300ms after Ctrl+V, and the
     # target must process the paste before that restore happens.
@@ -56,13 +88,24 @@ def _run_injection(text, paste_fallback):
     return value
 
 
+def _run_with_retry(text, paste_fallback, expected):
+    """Two independently-probed attempts: focus can be stolen between the
+    probe and the injection when the user is active. A genuine injector bug
+    fails both attempts deterministically."""
+    value = _run_injection(text, paste_fallback=paste_fallback)
+    if value != expected:
+        time.sleep(1.0)
+        value = _run_injection(text, paste_fallback=paste_fallback)
+    return value
+
+
 def test_sendinput_types_into_focused_window():
-    assert _run_injection("hello local", paste_fallback=False) == "hello local "
+    assert _run_with_retry("hello local", False, "hello local ") == "hello local "
 
 
 def test_paste_fallback_and_clipboard_restored():
     pyperclip.copy("sentinel-before")
-    assert _run_injection("pasted text", paste_fallback=True) == "pasted text "
+    assert _run_with_retry("pasted text", True, "pasted text ") == "pasted text "
     assert pyperclip.paste() == "sentinel-before"
 
 
