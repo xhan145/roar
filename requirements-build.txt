@@ -1,0 +1,2 @@
+# Build-time only: packaging FlowLocal.exe
+pyinstaller==6.21.0

@@ -79,9 +79,26 @@ Generated next to `app.py` on first run:
 - **"already running — exiting"** — FlowLocal is single-instance; check the tray for the existing icon.
 - **Hotkey conflicts** — change `hotkey_ptt` / `hotkey_toggle` in `config.json` and restart.
 
+## Packaged app (no Python needed)
+
+Build a standalone `FlowLocal.exe` (one-dir bundle, ~1.5 GB with GPU support included):
+
+```
+venv\Scripts\python.exe -m pip install -r requirements-build.txt
+venv\Scripts\python.exe scripts\make_icon.py
+venv\Scripts\python.exe -m PyInstaller flowlocal.spec --noconfirm
+```
+
+The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\FlowLocal` folder; it runs on machines without Python. Notes:
+
+- The exe is **windowed** (no console). Logs go to `%LOCALAPPDATA%\FlowLocal\flowlocal.log`.
+- Config lives at `%APPDATA%\FlowLocal\config.json`; models download to `%LOCALAPPDATA%\FlowLocal\models` on first run.
+- CUDA DLLs are bundled (spec prunes ~780 MB of cuDNN kernels Whisper doesn't use). On machines without an NVIDIA GPU it falls back to CPU automatically.
+- One-dir (not one-file) is deliberate: a one-file exe would re-extract the GB-scale bundle on every launch.
+
 ## Development
 
-Run the test suite (28 tests: unit + real-speech transcription + focused-window injection + app smoke test):
+Run the test suite (34 tests: unit + real-speech transcription + focused-window injection + app smoke test). The injection tests type into a small window they open — run while the desktop is otherwise idle:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v

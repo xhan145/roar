@@ -14,6 +14,7 @@ from pystray import Menu, MenuItem as Item
 import commands
 import config as config_mod
 import injector
+import paths
 import recorder as recorder_mod
 import tray_icons
 from transcriber import Transcriber
@@ -58,7 +59,7 @@ class FlowLocalApp:
         self.ptt_chord = parse_chord(cfg["hotkey_ptt"])
         self.recorder = recorder_mod.Recorder(device=cfg["input_device"])
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
-                                       log=self.log)
+                                       models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
         self.icon = pystray.Icon("FlowLocal", tray_icons.make_icon(self.LOADING),
                                  "FlowLocal", menu=self._build_menu())
@@ -285,12 +286,15 @@ def main():
                         help="start, load model, then exit (self-test)")
     args = parser.parse_args()
 
+    paths.redirect_output_when_frozen()
+
     mutex = acquire_single_instance()
     if mutex is None:
         print("FlowLocal: already running — exiting", flush=True)
         sys.exit(1)
 
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    if not paths.is_frozen():
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
     cfg = config_mod.load()
     if args.smoke:  # deterministic, small, CPU-only for the self-test
         cfg["model"] = "small.en"

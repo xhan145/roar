@@ -3,7 +3,9 @@ import copy
 import json
 import os
 
-PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+import paths
+
+PATH = paths.config_path()
 
 DEFAULTS = {
     "hotkey_ptt": "ctrl+windows",

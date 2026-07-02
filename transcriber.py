@@ -2,6 +2,7 @@
 import importlib.util
 import os
 import pathlib
+import sys
 
 from faster_whisper import WhisperModel
 
@@ -31,16 +32,22 @@ def _add_nvidia_dll_dirs():
     ctranslate2 loads these via a plain LoadLibrary, which searches PATH but
     NOT os.add_dll_directory() entries — so prepend to PATH as well.
     """
+    bin_dirs = []
     for pkg in ("nvidia.cublas", "nvidia.cudnn", "nvidia.cuda_nvrtc"):
         try:
             spec = importlib.util.find_spec(pkg)
         except (ImportError, ModuleNotFoundError):
             continue
         if spec and spec.submodule_search_locations:
-            bin_dir = pathlib.Path(list(spec.submodule_search_locations)[0]) / "bin"
-            if bin_dir.is_dir():
-                os.add_dll_directory(str(bin_dir))
-                os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
+            bin_dirs.append(pathlib.Path(list(spec.submodule_search_locations)[0]) / "bin")
+    if getattr(sys, "frozen", False):
+        # PyInstaller onedir: collected nvidia packages live under _internal/
+        bundle = pathlib.Path(sys.executable).parent / "_internal" / "nvidia"
+        bin_dirs.extend(bundle.glob("*/bin"))
+    for bin_dir in bin_dirs:
+        if bin_dir.is_dir():
+            os.add_dll_directory(str(bin_dir))
+            os.environ["PATH"] = str(bin_dir) + os.pathsep + os.environ.get("PATH", "")
 
 
 class Transcriber:
