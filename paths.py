@@ -8,6 +8,7 @@ import os
 import sys
 
 APP_NAME = "FlowLocal"
+APP_VERSION = "0.2.0"
 
 
 def is_frozen() -> bool:
@@ -34,6 +35,13 @@ def models_dir() -> str:
     if is_frozen():
         return _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models"))
     return os.path.join(_source_root(), "models")
+
+
+def resource_path(name: str) -> str:
+    """Bundled read-only asset (e.g. settings.html)."""
+    if is_frozen():
+        return os.path.join(os.path.dirname(sys.executable), "_internal", name)
+    return os.path.join(_source_root(), name)
 
 
 def log_path() -> str:

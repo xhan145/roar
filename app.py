@@ -17,17 +17,13 @@ import injector
 import paths
 import recorder as recorder_mod
 import tray_icons
+from hotkeys import MODIFIER_ALIASES, parse_chord
 from transcriber import Transcriber
+
+__version__ = paths.APP_VERSION
 
 ERROR_ALREADY_EXISTS = 183
 MUTEX_NAME = "Global\\FlowLocalSingleton"
-
-MODIFIER_ALIASES = {
-    "ctrl": {"ctrl", "left ctrl", "right ctrl"},
-    "windows": {"windows", "left windows", "right windows"},
-    "alt": {"alt", "left alt", "right alt", "alt gr"},
-    "shift": {"shift", "left shift", "right shift"},
-}
 
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en", "distil-large-v3"]
 
@@ -37,10 +33,6 @@ def acquire_single_instance():
     if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
         return None
     return handle
-
-
-def parse_chord(hotkey: str):
-    return [k.strip().lower() for k in hotkey.split("+") if k.strip()]
 
 
 def diff_config(old: dict, new: dict):
