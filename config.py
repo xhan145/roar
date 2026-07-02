@@ -25,11 +25,20 @@ def load(path=None):
     if not os.path.exists(path):
         save(cfg, path)
         return cfg
-    with open(path, encoding="utf-8") as f:
-        user = json.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            user = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        # Broken hand-edited config must not brick the app. Keep the user's
+        # file untouched so they can fix it; run on defaults meanwhile.
+        print(f"FlowLocal: config.json is invalid ({e}) — using defaults. "
+              f"Fix or delete {path} to silence this.", flush=True)
+        return cfg
     for key, value in user.items():
         if key == "replacements" and isinstance(value, dict):
-            cfg["replacements"].update(value)
+            cfg["replacements"].update(
+                {k: v for k, v in value.items()
+                 if isinstance(k, str) and isinstance(v, str)})
         else:
             cfg[key] = value
     return cfg

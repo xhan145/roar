@@ -15,7 +15,7 @@ def rms(audio: np.ndarray) -> float:
 
 def passes_gate(audio: np.ndarray, threshold: float, min_duration_s: float) -> bool:
     """True when the clip is long enough and loud enough to be worth transcribing."""
-    if audio.size < int(min_duration_s * SAMPLE_RATE):
+    if audio.size < int(max(0.0, min_duration_s) * SAMPLE_RATE):
         return False
     return rms(audio) >= threshold
 

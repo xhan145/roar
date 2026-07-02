@@ -51,7 +51,8 @@ class FlowLocalApp:
         self.state = self.LOADING
         self.session_mode = None  # "ptt" | "toggle"
         self.pressed = set()
-        self.state_lock = threading.Lock()
+        # RLock: _start/_finish_recording call _set_state while holding it
+        self.state_lock = threading.RLock()
         self.jobs = queue.Queue()
         self.last_transcript = ""
         self.ptt_chord = parse_chord(cfg["hotkey_ptt"])
@@ -76,7 +77,8 @@ class FlowLocalApp:
 
     # -- state ------------------------------------------------------------
     def _set_state(self, state):
-        self.state = state
+        with self.state_lock:
+            self.state = state
         try:
             self.icon.icon = tray_icons.make_icon(state)
             self.icon.update_menu()

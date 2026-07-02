@@ -27,3 +27,20 @@ def test_save_round_trip(tmp_path):
     cfg["paste_fallback"] = True
     config.save(cfg, str(p))
     assert config.load(str(p))["paste_fallback"] is True
+
+
+def test_corrupt_json_falls_back_to_defaults(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text("{not valid json!!")
+    cfg = config.load(str(p))
+    assert cfg == config.DEFAULTS
+    assert p.read_text() == "{not valid json!!"  # user's file left for fixing
+
+
+def test_non_string_replacements_filtered(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"replacements": {"bad": 123, "good": "ok", 5: "x"}}))
+    cfg = config.load(str(p))
+    assert "bad" not in cfg["replacements"]
+    assert cfg["replacements"]["good"] == "ok"
+    assert cfg["replacements"]["new line"] == "\n"
