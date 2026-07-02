@@ -33,7 +33,7 @@ def _paste(out) -> bool:
         pass
     pyperclip.copy(out)
     keyboard.send("ctrl+v")
-    time.sleep(0.3)  # let the target app read the clipboard before restoring
+    time.sleep(0.8)  # let the target app read the clipboard before restoring
     try:
         if old is not None:
             pyperclip.copy(old)

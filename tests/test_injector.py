@@ -26,6 +26,9 @@ def test_prepare_allows_bare_newline():
 def _run_injection(text, paste_fallback):
     import threading
 
+    import keyboard
+    keyboard.key_to_scan_codes("a")  # pre-warm the lib's key table (~4s cold)
+
     root = tk.Tk()
     root.attributes("-topmost", True)
     entry = tk.Entry(root, width=40)
@@ -41,11 +44,11 @@ def _run_injection(text, paste_fallback):
     th = threading.Thread(
         target=lambda: result.update(ok=injector.inject_text(text, paste_fallback=paste_fallback)))
     th.start()
-    deadline = time.time() + 8
+    deadline = time.time() + 20
     while time.time() < deadline and (th.is_alive() or not entry.get()):
         root.update()
         time.sleep(0.02)
-    th.join(timeout=1)
+    th.join(timeout=2)
     root.update()
     value = entry.get()
     root.destroy()
