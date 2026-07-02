@@ -731,8 +731,11 @@ class Transcriber:
         raise RuntimeError(f"could not load any model: {last_err}")
 
     def _run(self, audio) -> str:
+        # beam_size=1 + no VAD: measured 1.66s vs 3.7-4.4s for a ~4s clip on CPU
+        # small.en with identical output. The app's RMS gate already rejects
+        # silence, which is what vad_filter would protect against.
         segments, _info = self._model.transcribe(
-            audio, language=self.language, beam_size=5, vad_filter=True)
+            audio, language=self.language, beam_size=1, vad_filter=False)
         return " ".join(seg.text.strip() for seg in segments).strip()
 
     def transcribe(self, audio) -> str:
