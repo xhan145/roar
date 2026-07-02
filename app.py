@@ -43,6 +43,21 @@ def parse_chord(hotkey: str):
     return [k.strip().lower() for k in hotkey.split("+") if k.strip()]
 
 
+def diff_config(old: dict, new: dict):
+    """Map a config-file change to the actions the running app must take.
+    Instant keys (tones, thresholds, paste_fallback, replacements) are read
+    at use time and need no action."""
+    actions = []
+    if (old["hotkey_ptt"] != new["hotkey_ptt"]
+            or old["hotkey_toggle"] != new["hotkey_toggle"]):
+        actions.append(("rehook", None))
+    if old["model"] != new["model"]:
+        actions.append(("reload_model", new["model"]))
+    if old["input_device"] != new["input_device"]:
+        actions.append(("set_device", new["input_device"]))
+    return actions
+
+
 class FlowLocalApp:
     IDLE, LOADING, RECORDING, TRANSCRIBING = "idle", "loading", "recording", "transcribing"
 
@@ -61,6 +76,7 @@ class FlowLocalApp:
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
+        self._stop_watch = threading.Event()
         self.icon = pystray.Icon("FlowLocal", tray_icons.make_icon(self.LOADING),
                                  "FlowLocal", menu=self._build_menu())
         self.worker = threading.Thread(target=self._worker, daemon=True)
@@ -254,8 +270,39 @@ class FlowLocalApp:
     def _open_config(self):
         subprocess.Popen(["notepad.exe", config_mod.PATH])
 
+    def _watch_config(self):
+        """Hot-apply external edits to config.json (settings process or hand
+        edits). Menu actions mutate self.cfg before saving, so their own
+        writes diff to no-ops here."""
+        last = None
+        while not self._stop_watch.is_set():
+            try:
+                mtime = os.path.getmtime(config_mod.PATH)
+                if last is None:
+                    last = mtime
+                elif mtime != last:
+                    last = mtime
+                    new_cfg = config_mod.load()
+                    for action, arg in diff_config(self.cfg, new_cfg):
+                        if action == "rehook":
+                            keyboard.unhook_all()
+                            self.pressed.clear()
+                            self.cfg.update(new_cfg)
+                            self.ptt_chord = parse_chord(self.cfg["hotkey_ptt"])
+                            self._register_hotkeys()
+                            self.notify("Hotkeys updated")
+                        elif action == "reload_model":
+                            self.jobs.put(("reload", arg))
+                        elif action == "set_device":
+                            self.recorder.device = arg
+                    self.cfg.update(new_cfg)
+            except OSError:
+                pass  # config briefly missing/locked — retry next tick
+            self._stop_watch.wait(2.0)
+
     # -- lifecycle -------------------------------------------------------------
     def _quit(self):
+        self._stop_watch.set()
         try:
             keyboard.unhook_all()
         except Exception:
@@ -276,6 +323,7 @@ class FlowLocalApp:
     def run(self):
         self.worker.start()
         self._register_hotkeys()
+        threading.Thread(target=self._watch_config, daemon=True).start()
         self.icon.run(setup=self._on_tray_ready)
         self.log("clean exit")
 
