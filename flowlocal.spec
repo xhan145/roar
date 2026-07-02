@@ -15,11 +15,14 @@ for pkg in (
     "nvidia.cublas",    # CUDA runtime DLLs (GPU inference)
     "nvidia.cudnn",
     "nvidia.cuda_nvrtc",
+    "webview",          # pywebview (settings window)
 ):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b
     hiddenimports += h
+
+datas += [("settings.html", ".")]
 
 a = Analysis(
     ["app.py"],
