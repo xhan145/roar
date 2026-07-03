@@ -18,7 +18,8 @@ SETTINGS_MUTEX = "Global\\FlowLocalSettings"
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en",
                  "distil-large-v3"]
 INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
-                "input_device", "history_enabled", "audio_retention_days"}
+                "input_device", "history_enabled", "audio_retention_days",
+                "auto_vocabulary"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -80,7 +81,7 @@ class SettingsAPI:
                 return {"error": "retention must be a number"}
             if value not in RETENTION_CHOICES:
                 return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
-        if key == "history_enabled":
+        if key in ("history_enabled", "auto_vocabulary"):
             value = bool(value)
         self._write(**{key: value})
         if key == "audio_retention_days":
@@ -164,6 +165,40 @@ class SettingsAPI:
             return {"error": "could not read that combination"}
         return {"hotkey": combo}
 
+    # -- vocabulary --------------------------------------------------------
+    def vocab_get(self):
+        cfg = config_mod.load(self.config_path)
+        auto_words = []
+        if cfg.get("auto_vocabulary", True):
+            try:
+                from insights import compute_insights
+                auto_words = compute_insights(
+                    self._history.list(limit=5000))["signature_words"]
+            except Exception:
+                pass
+        return {"custom": cfg.get("custom_vocabulary", []),
+                "auto_enabled": bool(cfg.get("auto_vocabulary", True)),
+                "auto_words": auto_words}
+
+    def vocab_add(self, word):
+        from vocabulary import validate_entry
+        cfg = config_mod.load(self.config_path)
+        custom = [str(w) for w in cfg.get("custom_vocabulary", [])]
+        err = validate_entry(word, custom)
+        if err:
+            return {"error": err}
+        custom.append(str(word).strip())
+        self._write(custom_vocabulary=custom)
+        return {"ok": True, "custom": custom}
+
+    def vocab_remove(self, word):
+        cfg = config_mod.load(self.config_path)
+        target = str(word).strip().lower()
+        custom = [w for w in cfg.get("custom_vocabulary", [])
+                  if str(w).strip().lower() != target]
+        self._write(custom_vocabulary=custom)
+        return {"ok": True, "custom": custom}
+
     def open_path(self, path):
         allowed = {self.config_path, paths.log_path()}
         if path in allowed and os.path.exists(path):
@@ -241,9 +276,11 @@ def run_settings(smoke=False):
                         "(function(){var b=document.querySelector('.nav[data-s=\"insights\"]');"
                         "if(!b||b.disabled)return 0; b.click();"
                         "return document.getElementById('insights').classList.contains('active')?1:0;})()")
+                    has_vocab = window.evaluate_js(
+                        "document.getElementById('vocab-input') ? 1 : 0")
                     print(f"FlowLocal: settings probe navs={navs} version={ver} "
-                          f"priv={has_priv} privnav={priv_nav} insnav={ins_nav}",
-                          flush=True)
+                          f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
+                          f"vocab={has_vocab}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()

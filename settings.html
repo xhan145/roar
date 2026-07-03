@@ -180,6 +180,22 @@
       <div class="row" id="model-list"></div>
       <button class="btn primary" id="b-apply-model" disabled>Apply</button>
       <div class="msg" id="m-model"></div>
+      <div class="row" style="margin-top:14px;">
+        <div>Vocabulary</div>
+        <div class="hint" style="margin-bottom:8px;">Words FlowLocal should recognize more reliably — names, jargon, brands</div>
+        <div id="vocab-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input id="vocab-input" type="text" maxlength="40" placeholder="Add a word and press Enter"
+                 style="flex:1;background:#0E1320;border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="Add vocabulary word">
+          <button class="btn" id="b-vocab-add">Add</button>
+        </div>
+        <div class="msg" id="m-vocab"></div>
+        <div class="row flex" style="margin-top:10px;background:#0E1320;">
+          <div>Include my signature words automatically<div class="hint">Pulled from your dictation history (see Insights)</div></div>
+          <button class="toggle" id="t-autovocab" aria-pressed="true" aria-label="Auto vocabulary"></button>
+        </div>
+        <div class="hint" id="vocab-auto-words" style="margin-top:6px;"></div>
+      </div>
     </section>
 
     <section id="insights">
@@ -332,6 +348,7 @@ async function init() {
   renderHistory();
   refreshStats();
   renderInsights();
+  renderVocab();
 }
 window.addEventListener("pywebviewready", init);
 
@@ -435,6 +452,46 @@ async function renderInsights() {
     tr.style.display = "none";
   }
 }
+/* ---- vocabulary ---- */
+async function renderVocab() {
+  const v = await api().vocab_get();
+  setToggle($("t-autovocab"), v.auto_enabled);
+  const chips = $("vocab-chips"); chips.innerHTML = "";
+  if (!v.custom.length) {
+    const e = document.createElement("span"); e.className = "hint";
+    e.textContent = "No custom words yet.";
+    chips.appendChild(e);
+  }
+  v.custom.forEach(w => {
+    const chip = document.createElement("span"); chip.className = "chipword";
+    chip.textContent = w + " ";
+    const x = document.createElement("button");
+    x.textContent = "×"; x.setAttribute("aria-label", "remove " + w);
+    x.style.cssText = "background:none;border:none;color:var(--muted);cursor:pointer;padding:0 2px;";
+    x.onclick = async () => { await api().vocab_remove(w); renderVocab(); };
+    chip.appendChild(x); chips.appendChild(chip);
+  });
+  $("vocab-auto-words").textContent = v.auto_enabled
+    ? (v.auto_words.length ? "Auto: " + v.auto_words.join(" · ") : "Auto: none yet — dictate more to build your signature words")
+    : "";
+}
+async function vocabAdd() {
+  const w = $("vocab-input").value;
+  if (!w.trim()) return;
+  const r = await api().vocab_add(w);
+  if (r.error) { msg("m-vocab", r.error, "err"); return; }
+  $("vocab-input").value = "";
+  msg("m-vocab", "Added — takes effect on your next dictation", "ok");
+  renderVocab();
+}
+$("b-vocab-add").addEventListener("click", vocabAdd);
+$("vocab-input").addEventListener("keydown", e => { if (e.key === "Enter") vocabAdd(); });
+$("t-autovocab").addEventListener("click", async () => {
+  const want = !isOn($("t-autovocab"));
+  const r = await api().set_value("auto_vocabulary", want);
+  if (r.ok) renderVocab(); else msg("m-vocab", r.error, "err");
+});
+
 let searchTimer = null;
 function twoStep(btn, action) {
   if (btn.dataset.armed === "1") { btn.dataset.armed = "0"; btn.textContent = btn.dataset.label; action(); return; }

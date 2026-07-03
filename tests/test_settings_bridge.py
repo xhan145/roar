@@ -109,3 +109,20 @@ def test_insights_truncation_flag(tmp_path, monkeypatch):
     ins = api.get_insights()
     assert ins["truncated_from"] == 5101
     assert ins["totals"]["dictations"] == 5000
+
+
+def test_vocab_round_trip(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    from settings_ui import SettingsAPI
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    assert api.vocab_get()["custom"] == [] and api.vocab_get()["auto_enabled"] is True
+    assert api.vocab_add("ScratchEdge")["ok"] is True
+    assert "error" in api.vocab_add("scratchedge")       # dup
+    assert "error" in api.vocab_add("x")                 # too short
+    assert api.vocab_get()["custom"] == ["ScratchEdge"]
+    assert api.set_value("auto_vocabulary", False)["ok"] is True
+    assert api.vocab_get()["auto_enabled"] is False
+    assert api.vocab_remove("SCRATCHEDGE")["ok"] is True
+    assert api.vocab_get()["custom"] == []
