@@ -6,8 +6,10 @@ import sys
 
 from faster_whisper import WhisperModel
 
-GPU_MODEL = "distil-large-v3"
-CPU_MODEL = "small.en"
+GPU_MODEL_EN = "distil-large-v3"     # English-only distillation
+GPU_MODEL_MULTI = "large-v3-turbo"   # multilingual, fast
+CPU_MODEL_EN = "small.en"
+CPU_MODEL_MULTI = "small"
 
 
 def detect_device() -> str:
@@ -20,10 +22,13 @@ def detect_device() -> str:
     return "cpu"
 
 
-def resolve_model(name: str, device: str) -> str:
+def resolve_model(name: str, device: str, language: str = "en") -> str:
     if name != "auto":
         return name
-    return GPU_MODEL if device == "cuda" else CPU_MODEL
+    english = language == "en"
+    if device == "cuda":
+        return GPU_MODEL_EN if english else GPU_MODEL_MULTI
+    return CPU_MODEL_EN if english else CPU_MODEL_MULTI
 
 
 def _add_nvidia_dll_dirs():
@@ -74,8 +79,10 @@ class Transcriber:
         device = self.force_device or detect_device()
         attempts = []
         if device == "cuda":
-            attempts.append((resolve_model(name, "cuda"), "cuda", "float16"))
-        attempts.append((resolve_model(name, "cpu"), "cpu", "int8"))
+            attempts.append((resolve_model(name, "cuda", self.language),
+                             "cuda", "float16"))
+        attempts.append((resolve_model(name, "cpu", self.language),
+                         "cpu", "int8"))
         last_err = None
         for model, dev, compute in attempts:
             try:
@@ -96,7 +103,9 @@ class Transcriber:
         # small.en with identical output. The app's RMS gate already rejects
         # silence, which is what vad_filter would protect against.
         segments, _info = self._model.transcribe(
-            audio, language=self.language, beam_size=1, vad_filter=False,
+            audio,
+            language=None if self.language == "auto" else self.language,
+            beam_size=1, vad_filter=False,
             hotwords=self.hotwords)
         return " ".join(seg.text.strip() for seg in segments).strip()
 
