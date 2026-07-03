@@ -47,3 +47,30 @@ def test_get_state_shape(tmp_path):
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
     assert s["version"] == "0.2.0"
+
+
+def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    from settings_ui import SettingsAPI
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    assert api.set_value("audio_retention_days", 7)["ok"] is True
+    assert "error" in api.set_value("audio_retention_days", 3)  # not in allowed set
+    assert api.set_value("history_enabled", False)["ok"] is True
+
+
+def test_history_list_delete_clear(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    from settings_ui import SettingsAPI
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("alpha", ts=1.0)
+    api._history.record("beta", ts=2.0)
+    rows = api.history_list()
+    assert [r["text"] for r in rows] == ["beta", "alpha"]
+    assert api.history_delete(rows[0]["id"])["ok"] is True
+    assert api.privacy_stats()["count"] == 1
+    assert api.history_clear()["removed"] == 1
+    assert api.privacy_stats()["count"] == 0

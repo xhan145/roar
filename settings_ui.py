@@ -18,7 +18,8 @@ SETTINGS_MUTEX = "Global\\FlowLocalSettings"
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en",
                  "distil-large-v3"]
 INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
-                "input_device"}
+                "input_device", "history_enabled", "audio_retention_days"}
+RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
          "right alt": "alt", "left windows": "windows",
@@ -34,6 +35,14 @@ def normalize_combo(keys) -> str:
 class SettingsAPI:
     def __init__(self, config_path=None):
         self.config_path = config_path or config_mod.PATH
+        self._hist = None
+
+    @property
+    def _history(self):
+        if self._hist is None:
+            import history as history_mod
+            self._hist = history_mod.History()
+        return self._hist
 
     # -- state ---------------------------------------------------------
     def get_state(self):
@@ -61,8 +70,38 @@ class SettingsAPI:
                 value = min(0.02, max(0.001, float(value)))
             except (TypeError, ValueError):
                 return {"error": "sensitivity must be a number"}
+        if key == "audio_retention_days":
+            try:
+                value = int(value)
+            except (TypeError, ValueError):
+                return {"error": "retention must be a number"}
+            if value not in RETENTION_CHOICES:
+                return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
+        if key == "history_enabled":
+            value = bool(value)
         self._write(**{key: value})
+        if key == "audio_retention_days":
+            try:
+                self._history.purge_expired(value)
+            except Exception:
+                pass
         return {"ok": True}
+
+    # -- history / privacy ----------------------------------------------
+    def history_list(self, limit=100):
+        return self._history.list(limit=limit)
+
+    def history_delete(self, rid):
+        self._history.delete(int(rid))
+        return {"ok": True}
+
+    def history_clear(self):
+        return {"ok": True, "removed": self._history.clear()}
+
+    def privacy_stats(self):
+        s = self._history.stats()
+        return {"count": s["count"], "audio_count": s["audio_count"],
+                "audio_mb": round(s["audio_bytes"] / (1024 * 1024), 1)}
 
     # -- Apply-gated -----------------------------------------------------
     def apply_hotkeys(self, ptt, toggle):
