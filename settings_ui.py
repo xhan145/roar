@@ -191,13 +191,31 @@ def run_settings(smoke=False):
         js_api=api, width=900, height=640, min_size=(760, 560),
         background_color="#0B0E14")
 
+    page_loaded = threading.Event()
+
+    def on_loaded():
+        page_loaded.set()
+
     def on_shown():
         print("FlowLocal: settings window ready", flush=True)
         if smoke:
             def probe_and_close():
                 try:
-                    navs = window.evaluate_js(
-                        "document.querySelectorAll('.nav').length")
+                    # 'shown' means the WINDOW exists; the page may still be
+                    # loading (evaluate_js would raise). Wait for 'loaded',
+                    # then give init() a beat, and retry on stragglers.
+                    page_loaded.wait(timeout=30)
+                    import time as _time
+                    _time.sleep(1.0)
+                    for attempt in range(3):
+                        try:
+                            navs = window.evaluate_js(
+                                "document.querySelectorAll('.nav').length")
+                            break
+                        except Exception:
+                            if attempt == 2:
+                                raise
+                            _time.sleep(1.5)
                     ver = window.evaluate_js(
                         "document.getElementById('a-version').textContent")
                     has_priv = window.evaluate_js(
@@ -216,8 +234,9 @@ def run_settings(smoke=False):
                           flush=True)
                 finally:
                     window.destroy()
-            threading.Timer(2.5, probe_and_close).start()
+            threading.Thread(target=probe_and_close, daemon=True).start()
 
+    window.events.loaded += on_loaded
     window.events.shown += on_shown
     webview.start()
     print("FlowLocal: settings closed", flush=True)
