@@ -102,6 +102,16 @@ Planned roadmap:
 
 ---
 
+## Multilingual dictation
+
+Settings → Transcription → **Language**: pick any of Whisper's 100 languages,
+or **Auto-detect** to let ROAR identify the language each time you dictate.
+With the model on `auto`, non-English languages switch to multilingual models
+(`large-v3-turbo` on GPU, `small` on CPU) — the first switch downloads the
+model. Notes: spoken commands ("new line") are English phrases (add your own
+per-language in `replacements`), and Insights word filtering is
+English-centric.
+
 ## Planned: ROAR Snippets
 
 ROAR Snippets is the planned text-expansion layer for ROAR.
@@ -111,3 +121,5 @@ The goal is to combine dictation and abbreviation expansion:
 ```text
 /sig → Thanks,
 Greg
+```
+
