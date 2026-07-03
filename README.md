@@ -32,7 +32,6 @@ Tray icon → **Settings…** opens the settings window (dark "Deep Focus" UI):
 
 - **Instant apply:** start with Windows, tones, paste fallback, silence sensitivity, microphone.
 - **Apply button:** hotkeys (click *Set*, hold the combo you want) and model — the tray app picks changes up within a couple of seconds, no restart.
-- **Privacy** and **History** tabs are placeholders for upcoming features.
 
 Settings write to the same `config.json` — hand edits also hot-apply while the app runs.
 
@@ -129,7 +128,7 @@ The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\
 
 ## Development
 
-Run the test suite (79 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
+Run the test suite (81 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v
