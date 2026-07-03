@@ -7,8 +7,8 @@ frozen runs keep config in %APPDATA%\\FlowLocal and models plus the log in
 import os
 import sys
 
-APP_NAME = "FlowLocal"
-APP_VERSION = "0.5.0"
+APP_NAME = "ROAR"
+APP_VERSION = "0.6.0"
 
 
 def is_frozen() -> bool:
@@ -63,6 +63,43 @@ def resource_path(name: str) -> str:
 def log_path() -> str:
     base = _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME))
     return os.path.join(base, "flowlocal.log")
+
+
+def migrate_legacy_data(old_name="FlowLocal"):
+    """One-time rename of legacy data dirs + autostart entry. Frozen-only.
+    Never deletes: rename-in-place or leave everything where it is."""
+    if not is_frozen():
+        return []
+    moved = []
+    import time
+    for env in ("LOCALAPPDATA", "APPDATA"):
+        base = os.environ.get(env)
+        if not base:
+            continue
+        old = os.path.join(base, old_name)
+        new = os.path.join(base, APP_NAME)
+        if os.path.isdir(old) and not os.path.exists(new):
+            for attempt in (1, 2):
+                try:
+                    os.rename(old, new)
+                    moved.append(f"migrated {old} -> {new}")
+                    break
+                except OSError:
+                    if attempt == 1:
+                        time.sleep(2)  # webview stragglers may hold locks
+                    else:
+                        moved.append(f"could not migrate {old}; data left in place")
+        elif os.path.isdir(old) and os.path.isdir(new):
+            moved.append(f"both {old} and {new} exist; using {new}, leaving {old}")
+    try:
+        import autostart
+        if autostart.get(old_name) is not None:
+            autostart.set_enabled(old_name, "", False)
+            autostart.set_enabled(APP_NAME, autostart.default_command(), True)
+            moved.append("autostart entry renamed")
+    except OSError:
+        pass
+    return moved
 
 
 def redirect_output_when_frozen():
