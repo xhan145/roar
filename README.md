@@ -36,6 +36,12 @@ Tray icon → **Settings…** opens the settings window (dark "Deep Focus" UI):
 
 Settings write to the same `config.json` — hand edits also hot-apply while the app runs.
 
+### History & Privacy
+
+- **History tab:** every dictation is saved locally (on by default) — reverse-chronological list with copy and per-item delete, plus Clear all.
+- **Privacy tab:** turn history off entirely; choose how long to keep the **audio** of each dictation (Off / 1 / 7 / 30 / 90 days — Off deletes audio the instant it's transcribed, which is the default); a live storage stat; and a Delete-all-history-&-audio button.
+- Data lives in `%LOCALAPPDATA%\FlowLocal` (`history.db` + `audio\`). It is **kept when you uninstall the MSI** — delete that folder by hand if you want it gone. Nothing is ever uploaded.
+
 ## Tray icon
 
 The microphone icon shows state by color **and** shape: gray = idle, gray + arc = loading, red + dot = recording, blue + arc = transcribing, amber + ! = error. Menu:
@@ -112,7 +118,7 @@ The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\
 
 ## Development
 
-Run the test suite (47 tests: unit + real-speech transcription + focused-window injection + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
+Run the test suite (65 tests: unit + real-speech transcription + focused-window injection + history/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v
