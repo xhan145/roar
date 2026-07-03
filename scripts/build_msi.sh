@@ -16,6 +16,11 @@ fi
   -srd -sreg -scom -ag -sfrag -template fragment -out build/harvest.wxs
 "$WIX/candle.exe" -nologo -arch x64 -dAppVersion="$VERSION" -out build/ \
   build/harvest.wxs installer/flowlocal.wxs
+# Build to a temp name and rename atomically: nobody can double-click a
+# half-written MSI mid-build. Then purge superseded versions so the only
+# clickable installer in dist/ is the current one.
 "$WIX/light.exe" -nologo -b dist/FlowLocal -sval \
-  -out "dist/FlowLocal-$VERSION.msi" build/harvest.wixobj build/flowlocal.wixobj
+  -out "dist/FlowLocal-$VERSION.msi.building" build/harvest.wixobj build/flowlocal.wixobj
+mv -f "dist/FlowLocal-$VERSION.msi.building" "dist/FlowLocal-$VERSION.msi"
+find dist -maxdepth 1 -name "FlowLocal-*.msi" ! -name "FlowLocal-$VERSION.msi" -delete
 echo "built dist/FlowLocal-$VERSION.msi"

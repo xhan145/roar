@@ -5,7 +5,8 @@
            UpgradeCode="a7a83e4a-83a0-4834-8edc-8dc058eb254f">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perUser"
              Description="FlowLocal - local voice-to-text dictation" />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of FlowLocal is already installed." />
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of FlowLocal is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="LocalAppDataFolder">
