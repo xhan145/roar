@@ -7,7 +7,7 @@
   :root {
     --bg-deep: #020203; --side: rgba(255,255,255,0.03); --card: rgba(255,255,255,0.05);
     --border: rgba(255,255,255,0.08);
-    --text: #EDEDEF; --muted: #8A8F98; --disabled: #4A4F5E;
+    --text: #EDEDEF; --muted: #8A8F98; --disabled: #6A7080;
     --accent: #5E6AD2; --glow: rgba(94,106,210,.35);
     --err: #F87171; --ok: #34D399;
     --ease: cubic-bezier(0.16,1,0.3,1);
@@ -107,7 +107,7 @@
   .locked { text-align: center; color: var(--muted); padding: 40px 20px; }
   .stat { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
   .chipword { background: #0a0a0c; border: 1px solid var(--border); border-radius: 14px; padding: 3px 12px; font-size: 12.5px; }
-  .wbar { height: 8px; background: var(--accent); border-radius: 4px; opacity: .85; }
+  .wbar { height: 8px; background: #7B85E2; border-radius: 4px; }
   .locked .icon { font-size: 30px; margin-bottom: 10px; }
   .pathlink { color: var(--accent); cursor: pointer; text-decoration: underline; word-break: break-all; }
   .kv { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
@@ -424,7 +424,7 @@ async function renderInsights() {
     const bar = document.createElement("div");
     bar.style.cssText = "width:100%;border-radius:3px;height:" +
       (a.words ? Math.max(6, Math.round(a.words / max * 64)) : 2) + "px;" +
-      (a.words ? "background:var(--accent);opacity:.85;" : "background:#1A1D29;");
+      (a.words ? "background:#7B85E2;" : "background:#1A1D29;");
     const lbl = document.createElement("div");
     lbl.className = "hint"; lbl.style.fontSize = "10px";
     lbl.textContent = a.date.slice(8);

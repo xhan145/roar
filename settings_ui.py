@@ -237,7 +237,7 @@ def run_settings(smoke=False):
     window = webview.create_window(
         "ROAR Settings", url=html,
         js_api=api, width=900, height=640, min_size=(760, 560),
-        background_color="#0B0E14")
+        background_color="#020203")
 
     page_loaded = threading.Event()
 
