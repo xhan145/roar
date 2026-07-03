@@ -36,3 +36,25 @@ def test_make_tone_shape_and_range():
     assert tone.dtype == np.float32
     assert len(tone) == int(recorder.SAMPLE_RATE * 0.08)
     assert np.max(np.abs(tone)) <= 0.11
+
+
+def test_chimes_shape_and_softness():
+    for key in ("start", "stop", "error"):
+        tone = recorder.TONES[key]
+        assert tone.dtype == np.float32
+        assert np.max(np.abs(tone)) <= 0.08          # soft
+        # decaying tail: last 10% quieter than global peak
+        tail = tone[-len(tone) // 10:]
+        assert np.max(np.abs(tail)) < np.max(np.abs(tone)) * 0.5
+
+
+def test_make_chime_two_notes_longer_than_one():
+    one = recorder.make_chime([523.25])
+    two = recorder.make_chime([523.25, 659.25])
+    assert len(two) > len(one)
+
+
+def test_normalize_level_bounds():
+    assert recorder.normalize_level(0.0) == 0.0
+    assert recorder.normalize_level(0.04) == 0.5
+    assert recorder.normalize_level(9.9) == 1.0

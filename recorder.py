@@ -13,6 +13,17 @@ def rms(audio: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(audio, dtype=np.float64))))
 
 
+def normalize_level(rms_val: float) -> float:
+    """Map block RMS to a 0..1 display level for the overlay bars."""
+    return min(1.0, rms_val / 0.08)
+
+
+def tail_window(audio, seconds=15.0):
+    """Last N seconds of a buffer (whole buffer when shorter)."""
+    n = int(seconds * SAMPLE_RATE)
+    return audio if audio.size <= n else audio[-n:]
+
+
 def passes_gate(audio: np.ndarray, threshold: float, min_duration_s: float) -> bool:
     """True when the clip is long enough and loud enough to be worth transcribing."""
     if audio.size < int(max(0.0, min_duration_s) * SAMPLE_RATE):
@@ -31,17 +42,27 @@ def make_tone(freq_hz: float, ms: int, amplitude: float = 0.1) -> np.ndarray:
     return tone * env
 
 
-def _build_tones():
-    gap = np.zeros(int(SAMPLE_RATE * 0.04), dtype=np.float32)
-    blip = make_tone(220, 70)
-    return {
-        "start": make_tone(880, 80),
-        "stop": make_tone(440, 80),
-        "error": np.concatenate([blip, gap, blip]),
-    }
+def make_chime(freqs, note_ms=110, overlap_ms=40, amplitude=0.07):
+    """Soft overlapping notes with exponential decay — no assets needed."""
+    notes = []
+    for f in freqs:
+        n = int(SAMPLE_RATE * note_ms / 1000)
+        t = np.linspace(0, note_ms / 1000, n, endpoint=False)
+        env = np.exp(-t * 22.0).astype(np.float32)
+        notes.append((amplitude * np.sin(2 * np.pi * f * t)).astype(np.float32) * env)
+    step = max(1, int(SAMPLE_RATE * (note_ms - overlap_ms) / 1000))
+    total = step * (len(freqs) - 1) + len(notes[0])
+    out = np.zeros(total, dtype=np.float32)
+    for i, note in enumerate(notes):
+        out[i * step:i * step + len(note)] += note
+    return np.clip(out, -1.0, 1.0)
 
 
-TONES = _build_tones()
+TONES = {
+    "start": make_chime([523.25, 659.25]),   # C5 -> E5, gentle rise
+    "stop": make_chime([659.25, 523.25]),    # mirror fall
+    "error": make_chime([165.0, 165.0], note_ms=90, overlap_ms=0),
+}
 
 
 def play_tone(kind: str, enabled: bool = True):
@@ -56,8 +77,9 @@ def play_tone(kind: str, enabled: bool = True):
 class Recorder:
     """Buffers microphone audio between start() and stop()."""
 
-    def __init__(self, device=None):
+    def __init__(self, device=None, on_level=None):
         self.device = device  # None = system default input
+        self.on_level = on_level  # optional callback(0..1) per audio block
         self._stream = None
         self._chunks = []
         self._lock = threading.Lock()
@@ -78,6 +100,18 @@ class Recorder:
 
     def _callback(self, indata, frames, time_info, status):
         self._chunks.append(indata[:, 0].copy())
+        if self.on_level is not None:
+            try:
+                self.on_level(normalize_level(rms(indata[:, 0])))
+            except Exception:
+                pass  # level feed is cosmetic
+
+    def snapshot(self):
+        """Copy of everything recorded so far, without stopping the stream."""
+        with self._lock:
+            if not self._chunks:
+                return np.zeros(0, dtype=np.float32)
+            return np.concatenate(self._chunks).copy()
 
     def stop(self) -> np.ndarray:
         with self._lock:
