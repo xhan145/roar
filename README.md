@@ -7,7 +7,7 @@ Local, free voice-to-text dictation for Windows — a [Wispr Flow](https://wispr
 ## Install
 
 1. Install [Python 3.11+](https://www.python.org/downloads/) (tested on 3.14).
-2. Clone or download this repo, then open a terminal in the `flowlocal` folder.
+2. Clone or download this repo, then open a terminal in the repo folder.
 3. `python -m venv venv`
 4. `venv\Scripts\python.exe -m pip install -r requirements.txt` (Git Bash: `venv/Scripts/python.exe`)
 5. *(Optional, NVIDIA GPU)* `venv\Scripts\python.exe -m pip install -r requirements-gpu.txt` — enables CUDA for ~5-10× faster, higher-quality transcription.
