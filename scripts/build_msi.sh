@@ -22,5 +22,6 @@ fi
 "$WIX/light.exe" -nologo -b dist/ROAR -sval \
   -out "dist/ROAR-$VERSION.msi.building" build/harvest.wixobj build/roar.wixobj
 mv -f "dist/ROAR-$VERSION.msi.building" "dist/ROAR-$VERSION.msi"
-find dist -maxdepth 1 -name "ROAR-*.msi" ! -name "ROAR-$VERSION.msi" -delete
+find dist -maxdepth 1 \( -name "ROAR-*.msi" ! -name "ROAR-$VERSION.msi" \) -delete
+find dist -maxdepth 1 -name "FlowLocal-*.msi*" -delete  # pre-rename leftovers
 echo "built dist/ROAR-$VERSION.msi"

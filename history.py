@@ -43,6 +43,9 @@ class History:
         self._conn = self._open()
 
     def _open(self):
+        parent = os.path.dirname(self.db_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)  # getters are pure; writers create
         conn = None
         try:
             conn = self._sqlite.connect(self.db_path, check_same_thread=False)

@@ -24,16 +24,22 @@ def _ensure(path: str) -> str:
     return path
 
 
+# PATH GETTERS ARE PURE — they never create directories. Creation happens
+# only at write time (config.save, redirect_output_when_frozen, History,
+# audio writes). A getter that creates its directory as a side effect races
+# migrate_legacy_data(): config.py evaluates config_path() at IMPORT time,
+# which used to conjure an empty %APPDATA%\ROAR before migration could
+# rename the legacy FlowLocal dir onto it.
+
 def config_path() -> str:
     if is_frozen():
-        base = _ensure(os.path.join(os.environ["APPDATA"], APP_NAME))
-        return os.path.join(base, "config.json")
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "config.json")
     return os.path.join(_source_root(), "config.json")
 
 
 def models_dir() -> str:
     if is_frozen():
-        return _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models"))
+        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models")
     return os.path.join(_source_root(), "models")
 
 
@@ -41,7 +47,7 @@ def _data_dir() -> str:
     """Per-user writable data root (history, audio, log). Frozen: LOCALAPPDATA;
     source: project root."""
     if is_frozen():
-        return _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME))
+        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME)
     return _source_root()
 
 
@@ -50,6 +56,7 @@ def history_db_path() -> str:
 
 
 def audio_dir() -> str:
+    # _ensure is safe here: only called when writing a WAV, long after startup
     return _ensure(os.path.join(_data_dir(), "audio"))
 
 
@@ -61,8 +68,7 @@ def resource_path(name: str) -> str:
 
 
 def log_path() -> str:
-    base = _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME))
-    return os.path.join(base, "roar.log")
+    return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "roar.log")
 
 
 def migrate_legacy_data(old_name="FlowLocal"):
@@ -106,6 +112,8 @@ def redirect_output_when_frozen():
     """Windowed exes have no stdout/stderr; print() would die. Log to a file."""
     if not is_frozen():
         return
-    log = open(log_path(), "a", encoding="utf-8", buffering=1)
+    target = log_path()
+    os.makedirs(os.path.dirname(target), exist_ok=True)
+    log = open(target, "a", encoding="utf-8", buffering=1)
     sys.stdout = log
     sys.stderr = log

@@ -58,5 +58,8 @@ def load(path=None):
 
 def save(cfg, path=None):
     path = path or PATH
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)  # getters are pure; writers create
     with open(path, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
