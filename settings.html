@@ -102,6 +102,9 @@
   .radio .cap { color: var(--muted); font-size: 12.5px; }
 
   .locked { text-align: center; color: var(--muted); padding: 40px 20px; }
+  .stat { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .chipword { background: #0E1320; border: 1px solid var(--border); border-radius: 14px; padding: 3px 12px; font-size: 12.5px; }
+  .wbar { height: 8px; background: var(--accent); border-radius: 4px; opacity: .85; }
   .locked .icon { font-size: 30px; margin-bottom: 10px; }
   .pathlink { color: var(--accent); cursor: pointer; text-decoration: underline; word-break: break-all; }
   .kv { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
@@ -117,6 +120,7 @@
     <button class="nav" data-s="hotkeys">Hotkeys</button>
     <button class="nav" data-s="voice">Voice &amp; Mic</button>
     <button class="nav" data-s="transcription">Transcription</button>
+    <button class="nav" data-s="insights">Insights</button>
     <button class="nav" data-s="privacy">Privacy</button>
     <button class="nav" data-s="history">History</button>
     <button class="nav" data-s="about">About</button>
@@ -178,6 +182,36 @@
       <div class="msg" id="m-model"></div>
     </section>
 
+    <section id="insights">
+      <h1>Insights</h1>
+      <div id="ins-empty" class="row locked" style="display:none;">Dictate a few times to build your profile.</div>
+      <div id="ins-body">
+        <div style="display:flex;gap:10px;">
+          <div class="row" style="flex:1;text-align:center;"><div class="hint">Dictations</div><div class="stat" id="st-dictations">0</div></div>
+          <div class="row" style="flex:1;text-align:center;"><div class="hint">Words</div><div class="stat" id="st-words">0</div></div>
+          <div class="row" style="flex:1;text-align:center;"><div class="hint">Avg length</div><div class="stat" id="st-avg">0</div></div>
+        </div>
+        <div class="row">
+          <div class="hint" style="margin-bottom:8px;">Last 14 days</div>
+          <div id="ins-activity" style="display:flex;align-items:flex-end;gap:4px;height:80px;"></div>
+        </div>
+        <div class="row">
+          <div class="hint">Speaking pace</div>
+          <div id="ins-pace" class="stat">—</div>
+        </div>
+        <div class="row">
+          <div class="hint" style="margin-bottom:8px;">Top words</div>
+          <div id="ins-topwords"></div>
+        </div>
+        <div class="row">
+          <div class="hint" style="margin-bottom:6px;">Signature words</div>
+          <div id="ins-signature" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+          <div class="hint" style="margin-top:8px;">These will boost transcription accuracy in a future update.</div>
+        </div>
+        <div class="row" id="ins-profile"></div>
+      </div>
+    </section>
+
     <section id="privacy">
       <h1>Privacy</h1>
       <div class="row flex">
@@ -202,6 +236,9 @@
 
     <section id="history">
       <h1>History</h1>
+      <input id="history-search" type="search" placeholder="Search dictations…"
+             style="width:100%;background:#0E1320;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:10px;color:var(--text);"
+             aria-label="Search dictations">
       <div id="history-list"></div>
       <div class="msg" id="m-history"></div>
       <button class="btn" id="b-clear-all" style="margin-top:6px;">Clear all history</button>
@@ -231,6 +268,7 @@ document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click
   b.setAttribute("aria-current", "true");
   document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
   $(b.dataset.s).classList.add("active");
+  if (b.dataset.s === "insights") renderInsights();
 }));
 
 /* ---- helpers ---- */
@@ -292,6 +330,7 @@ async function init() {
   $("s-retention").value = String(c.audio_retention_days);
   renderHistory();
   refreshStats();
+  renderInsights();
 }
 window.addEventListener("pywebviewready", init);
 
@@ -303,14 +342,15 @@ function relTime(ts) {
   if (s < 86400) return Math.floor(s / 3600) + "h ago";
   return Math.floor(s / 86400) + "d ago";
 }
-async function renderHistory() {
-  const rows = await api().history_list(100);
+async function renderHistory(query) {
+  const rows = await api().history_list(100, query || null);
   const box = $("history-list");
   box.innerHTML = "";
   if (!rows.length) {
     const e = document.createElement("div");
     e.className = "row locked";
-    e.textContent = "No dictations yet — hold your hotkey and speak.";
+    e.textContent = query ? "No dictations match “" + query + "”."
+                          : "No dictations yet — hold your hotkey and speak.";
     box.appendChild(e); return;
   }
   rows.forEach(r => {
@@ -324,7 +364,7 @@ async function renderHistory() {
     const copy = document.createElement("button"); copy.className = "btn"; copy.textContent = "Copy";
     copy.onclick = () => navigator.clipboard.writeText(r.text);
     const del = document.createElement("button"); del.className = "btn"; del.textContent = "Delete";
-    del.onclick = async () => { await api().history_delete(r.id); renderHistory(); refreshStats(); };
+    del.onclick = async () => { await api().history_delete(r.id); renderHistory($("history-search").value); refreshStats(); renderInsights(); };
     actions.appendChild(copy); actions.appendChild(del);
     card.appendChild(meta); card.appendChild(txt); card.appendChild(actions);
     box.appendChild(card);
@@ -335,6 +375,58 @@ async function refreshStats() {
   $("privacy-stats").textContent =
     s.count + " dictations · " + s.audio_count + " audio clips · " + s.audio_mb + " MB";
 }
+async function renderInsights() {
+  const d = await api().get_insights();
+  const empty = d.totals.dictations === 0;
+  $("ins-empty").style.display = empty ? "" : "none";
+  $("ins-body").style.display = empty ? "none" : "";
+  if (empty) return;
+  $("st-dictations").textContent = d.totals.dictations;
+  $("st-words").textContent = d.totals.words.toLocaleString();
+  $("st-avg").textContent = d.totals.avg_words + " words";
+  const act = $("ins-activity"); act.innerHTML = "";
+  const max = Math.max(1, ...d.activity.map(a => a.words));
+  d.activity.forEach(a => {
+    const col = document.createElement("div");
+    col.style.cssText = "flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end;";
+    col.title = a.date + ": " + a.words + " words (" + a.dictations + " dictations)";
+    const bar = document.createElement("div");
+    bar.style.cssText = "width:100%;border-radius:3px;height:" +
+      (a.words ? Math.max(6, Math.round(a.words / max * 64)) : 2) + "px;" +
+      (a.words ? "background:var(--accent);opacity:.85;" : "background:#242C3D;");
+    const lbl = document.createElement("div");
+    lbl.className = "hint"; lbl.style.fontSize = "10px";
+    lbl.textContent = a.date.slice(8);
+    col.appendChild(bar); col.appendChild(lbl); act.appendChild(col);
+  });
+  $("ins-pace").textContent = d.pace.median_wpm
+    ? d.pace.median_wpm + " WPM" + (d.pace.recent_wpm ? " (" + d.pace.recent_wpm + " this week)" : "")
+    : "—";
+  const tw = $("ins-topwords"); tw.innerHTML = "";
+  const wmax = d.top_words.length ? d.top_words[0][1] : 1;
+  d.top_words.forEach(([w, c]) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;margin:4px 0;";
+    const label = document.createElement("div");
+    label.style.cssText = "width:110px;overflow:hidden;text-overflow:ellipsis;"; label.textContent = w;
+    const bar = document.createElement("div"); bar.className = "wbar";
+    bar.style.width = Math.max(4, Math.round(c / wmax * 60)) + "%";
+    const count = document.createElement("div"); count.className = "hint"; count.textContent = c;
+    row.appendChild(label); row.appendChild(bar); row.appendChild(count); tw.appendChild(row);
+  });
+  const sig = $("ins-signature"); sig.innerHTML = "";
+  d.signature_words.forEach(w => {
+    const chip = document.createElement("span"); chip.className = "chipword"; chip.textContent = w;
+    sig.appendChild(chip);
+  });
+  const prof = $("ins-profile"); prof.innerHTML = "";
+  d.profile_sentences.forEach(s => {
+    const p = document.createElement("div"); p.textContent = s; p.style.margin = "4px 0";
+    prof.appendChild(p);
+  });
+  prof.style.display = d.profile_sentences.length ? "" : "none";
+}
+let searchTimer = null;
 function twoStep(btn, action) {
   if (btn.dataset.armed === "1") { btn.dataset.armed = "0"; btn.textContent = btn.dataset.label; action(); return; }
   btn.dataset.label = btn.textContent; btn.dataset.armed = "1"; btn.textContent = "Click again to confirm";
@@ -351,12 +443,16 @@ $("s-retention").addEventListener("change", async e => {
   refreshStats();
 });
 $("b-clear-all").addEventListener("click", e =>
-  twoStep(e.target, async () => { await api().history_clear(); renderHistory(); refreshStats(); }));
+  twoStep(e.target, async () => { await api().history_clear(); renderHistory(); refreshStats(); renderInsights(); }));
 $("b-delete-all").addEventListener("click", e =>
   twoStep(e.target, async () => {
-    await api().history_clear(); renderHistory(); refreshStats();
+    await api().history_clear(); renderHistory(); refreshStats(); renderInsights();
     msg("m-privacy", "All history and audio deleted", "ok");
   }));
+$("history-search").addEventListener("input", e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => renderHistory(e.target.value.trim()), 300);
+});
 
 /* ---- instant handlers ---- */
 $("t-autostart").addEventListener("click", async () => {

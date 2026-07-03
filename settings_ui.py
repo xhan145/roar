@@ -207,8 +207,13 @@ def run_settings(smoke=False):
                         "(function(){var b=document.querySelector('.nav[data-s=\"privacy\"]');"
                         "if(!b||b.disabled)return 0; b.click();"
                         "return document.getElementById('privacy').classList.contains('active')?1:0;})()")
+                    ins_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"insights\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('insights').classList.contains('active')?1:0;})()")
                     print(f"FlowLocal: settings probe navs={navs} version={ver} "
-                          f"priv={has_priv} privnav={priv_nav}", flush=True)
+                          f"priv={has_priv} privnav={priv_nav} insnav={ins_nav}",
+                          flush=True)
                 finally:
                     window.destroy()
             threading.Timer(2.5, probe_and_close).start()
