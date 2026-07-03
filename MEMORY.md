@@ -105,8 +105,17 @@ Two processes, one config file:
    string must not become per-character hotwords). Corrupt JSON → defaults,
    user file left untouched.
 9. Settings UI: all dynamic text via `textContent` (never innerHTML with
-   data); Deep Focus tokens (bg #0B0E14, card #121722, accent #2563EB);
-   sidebar has 8 nav entries.
+   data); **Cinema Dark tokens since v0.8.0**: body gradient #0a0a0f→#020203,
+   surface rgba(255,255,255,.05), border rgba(255,255,255,.08), text #EDEDEF
+   / muted #8A8F98 / disabled #6A7080 (≥3:1), accent #5E6AD2 (indigo,
+   app-wide incl. tray + app icon; recording red / error amber stay
+   semantic), chart bars #7B85E2 at FULL opacity (opacity composites broke
+   3:1 — computed, not guessed), radius 16 cards / 24 pill, inline SVG
+   sidebar icons (1.5px stroke), no emoji-as-icon. pywebview window chrome
+   `background_color` must match bg-deep #020203. Sidebar has 8 nav entries.
+   ALSO: the user edits this repo from GitHub web — `git fetch` before
+   pushing, and MERGE (never rebase) when a tag already points at a local
+   commit.
 10. Smoke-test stdout markers are EXACT strings — `ROAR: hotkeys registered`,
     `ROAR: tray ready`, `ROAR: model loaded`, `ROAR: clean exit`,
     `ROAR: settings window ready`, probe line
