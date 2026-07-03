@@ -37,7 +37,7 @@ def load(path=None):
     except (json.JSONDecodeError, OSError) as e:
         # Broken hand-edited config must not brick the app. Keep the user's
         # file untouched so they can fix it; run on defaults meanwhile.
-        print(f"FlowLocal: config.json is invalid ({e}) — using defaults. "
+        print(f"ROAR: config.json is invalid ({e}) — using defaults. "
               f"Fix or delete {path} to silence this.", flush=True)
         return cfg
     for key, value in user.items():

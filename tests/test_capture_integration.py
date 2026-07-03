@@ -1,6 +1,6 @@
 """Integration: a running app's transcription path records to history.
 
-Exercises FlowLocalApp._handle_transcription end-to-end (gate -> transcribe
+Exercises ROARApp._handle_transcription end-to-end (gate -> transcribe
 -> inject -> record) with the heavy pieces (model, tray, keyboard, injection)
 stubbed, against a REAL temp History DB. This is the deterministic stand-in
 for the mic-loopback manual test, which depends on system audio routing.
@@ -28,7 +28,7 @@ def _make_app(tmp_path, cfg_overrides=None):
     if cfg_overrides:
         cfg.update(cfg_overrides)
     # bare instance — skip __init__ (it builds tray/model/keyboard threads)
-    a = app_mod.FlowLocalApp.__new__(app_mod.FlowLocalApp)
+    a = app_mod.ROARApp.__new__(app_mod.ROARApp)
     a.cfg = cfg
     a.last_transcript = ""
     a._dictation_count = 0

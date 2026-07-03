@@ -1,4 +1,4 @@
-"""FlowLocal — local voice-to-text tray app. Entry point."""
+"""ROAR — local voice-to-text tray app. Entry point."""
 import argparse
 import ctypes
 import os
@@ -24,7 +24,7 @@ from transcriber import Transcriber
 __version__ = paths.APP_VERSION
 
 ERROR_ALREADY_EXISTS = 183
-MUTEX_NAME = "Global\\FlowLocalSingleton"
+MUTEX_NAME = "Global\\ROARSingleton"
 
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en", "distil-large-v3"]
 
@@ -46,7 +46,7 @@ def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
                     audio=(audio if retention > 0 else None),
                     retention_days=retention, duration_s=duration_s)
     except Exception as e:
-        print(f"FlowLocal: history write failed: {e}", flush=True)
+        print(f"ROAR: history write failed: {e}", flush=True)
 
 
 def diff_config(old: dict, new: dict):
@@ -67,7 +67,7 @@ def diff_config(old: dict, new: dict):
     return actions
 
 
-class FlowLocalApp:
+class ROARApp:
     IDLE, LOADING, RECORDING, TRANSCRIBING = "idle", "loading", "recording", "transcribing"
 
     def __init__(self, cfg, smoke=False):
@@ -92,18 +92,18 @@ class FlowLocalApp:
         # serializes self.cfg mutation+save between menu handlers (tray
         # thread) and the config watcher (its own thread)
         self.cfg_lock = threading.RLock()
-        self.icon = pystray.Icon("FlowLocal", tray_icons.make_icon(self.LOADING),
-                                 "FlowLocal", menu=self._build_menu())
+        self.icon = pystray.Icon("ROAR", tray_icons.make_icon(self.LOADING),
+                                 "ROAR", menu=self._build_menu())
         self.worker = threading.Thread(target=self._worker, daemon=True)
 
     # -- logging / notifications ------------------------------------------
     def log(self, msg):
-        print(f"FlowLocal: {msg}", flush=True)
+        print(f"ROAR: {msg}", flush=True)
 
     def notify(self, msg):
         self.log(msg)
         try:
-            self.icon.notify(msg, "FlowLocal")
+            self.icon.notify(msg, "ROAR")
         except Exception:
             pass
 
@@ -195,7 +195,7 @@ class FlowLocalApp:
             self._rebuild_hotwords()
         except Exception as e:
             self.notify(f"Model load failed: {e}. Check your internet connection "
-                        "for the first-run download, then restart FlowLocal.")
+                        "for the first-run download, then restart ROAR.")
         self.model_ready.set()
         self._set_state(self.IDLE)
         while True:
@@ -396,7 +396,7 @@ class FlowLocalApp:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="FlowLocal — local voice-to-text")
+    parser = argparse.ArgumentParser(description="ROAR — local voice-to-text")
     parser.add_argument("--smoke", action="store_true",
                         help="start, load model, then exit (self-test)")
     parser.add_argument("--settings", action="store_true",
@@ -404,6 +404,8 @@ def main():
     args = parser.parse_args()
 
     paths.redirect_output_when_frozen()
+    for line in paths.migrate_legacy_data():
+        print(f"ROAR: {line}", flush=True)
 
     if args.settings:
         import settings_ui
@@ -411,7 +413,7 @@ def main():
 
     mutex = acquire_single_instance()
     if mutex is None:
-        print("FlowLocal: already running — exiting", flush=True)
+        print("ROAR: already running — exiting", flush=True)
         sys.exit(1)
 
     if not paths.is_frozen():
@@ -432,7 +434,7 @@ def main():
     cfg = config_mod.load()
     if args.smoke:  # deterministic, small, CPU-only for the self-test
         cfg["model"] = "small.en"
-    app = FlowLocalApp(cfg, smoke=args.smoke)
+    app = ROARApp(cfg, smoke=args.smoke)
     if args.smoke:
         app.transcriber.force_device = "cpu"
     app.run()

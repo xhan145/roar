@@ -1,9 +1,9 @@
-# PyInstaller spec for FlowLocal.
-# Build: venv/Scripts/python.exe -m PyInstaller flowlocal.spec --noconfirm
+# PyInstaller spec for ROAR.
+# Build: venv/Scripts/python.exe -m PyInstaller roar.spec --noconfirm
 #
 # One-dir (NOT one-file): the bundled CUDA DLLs are >1 GB; one-file would
 # re-extract them on every launch. Windowed: logs go to
-# %LOCALAPPDATA%/FlowLocal/flowlocal.log (see paths.py).
+# %LOCALAPPDATA%/ROAR/roar.log (see paths.py).
 from PyInstaller.utils.hooks import collect_all
 
 datas, binaries, hiddenimports = [], [], []
@@ -48,7 +48,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="FlowLocal",
+    name="ROAR",
     icon="icon.ico",
     console=False,
     upx=False,
@@ -59,5 +59,5 @@ coll = COLLECT(
     a.datas,
     strip=False,
     upx=False,
-    name="FlowLocal",
+    name="ROAR",
 )

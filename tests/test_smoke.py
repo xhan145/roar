@@ -14,8 +14,8 @@ def test_smoke_startup_and_clean_exit():
     except subprocess.TimeoutExpired:
         proc.kill()
         raise
-    assert "FlowLocal: hotkeys registered" in out
-    assert "FlowLocal: tray ready" in out
-    assert "FlowLocal: model loaded" in out
-    assert "FlowLocal: clean exit" in out
+    assert "ROAR: hotkeys registered" in out
+    assert "ROAR: tray ready" in out
+    assert "ROAR: model loaded" in out
+    assert "ROAR: clean exit" in out
     assert proc.returncode == 0

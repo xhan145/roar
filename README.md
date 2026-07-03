@@ -1,4 +1,4 @@
-# FlowLocal
+# ROAR
 
 Local, free voice-to-text dictation for Windows — a [Wispr Flow](https://wisprflow.ai)-style experience with zero cloud. Hold a hotkey, speak, release: your words are typed into whatever app has focus (browser, DAW, Discord, VS Code, games in windowed mode, anything).
 
@@ -48,13 +48,13 @@ Turning history off or clearing it empties the profile too — it's purely a vie
 
 ### Vocabulary (better recognition of your words)
 
-Settings → Transcription → **Vocabulary**: add names, jargon, and brand words (e.g. "ScratchEdge") and FlowLocal biases recognition toward them on every dictation. With **Include my signature words automatically** on (default), your top words from dictation history are added too — the profile from the Insights tab actively improving transcription. Changes take effect on the next dictation; everything stays local.
+Settings → Transcription → **Vocabulary**: add names, jargon, and brand words (e.g. "ScratchEdge") and ROAR biases recognition toward them on every dictation. With **Include my signature words automatically** on (default), your top words from dictation history are added too — the profile from the Insights tab actively improving transcription. Changes take effect on the next dictation; everything stays local.
 
 ### History & Privacy
 
 - **History tab:** every dictation is saved locally (on by default) — reverse-chronological list with copy and per-item delete, plus Clear all.
 - **Privacy tab:** turn history off entirely; choose how long to keep the **audio** of each dictation (Off / 1 / 7 / 30 / 90 days — Off deletes audio the instant it's transcribed, which is the default); a live storage stat; and a Delete-all-history-&-audio button.
-- Data lives in `%LOCALAPPDATA%\FlowLocal` (`history.db` + `audio\`). It is **kept when you uninstall the MSI** — delete that folder by hand if you want it gone. Nothing is ever uploaded.
+- Data lives in `%LOCALAPPDATA%\ROAR` (`history.db` + `audio\`). It is **kept when you uninstall the MSI** — delete that folder by hand if you want it gone. Nothing is ever uploaded.
 
 ## Tray icon
 
@@ -65,7 +65,7 @@ The microphone icon shows state by color **and** shape: gray = idle, gray + arc 
 - **Model** — switch between tiny.en / base.en / small.en / medium.en / distil-large-v3 / auto
 - **Input device** — pick a microphone
 - **Fallback paste mode** — paste via clipboard (Ctrl+V) instead of typing, for apps that block synthetic keystrokes; your previous clipboard is restored
-- **Open config** — opens `config.json` in Notepad (restart FlowLocal to apply edits)
+- **Open config** — opens `config.json` in Notepad (restart ROAR to apply edits)
 - **Quit**
 
 ## Models
@@ -103,32 +103,32 @@ Generated next to `app.py` on first run:
 ## Troubleshooting
 
 - **"No microphone found"** — plug one in or pick another device in the tray menu.
-- **Nothing typed in some app** — that app blocks synthetic keystrokes (some games, admin windows). Enable **Fallback paste mode** in the tray menu. For admin windows, run FlowLocal as administrator.
+- **Nothing typed in some app** — that app blocks synthetic keystrokes (some games, admin windows). Enable **Fallback paste mode** in the tray menu. For admin windows, run ROAR as administrator.
 - **"loading … on cuda" then falls back to CPU** — install the GPU extras: `pip install -r requirements-gpu.txt`.
 - **Dictation is cut off / ignored** — clips under 0.3 s or near-silence are dropped by design; lower `silence_rms_threshold` if your mic is very quiet.
-- **"already running — exiting"** — FlowLocal is single-instance; check the tray for the existing icon.
+- **"already running — exiting"** — ROAR is single-instance; check the tray for the existing icon.
 - **Hotkey conflicts** — change `hotkey_ptt` / `hotkey_toggle` in `config.json` and restart.
 
 ## Packaged app (no Python needed)
 
-Build a standalone `FlowLocal.exe` (one-dir bundle, ~1.5 GB with GPU support included):
+Build a standalone `ROAR.exe` (one-dir bundle, ~1.5 GB with GPU support included):
 
 ```
 venv\Scripts\python.exe -m pip install -r requirements-build.txt
 venv\Scripts\python.exe scripts\make_icon.py
-venv\Scripts\python.exe -m PyInstaller flowlocal.spec --noconfirm
+venv\Scripts\python.exe -m PyInstaller roar.spec --noconfirm
 ```
 
-The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\FlowLocal` folder; it runs on machines without Python. Notes:
+The app lands in `dist\ROAR\ROAR.exe` — copy or zip the whole `dist\ROAR` folder; it runs on machines without Python. Notes:
 
-- The exe is **windowed** (no console). Logs go to `%LOCALAPPDATA%\FlowLocal\flowlocal.log`.
-- Config lives at `%APPDATA%\FlowLocal\config.json`; models download to `%LOCALAPPDATA%\FlowLocal\models` on first run.
+- The exe is **windowed** (no console). Logs go to `%LOCALAPPDATA%\ROAR\roar.log`.
+- Config lives at `%APPDATA%\ROAR\config.json`; models download to `%LOCALAPPDATA%\ROAR\models` on first run.
 - CUDA DLLs are bundled (spec prunes ~780 MB of cuDNN kernels Whisper doesn't use). On machines without an NVIDIA GPU it falls back to CPU automatically.
 - One-dir (not one-file) is deliberate: a one-file exe would re-extract the GB-scale bundle on every launch.
 
 ### MSI installer
 
-`bash scripts/build_msi.sh` builds `dist/FlowLocal-0.2.0.msi` (WiX 3.14 downloads automatically on first run). Per-user install — no admin needed: files go to `%LOCALAPPDATA%\Programs\FlowLocal` with a Start Menu shortcut; uninstall from Windows Settings → Apps.
+`bash scripts/build_msi.sh` builds `dist/ROAR-0.2.0.msi` (WiX 3.14 downloads automatically on first run). Per-user install — no admin needed: files go to `%LOCALAPPDATA%\Programs\ROAR` with a Start Menu shortcut; uninstall from Windows Settings → Apps.
 
 ## Development
 

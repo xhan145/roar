@@ -58,6 +58,6 @@ def test_hotwords_reach_model_transcribe():
     t.active_model, t.device = "stub", "cpu"
     t.transcribe("ignored.wav")
     assert t._model.kwargs["hotwords"] is None  # default
-    t.hotwords = "ScratchEdge FlowLocal"
+    t.hotwords = "ScratchEdge ROAR"
     t.transcribe("ignored.wav")
-    assert t._model.kwargs["hotwords"] == "ScratchEdge FlowLocal"
+    assert t._model.kwargs["hotwords"] == "ScratchEdge ROAR"

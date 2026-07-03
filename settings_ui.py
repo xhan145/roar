@@ -13,8 +13,8 @@ import paths
 import recorder as recorder_mod
 from hotkeys import parse_chord
 
-APP_NAME = "FlowLocal"
-SETTINGS_MUTEX = "Global\\FlowLocalSettings"
+APP_NAME = paths.APP_NAME
+SETTINGS_MUTEX = "Global\\ROARSettings"
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en",
                  "distil-large-v3"]
 INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
@@ -214,26 +214,28 @@ class SettingsAPI:
 
 
 def run_settings(smoke=False):
+    for line in paths.migrate_legacy_data():
+        print(f"ROAR: {line}", flush=True)
     handle = ctypes.windll.kernel32.CreateMutexW(None, False, SETTINGS_MUTEX)
     if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
-        print("FlowLocal: settings already open", flush=True)
+        print("ROAR: settings already open", flush=True)
         return 0
     try:
         import webview
     except Exception as e:
-        print(f"FlowLocal: settings UI unavailable ({e}); opening config.json",
+        print(f"ROAR: settings UI unavailable ({e}); opening config.json",
               flush=True)
         os.startfile(config_mod.PATH)
         return 1
     html = paths.resource_path("settings.html")
     if not os.path.exists(html):
-        print(f"FlowLocal: settings.html missing at {html}; opening config.json",
+        print(f"ROAR: settings.html missing at {html}; opening config.json",
               flush=True)
         os.startfile(config_mod.PATH)
         return 1
     api = SettingsAPI()
     window = webview.create_window(
-        "FlowLocal Settings", url=html,
+        "ROAR Settings", url=html,
         js_api=api, width=900, height=640, min_size=(760, 560),
         background_color="#0B0E14")
 
@@ -243,7 +245,7 @@ def run_settings(smoke=False):
         page_loaded.set()
 
     def on_shown():
-        print("FlowLocal: settings window ready", flush=True)
+        print("ROAR: settings window ready", flush=True)
         if smoke:
             def probe_and_close():
                 try:
@@ -284,7 +286,7 @@ def run_settings(smoke=False):
                         "return document.getElementById('insights').classList.contains('active')?1:0;})()")
                     has_vocab = window.evaluate_js(
                         "document.getElementById('vocab-input') ? 1 : 0")
-                    print(f"FlowLocal: settings probe navs={navs} version={ver} "
+                    print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab}", flush=True)
                 finally:
@@ -294,5 +296,5 @@ def run_settings(smoke=False):
     window.events.loaded += on_loaded
     window.events.shown += on_shown
     webview.start()
-    print("FlowLocal: settings closed", flush=True)
+    print("ROAR: settings closed", flush=True)
     return 0

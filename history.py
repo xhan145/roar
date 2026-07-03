@@ -64,7 +64,7 @@ class History:
             if os.path.exists(self.db_path):
                 aside = self.db_path + f".corrupt-{int(time.time())}"
                 os.replace(self.db_path, aside)
-                print(f"FlowLocal: history database was corrupt — moved to "
+                print(f"ROAR: history database was corrupt — moved to "
                       f"{aside} and started fresh. The old file is kept in "
                       f"case you want to recover it.", flush=True)
             conn = self._sqlite.connect(self.db_path, check_same_thread=False)
@@ -117,7 +117,7 @@ class History:
             except Exception as e:
                 # never leave an untracked partial WAV behind
                 self._delete_audio(path)
-                print(f"FlowLocal: could not save audio for {rid}: {e}",
+                print(f"ROAR: could not save audio for {rid}: {e}",
                       flush=True)
         return rid
 

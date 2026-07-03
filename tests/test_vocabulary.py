@@ -2,8 +2,8 @@ from vocabulary import MAX_CUSTOM, merge_hotwords, validate_entry
 
 
 def test_merge_dedupes_case_insensitively_custom_first():
-    s = merge_hotwords(["ScratchEdge", "Kubernetes"], ["kubernetes", "flowlocal"])
-    assert s == "ScratchEdge Kubernetes flowlocal"
+    s = merge_hotwords(["ScratchEdge", "Kubernetes"], ["kubernetes", "roar"])
+    assert s == "ScratchEdge Kubernetes roar"
 
 
 def test_merge_trims_and_drops_empties():

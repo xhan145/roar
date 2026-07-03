@@ -1,8 +1,8 @@
 """Runtime paths: project-local when run from source, per-user when frozen.
 
 A PyInstaller exe may live in a read-only location and has no console, so
-frozen runs keep config in %APPDATA%\\FlowLocal and models plus the log in
-%LOCALAPPDATA%\\FlowLocal.
+frozen runs keep config in %APPDATA%\\ROAR and models plus the log in
+%LOCALAPPDATA%\\ROAR.
 """
 import os
 import sys
@@ -62,7 +62,7 @@ def resource_path(name: str) -> str:
 
 def log_path() -> str:
     base = _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME))
-    return os.path.join(base, "flowlocal.log")
+    return os.path.join(base, "roar.log")
 
 
 def migrate_legacy_data(old_name="FlowLocal"):

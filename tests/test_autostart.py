@@ -2,15 +2,15 @@ import os
 
 import autostart
 
-NAME = f"FlowLocalTest{os.getpid()}"
+NAME = f"ROARTest{os.getpid()}"
 
 
 def test_round_trip_and_cleanup():
     try:
         assert autostart.get(NAME) is None
-        autostart.set_enabled(NAME, '"C:\\fake\\FlowLocal.exe"', True)
-        assert autostart.get(NAME) == '"C:\\fake\\FlowLocal.exe"'
-        autostart.set_enabled(NAME, '"C:\\fake\\FlowLocal.exe"', False)
+        autostart.set_enabled(NAME, '"C:\\fake\\ROAR.exe"', True)
+        assert autostart.get(NAME) == '"C:\\fake\\ROAR.exe"'
+        autostart.set_enabled(NAME, '"C:\\fake\\ROAR.exe"', False)
         assert autostart.get(NAME) is None
         autostart.set_enabled(NAME, "x", False)  # disabling absent key is a no-op
     finally:
