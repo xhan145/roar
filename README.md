@@ -36,6 +36,17 @@ Tray icon → **Settings…** opens the settings window (dark "Deep Focus" UI):
 
 Settings write to the same `config.json` — hand edits also hot-apply while the app runs.
 
+### Insights & your speech profile
+
+The **Insights** tab shows how you dictate — all computed locally from your history, nothing uploaded:
+
+- Totals (dictations, words, average length) and a 14-day activity chart.
+- **Speaking pace** in words per minute (measured from dictation length; starts filling in from v0.4.0 onward).
+- **Top words** and your **signature words** — the distinctive vocabulary that will feed transcription-accuracy hints in a future update.
+- A short profile of how you talk ("short bursts, brisk pace…"). Appears after ~5 dictations.
+
+Turning history off or clearing it empties the profile too — it's purely a view of your stored history. The History tab also has a **search box** now.
+
 ### History & Privacy
 
 - **History tab:** every dictation is saved locally (on by default) — reverse-chronological list with copy and per-item delete, plus Clear all.
@@ -118,7 +129,7 @@ The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\
 
 ## Development
 
-Run the test suite (65 tests: unit + real-speech transcription + focused-window injection + history/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
+Run the test suite (79 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v
