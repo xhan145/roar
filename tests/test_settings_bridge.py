@@ -46,7 +46,7 @@ def test_get_state_shape(tmp_path):
     s = api.get_state()
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
-    assert s["version"] == "0.8.0"
+    assert s["version"] == "0.9.0"
 
 
 def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
@@ -136,3 +136,22 @@ def test_vocab_add_stores_normalized_phrase(tmp_path, monkeypatch):
     api = SettingsAPI(config_path=str(tmp_path / "config.json"))
     assert api.vocab_add("New   York")["ok"] is True
     assert api.vocab_get()["custom"] == ["New York"]
+
+
+def test_apply_model_with_language(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    assert api.apply_model("auto", "es")["ok"] is True
+    cfg = config.load(p)
+    assert cfg["model"] == "auto" and cfg["language"] == "es"
+    assert "error" in api.apply_model("auto", "klingon")
+    assert api.apply_model("small.en")["ok"] is True   # language untouched
+    assert config.load(p)["language"] == "es"
+
+
+def test_get_state_languages(tmp_path):
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    langs = api.get_state()["languages"]
+    assert langs[0] == ["auto", "Auto-detect"]
+    assert ["es", "Español"] in langs
+    assert len(langs) > 50
