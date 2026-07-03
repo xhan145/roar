@@ -46,6 +46,10 @@ The **Insights** tab shows how you dictate — all computed locally from your hi
 
 Turning history off or clearing it empties the profile too — it's purely a view of your stored history. The History tab also has a **search box** now.
 
+### Vocabulary (better recognition of your words)
+
+Settings → Transcription → **Vocabulary**: add names, jargon, and brand words (e.g. "ScratchEdge") and FlowLocal biases recognition toward them on every dictation. With **Include my signature words automatically** on (default), your top words from dictation history are added too — the profile from the Insights tab actively improving transcription. Changes take effect on the next dictation; everything stays local.
+
 ### History & Privacy
 
 - **History tab:** every dictation is saved locally (on by default) — reverse-chronological list with copy and per-item delete, plus Clear all.
@@ -128,7 +132,7 @@ The app lands in `dist\FlowLocal\FlowLocal.exe` — copy or zip the whole `dist\
 
 ## Development
 
-Run the test suite (81 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
+Run the test suite (91 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v
