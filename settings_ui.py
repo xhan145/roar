@@ -214,8 +214,7 @@ class SettingsAPI:
 
 
 def run_settings(smoke=False):
-    for line in paths.migrate_legacy_data():
-        print(f"ROAR: {line}", flush=True)
+    # (legacy-data migration already ran in app.main before dispatch here)
     handle = ctypes.windll.kernel32.CreateMutexW(None, False, SETTINGS_MUTEX)
     if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
         print("ROAR: settings already open", flush=True)

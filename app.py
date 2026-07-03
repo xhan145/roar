@@ -403,8 +403,13 @@ def main():
                         help="open the settings window instead of the tray app")
     args = parser.parse_args()
 
+    # Migration MUST precede redirect_output_when_frozen: opening the log
+    # file creates %LOCALAPPDATA%\ROAR, which would make migration see
+    # "both dirs exist" and refuse to move the legacy data. Migrate first
+    # (silently — windowed exes have no stdout yet), then log what moved.
+    migration_lines = paths.migrate_legacy_data()
     paths.redirect_output_when_frozen()
-    for line in paths.migrate_legacy_data():
+    for line in migration_lines:
         print(f"ROAR: {line}", flush=True)
 
     if args.settings:
