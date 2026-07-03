@@ -8,7 +8,7 @@ import os
 import sys
 
 APP_NAME = "FlowLocal"
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 
 
 def is_frozen() -> bool:
