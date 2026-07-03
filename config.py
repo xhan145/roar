@@ -27,6 +27,22 @@ DEFAULTS = {
 }
 
 
+_COMMON_LANGS = {"en", "es", "fr", "de", "it", "pt", "nl", "pl", "ru", "uk",
+                 "zh", "ja", "ko", "ar", "hi", "tr"}
+
+
+def valid_language(v) -> bool:
+    if v == "auto":
+        return True
+    if not isinstance(v, str):
+        return False
+    try:
+        from faster_whisper.tokenizer import _LANGUAGE_CODES
+        return v in _LANGUAGE_CODES
+    except Exception:
+        return v in _COMMON_LANGS
+
+
 def load(path=None):
     path = path or PATH
     cfg = copy.deepcopy(DEFAULTS)
@@ -47,6 +63,8 @@ def load(path=None):
             cfg["replacements"].update(
                 {k: v for k, v in value.items()
                  if isinstance(k, str) and isinstance(v, str)})
+        elif key == "language":
+            cfg[key] = value if valid_language(value) else "en"
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
             # (a plain string would otherwise be iterated char-by-char)

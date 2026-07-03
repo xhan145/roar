@@ -41,3 +41,13 @@ def test_defaults_have_vocabulary_keys():
     from config import DEFAULTS
     assert DEFAULTS["custom_vocabulary"] == []
     assert DEFAULTS["auto_vocabulary"] is True
+
+
+def test_language_change_reloads_model_once():
+    old, new = _pair(language="es", model="auto")
+    assert diff_config(old, new) == [("reload_model", "auto")]
+
+
+def test_language_and_model_change_single_reload():
+    old, new = _pair(language="auto", model="small")
+    assert diff_config(old, new).count(("reload_model", "small")) == 1

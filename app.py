@@ -57,7 +57,8 @@ def diff_config(old: dict, new: dict):
     if (old["hotkey_ptt"] != new["hotkey_ptt"]
             or old["hotkey_toggle"] != new["hotkey_toggle"]):
         actions.append(("rehook", None))
-    if old["model"] != new["model"]:
+    if (old["model"] != new["model"]
+            or old["language"] != new["language"]):  # policy forks by language
         actions.append(("reload_model", new["model"]))
     if old["input_device"] != new["input_device"]:
         actions.append(("set_device", new["input_device"]))
@@ -248,6 +249,7 @@ class ROARApp:
                 if kind == "reload":
                     self._set_state(self.LOADING)
                     self.transcriber.requested = payload  # "auto" re-runs the policy
+                    self.transcriber.language = self.cfg["language"]
                     self.transcriber.load()
                     self.notify(f"Model ready: {self.transcriber.description()}")
                 elif kind == "transcribe":

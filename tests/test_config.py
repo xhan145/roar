@@ -52,3 +52,13 @@ def test_custom_vocabulary_sanitized_on_load(tmp_path):
     assert config.load(str(p))["custom_vocabulary"] == []  # non-list ignored
     p.write_text(json.dumps({"custom_vocabulary": ["ok", 7, "  ", " kept "]}))
     assert config.load(str(p))["custom_vocabulary"] == ["ok", "kept"]
+
+
+def test_language_sanitized_on_load(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"language": "klingon"}))
+    assert config.load(str(p))["language"] == "en"
+    p.write_text(json.dumps({"language": "auto"}))
+    assert config.load(str(p))["language"] == "auto"
+    p.write_text(json.dumps({"language": "es"}))
+    assert config.load(str(p))["language"] == "es"
