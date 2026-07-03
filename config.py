@@ -45,6 +45,12 @@ def load(path=None):
             cfg["replacements"].update(
                 {k: v for k, v in value.items()
                  if isinstance(k, str) and isinstance(v, str)})
+        elif key == "custom_vocabulary":
+            # hand-edited configs: only a list of non-empty strings survives
+            # (a plain string would otherwise be iterated char-by-char)
+            if isinstance(value, list):
+                cfg[key] = [str(w).strip() for w in value
+                            if isinstance(w, str) and w.strip()]
         else:
             cfg[key] = value
     return cfg

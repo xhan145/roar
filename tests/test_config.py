@@ -44,3 +44,11 @@ def test_non_string_replacements_filtered(tmp_path):
     assert "bad" not in cfg["replacements"]
     assert cfg["replacements"]["good"] == "ok"
     assert cfg["replacements"]["new line"] == "\n"
+
+
+def test_custom_vocabulary_sanitized_on_load(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"custom_vocabulary": "hello"}))
+    assert config.load(str(p))["custom_vocabulary"] == []  # non-list ignored
+    p.write_text(json.dumps({"custom_vocabulary": ["ok", 7, "  ", " kept "]}))
+    assert config.load(str(p))["custom_vocabulary"] == ["ok", "kept"]

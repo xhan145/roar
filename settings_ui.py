@@ -39,6 +39,9 @@ class SettingsAPI:
         self._hist = None
         # pywebview runs each JS call on its own thread — guard lazy init
         self._hist_lock = threading.Lock()
+        # ...and serialize config read-modify-write cycles (two concurrent
+        # JS calls could otherwise lose each other's writes)
+        self._cfg_lock = threading.RLock()
 
     @property
     def _history(self):
@@ -61,9 +64,10 @@ class SettingsAPI:
         }
 
     def _write(self, **changes):
-        cfg = config_mod.load(self.config_path)
-        cfg.update(changes)
-        config_mod.save(cfg, self.config_path)
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            cfg.update(changes)
+            config_mod.save(cfg, self.config_path)
 
     # -- instant keys ----------------------------------------------------
     def set_value(self, key, value):
@@ -181,22 +185,24 @@ class SettingsAPI:
                 "auto_words": auto_words}
 
     def vocab_add(self, word):
-        from vocabulary import validate_entry
-        cfg = config_mod.load(self.config_path)
-        custom = [str(w) for w in cfg.get("custom_vocabulary", [])]
-        err = validate_entry(word, custom)
-        if err:
-            return {"error": err}
-        custom.append(str(word).strip())
-        self._write(custom_vocabulary=custom)
+        from vocabulary import normalize_entry, validate_entry
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            custom = [str(w) for w in cfg.get("custom_vocabulary", [])]
+            err = validate_entry(word, custom)
+            if err:
+                return {"error": err}
+            custom.append(normalize_entry(word))
+            self._write(custom_vocabulary=custom)
         return {"ok": True, "custom": custom}
 
     def vocab_remove(self, word):
-        cfg = config_mod.load(self.config_path)
-        target = str(word).strip().lower()
-        custom = [w for w in cfg.get("custom_vocabulary", [])
-                  if str(w).strip().lower() != target]
-        self._write(custom_vocabulary=custom)
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            target = str(word).strip().lower()
+            custom = [w for w in cfg.get("custom_vocabulary", [])
+                      if str(w).strip().lower() != target]
+            self._write(custom_vocabulary=custom)
         return {"ok": True, "custom": custom}
 
     def open_path(self, path):

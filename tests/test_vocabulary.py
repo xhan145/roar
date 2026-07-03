@@ -32,3 +32,16 @@ def test_validate_entry_rules():
     assert validate_entry("ctl\x07chr", []) is not None   # control char
     assert validate_entry("word", [f"w{i}" for i in range(MAX_CUSTOM)]) is not None
     assert validate_entry("  spaced  ", []) is None       # trimmed before checks
+
+
+def test_merge_guards_against_non_list_inputs():
+    # a mistyped config (bare string) must not become per-character hotwords
+    assert merge_hotwords("hello", []) is None
+    assert merge_hotwords(None, "world") is None
+    assert merge_hotwords({"a": 1}, ["ok"]) == "ok"
+
+
+def test_phrases_normalized_not_rejected():
+    from vocabulary import normalize_entry
+    assert validate_entry("New   York", []) is None
+    assert normalize_entry("New \t York ") == "New York"

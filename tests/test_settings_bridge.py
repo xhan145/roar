@@ -126,3 +126,13 @@ def test_vocab_round_trip(tmp_path, monkeypatch):
     assert api.vocab_get()["auto_enabled"] is False
     assert api.vocab_remove("SCRATCHEDGE")["ok"] is True
     assert api.vocab_get()["custom"] == []
+
+
+def test_vocab_add_stores_normalized_phrase(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    from settings_ui import SettingsAPI
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    assert api.vocab_add("New   York")["ok"] is True
+    assert api.vocab_get()["custom"] == ["New York"]
