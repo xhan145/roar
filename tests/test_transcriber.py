@@ -61,3 +61,29 @@ def test_hotwords_reach_model_transcribe():
     t.hotwords = "ScratchEdge ROAR"
     t.transcribe("ignored.wav")
     assert t._model.kwargs["hotwords"] == "ScratchEdge ROAR"
+
+
+def test_resolve_model_language_fork():
+    assert resolve_model("auto", "cuda", "en") == "distil-large-v3"
+    assert resolve_model("auto", "cpu", "en") == "small.en"
+    assert resolve_model("auto", "cuda", "es") == "large-v3-turbo"
+    assert resolve_model("auto", "cuda", "auto") == "large-v3-turbo"
+    assert resolve_model("auto", "cpu", "auto") == "small"
+    assert resolve_model("tiny.en", "cuda", "es") == "tiny.en"  # explicit wins
+
+
+def test_auto_language_reaches_transcribe_as_none():
+    t = Transcriber(model_name="small.en", force_device="cpu", language="auto")
+
+    class StubModel:
+        def transcribe(self, audio, **kwargs):
+            self.kwargs = kwargs
+            return iter(()), None
+
+    t._model = StubModel()
+    t.active_model, t.device = "stub", "cpu"
+    t.transcribe("x.wav")
+    assert t._model.kwargs["language"] is None
+    t.language = "es"
+    t.transcribe("x.wav")
+    assert t._model.kwargs["language"] == "es"
