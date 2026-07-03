@@ -37,6 +37,22 @@ def models_dir() -> str:
     return os.path.join(_source_root(), "models")
 
 
+def _data_dir() -> str:
+    """Per-user writable data root (history, audio, log). Frozen: LOCALAPPDATA;
+    source: project root."""
+    if is_frozen():
+        return _ensure(os.path.join(os.environ["LOCALAPPDATA"], APP_NAME))
+    return _source_root()
+
+
+def history_db_path() -> str:
+    return os.path.join(_data_dir(), "history.db")
+
+
+def audio_dir() -> str:
+    return _ensure(os.path.join(_data_dir(), "audio"))
+
+
 def resource_path(name: str) -> str:
     """Bundled read-only asset (e.g. settings.html)."""
     if is_frozen():
