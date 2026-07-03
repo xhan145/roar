@@ -19,7 +19,7 @@ MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en",
                  "distil-large-v3"]
 INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "input_device", "history_enabled", "audio_retention_days",
-                "auto_vocabulary"}
+                "auto_vocabulary", "overlay_enabled", "streaming_preview"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -85,7 +85,8 @@ class SettingsAPI:
                 return {"error": "retention must be a number"}
             if value not in RETENTION_CHOICES:
                 return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
-        if key in ("history_enabled", "auto_vocabulary"):
+        if key in ("history_enabled", "auto_vocabulary",
+                   "overlay_enabled", "streaming_preview"):
             value = bool(value)
         self._write(**{key: value})
         if key == "audio_retention_days":
@@ -274,6 +275,8 @@ def run_settings(smoke=False):
                         _time.sleep(0.5)
                     has_priv = window.evaluate_js(
                         "document.getElementById('s-retention') ? 1 : 0")
+                    has_ovl = window.evaluate_js(
+                        "document.getElementById('t-overlay') ? 1 : 0")
                     # tabs must be REACHABLE, not merely present in the DOM
                     priv_nav = window.evaluate_js(
                         "(function(){var b=document.querySelector('.nav[data-s=\"privacy\"]');"
@@ -285,9 +288,11 @@ def run_settings(smoke=False):
                         "return document.getElementById('insights').classList.contains('active')?1:0;})()")
                     has_vocab = window.evaluate_js(
                         "document.getElementById('vocab-input') ? 1 : 0")
+                    has_ovl = window.evaluate_js(
+                        "document.getElementById('t-overlay') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
-                          f"vocab={has_vocab}", flush=True)
+                          f"vocab={has_vocab} ovl={has_ovl}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()

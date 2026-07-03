@@ -137,6 +137,14 @@
         <div>Audio feedback tones<div class="hint">Short beeps on record start / stop / error</div></div>
         <button class="toggle" id="t-tones" aria-pressed="true" aria-label="Audio feedback tones"></button>
       </div>
+      <div class="row flex">
+        <div>Show the dictation pill<div class="hint">Floating waveform indicator while you record</div></div>
+        <button class="toggle" id="t-overlay" aria-pressed="true" aria-label="Show dictation pill"></button>
+      </div>
+      <div class="row flex">
+        <div>Live text preview<div class="hint">Your words appear in the pill while you speak; the final text is typed when you release</div></div>
+        <button class="toggle" id="t-streamprev" aria-pressed="true" aria-label="Live text preview"></button>
+      </div>
       <div class="msg" id="m-general"></div>
     </section>
 
@@ -343,6 +351,8 @@ async function init() {
   $("a-version").textContent = state.version;
   $("a-config").textContent = state.config_path;
   $("a-log").textContent = state.log_path;
+  setToggle($("t-overlay"), c.overlay_enabled);
+  setToggle($("t-streamprev"), c.streaming_preview);
   setToggle($("t-history"), c.history_enabled);
   $("s-retention").value = String(c.audio_retention_days);
   renderHistory();
@@ -537,6 +547,16 @@ $("t-tones").addEventListener("click", async () => {
   const want = !isOn($("t-tones"));
   const r = await api().set_value("tones_enabled", want);
   if (r.ok) setToggle($("t-tones"), want); else msg("m-general", r.error, "err");
+});
+$("t-overlay").addEventListener("click", async () => {
+  const want = !isOn($("t-overlay"));
+  const r = await api().set_value("overlay_enabled", want);
+  if (r.ok) setToggle($("t-overlay"), want); else msg("m-general", r.error, "err");
+});
+$("t-streamprev").addEventListener("click", async () => {
+  const want = !isOn($("t-streamprev"));
+  const r = await api().set_value("streaming_preview", want);
+  if (r.ok) setToggle($("t-streamprev"), want); else msg("m-general", r.error, "err");
 });
 $("t-paste").addEventListener("click", async () => {
   const want = !isOn($("t-paste"));
