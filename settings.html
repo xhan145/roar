@@ -188,6 +188,11 @@
 
     <section id="transcription">
       <h1>Transcription</h1>
+      <div class="row">
+        <div style="margin-bottom:8px;">Language</div>
+        <select id="s-language" aria-label="Dictation language"></select>
+        <div class="hint" style="margin-top:6px;">Auto-detect identifies the language each time you dictate. Switching away from English may download a multilingual model (~1.6 GB) on Apply. ".en" models are English-only.</div>
+      </div>
       <div class="row" id="model-list"></div>
       <button class="btn primary" id="b-apply-model" disabled>Apply</button>
       <div class="msg" id="m-model"></div>
@@ -319,7 +324,9 @@ const MODEL_CAPS = {
   "base.en": "Fast, light accuracy",
   "small.en": "Good accuracy, solid CPU default",
   "medium.en": "High accuracy, slow on CPU",
-  "distil-large-v3": "Best accuracy — needs a GPU to be fast"
+  "distil-large-v3": "Best accuracy (English only) — needs a GPU to be fast",
+  "small": "Multilingual, good accuracy on CPU",
+  "large-v3-turbo": "Multilingual, fast on GPU — best for non-English"
 };
 
 /* ---- init ---- */
@@ -350,6 +357,14 @@ async function init() {
     const d = document.createElement("div");
     d.innerHTML = "<div>" + m + "</div><div class='cap'>" + (MODEL_CAPS[m] || "") + "</div>";
     l.appendChild(r); l.appendChild(d); ml.appendChild(l);
+  });
+  const ls = $("s-language");
+  ls.innerHTML = "";
+  state.languages.forEach(([code, label]) => {
+    const o = document.createElement("option");
+    o.value = code; o.textContent = label === code ? code : (label + " (" + code + ")");
+    if (code === c.language) o.selected = true;
+    ls.appendChild(o);
   });
   $("a-version").textContent = state.version;
   $("a-config").textContent = state.config_path;
@@ -608,12 +623,20 @@ $("b-apply-hotkeys").addEventListener("click", async () => {
   } else msg("m-hotkeys", r.error, "err");
 });
 
+$("s-language").addEventListener("change", e => {
+  pending.langsel = e.target.value;
+  $("b-apply-model").disabled = false;
+});
+
 /* ---- model apply ---- */
 $("b-apply-model").addEventListener("click", async () => {
-  if (!pending.model) return;
-  const r = await api().apply_model(pending.model);
+  if (!pending.model && !pending.langsel) return;
+  const r = await api().apply_model(pending.model || state.config.model,
+                                    pending.langsel || null);
   if (r.ok) {
-    state.config.model = pending.model; pending.model = null;
+    if (pending.model) state.config.model = pending.model;
+    if (pending.langsel) state.config.language = pending.langsel;
+    pending.model = null; pending.langsel = null;
     $("b-apply-model").disabled = true;
     msg("m-model", "Model change applied — the tray app reloads it in the background", "ok");
   } else msg("m-model", r.error, "err");

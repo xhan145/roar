@@ -16,7 +16,27 @@ from hotkeys import parse_chord
 APP_NAME = paths.APP_NAME
 SETTINGS_MUTEX = "Global\\ROARSettings"
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en",
-                 "distil-large-v3"]
+                 "distil-large-v3", "small", "large-v3-turbo"]
+LANGUAGE_LABELS = {
+    "auto": "Auto-detect", "en": "English", "es": "Español", "fr": "Français",
+    "de": "Deutsch", "it": "Italiano", "pt": "Português", "nl": "Nederlands",
+    "pl": "Polski", "ru": "Русский", "uk": "Українська", "zh": "中文",
+    "ja": "日本語", "ko": "한국어", "ar": "العربية", "hi": "हिन्दी",
+    "tr": "Türkçe",
+}
+_COMMON_ORDER = ["auto", "en", "es", "fr", "de", "it", "pt", "nl", "pl",
+                 "ru", "uk", "zh", "ja", "ko", "ar", "hi", "tr"]
+
+
+def _language_options():
+    try:
+        from faster_whisper.tokenizer import _LANGUAGE_CODES
+        codes = sorted(_LANGUAGE_CODES)
+    except Exception:
+        codes = sorted(set(LANGUAGE_LABELS) - {"auto"})
+    rest = [c for c in codes if c not in _COMMON_ORDER]
+    return ([[c, LANGUAGE_LABELS.get(c, c)] for c in _COMMON_ORDER]
+            + [[c, c] for c in rest])
 INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "input_device", "history_enabled", "audio_retention_days",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview"}
@@ -61,6 +81,7 @@ class SettingsAPI:
             "version": paths.APP_VERSION,
             "config_path": self.config_path,
             "log_path": paths.log_path(),
+            "languages": _language_options(),
         }
 
     def _write(self, **changes):
@@ -132,10 +153,15 @@ class SettingsAPI:
         self._write(hotkey_ptt=ptt, hotkey_toggle=toggle)
         return {"ok": True}
 
-    def apply_model(self, name):
+    def apply_model(self, name, language=None):
         if name not in MODEL_CHOICES:
             return {"error": f"unknown model {name}"}
-        self._write(model=name)
+        if language is None:
+            self._write(model=name)
+            return {"ok": True}
+        if not config_mod.valid_language(language):
+            return {"error": f"unknown language {language}"}
+        self._write(model=name, language=language)
         return {"ok": True}
 
     def set_autostart(self, enabled):
@@ -277,6 +303,8 @@ def run_settings(smoke=False):
                         "document.getElementById('s-retention') ? 1 : 0")
                     has_ovl = window.evaluate_js(
                         "document.getElementById('t-overlay') ? 1 : 0")
+                    has_lang = window.evaluate_js(
+                        "document.getElementById('s-language') ? 1 : 0")
                     # tabs must be REACHABLE, not merely present in the DOM
                     priv_nav = window.evaluate_js(
                         "(function(){var b=document.querySelector('.nav[data-s=\"privacy\"]');"
@@ -290,9 +318,11 @@ def run_settings(smoke=False):
                         "document.getElementById('vocab-input') ? 1 : 0")
                     has_ovl = window.evaluate_js(
                         "document.getElementById('t-overlay') ? 1 : 0")
+                    has_lang = window.evaluate_js(
+                        "document.getElementById('s-language') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
-                          f"vocab={has_vocab} ovl={has_ovl}", flush=True)
+                          f"vocab={has_vocab} ovl={has_ovl} lang={has_lang}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()
