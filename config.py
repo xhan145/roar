@@ -20,6 +20,8 @@ DEFAULTS = {
     "replacements": {"new line": "\n", "new paragraph": "\n\n"},
     "history_enabled": True,
     "audio_retention_days": 0,
+    "custom_vocabulary": [],
+    "auto_vocabulary": True,
 }
 
 

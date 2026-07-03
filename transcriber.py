@@ -61,6 +61,7 @@ class Transcriber:
         self._model = None
         self.active_model = None
         self.device = None
+        self.hotwords = None  # merged vocabulary string; set by the app
 
     def description(self) -> str:
         if self._model is None:
@@ -95,7 +96,8 @@ class Transcriber:
         # small.en with identical output. The app's RMS gate already rejects
         # silence, which is what vad_filter would protect against.
         segments, _info = self._model.transcribe(
-            audio, language=self.language, beam_size=1, vad_filter=False)
+            audio, language=self.language, beam_size=1, vad_filter=False,
+            hotwords=self.hotwords)
         return " ".join(seg.text.strip() for seg in segments).strip()
 
     def transcribe(self, audio) -> str:

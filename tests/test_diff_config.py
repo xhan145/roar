@@ -30,3 +30,14 @@ def test_instant_keys_produce_no_actions():
     old, new = _pair(tones_enabled=False, paste_fallback=True,
                      silence_rms_threshold=0.01)
     assert diff_config(old, new) == []
+
+
+def test_vocabulary_changes_rebuild_hotwords_once():
+    old, new = _pair(custom_vocabulary=["ScratchEdge"], auto_vocabulary=False)
+    assert diff_config(old, new) == [("rebuild_hotwords", None)]
+
+
+def test_defaults_have_vocabulary_keys():
+    from config import DEFAULTS
+    assert DEFAULTS["custom_vocabulary"] == []
+    assert DEFAULTS["auto_vocabulary"] is True

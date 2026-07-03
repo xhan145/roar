@@ -61,6 +61,9 @@ def diff_config(old: dict, new: dict):
         actions.append(("reload_model", new["model"]))
     if old["input_device"] != new["input_device"]:
         actions.append(("set_device", new["input_device"]))
+    if (old["custom_vocabulary"] != new["custom_vocabulary"]
+            or old["auto_vocabulary"] != new["auto_vocabulary"]):
+        actions.append(("rebuild_hotwords", None))
     return actions
 
 

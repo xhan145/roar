@@ -41,3 +41,23 @@ def test_transcribes_real_speech(speech_wav):
     text = t.transcribe(speech_wav).lower()
     assert "hello" in text
     assert "test" in text
+
+
+def test_hotwords_reach_model_transcribe():
+    t = Transcriber(model_name="small.en", force_device="cpu")
+
+    class StubModel:
+        def __init__(self):
+            self.kwargs = None
+
+        def transcribe(self, audio, **kwargs):
+            self.kwargs = kwargs
+            return iter(()), None
+
+    t._model = StubModel()
+    t.active_model, t.device = "stub", "cpu"
+    t.transcribe("ignored.wav")
+    assert t._model.kwargs["hotwords"] is None  # default
+    t.hotwords = "ScratchEdge FlowLocal"
+    t.transcribe("ignored.wav")
+    assert t._model.kwargs["hotwords"] == "ScratchEdge FlowLocal"
