@@ -8,13 +8,13 @@ import queue
 import threading
 from collections import deque
 
-ACCENT = "#2563EB"
-BG = "#0B0E14"
-BORDER = "#1E2635"
-TEXT = "#E8ECF4"
-MUTED = "#9AA4BC"
-REC = "#DC2626"
-DIM = "#3E4557"
+ACCENT = "#5E6AD2"
+BG = "#0a0a0c"
+BORDER = "#23263B"
+TEXT = "#EDEDEF"
+MUTED = "#8A8F98"
+REC = "#F25757"
+DIM = "#3A3F58"
 TRANS_KEY = "#010203"   # transparentcolor => rounded pill corners
 W, H = 400, 76
 N_BARS = 24
@@ -94,7 +94,7 @@ class Overlay:
     def _draw(self):
         c = self._canvas
         c.delete("all")
-        r = 20
+        r = 24
         c.create_polygon(
             r, 2, W - r, 2, W - 2, 2, W - 2, r, W - 2, H - r, W - 2, H - 2,
             W - r, H - 2, r, H - 2, 2, H - 2, 2, H - r, 2, r, 2, 2,

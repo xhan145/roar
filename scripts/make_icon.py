@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-BRAND = "#2563EB"  # ROAR blue (transcribing state color)
+BRAND = "#5E6AD2"  # ROAR blue (transcribing state color)
 
 
 def draw_mic(size: int) -> Image.Image:
@@ -18,7 +18,7 @@ def draw_mic(size: int) -> Image.Image:
     s = size / 64.0
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    d.ellipse([1 * s, 1 * s, 63 * s, 63 * s], fill="#111827")
+    d.ellipse([1 * s, 1 * s, 63 * s, 63 * s], fill="#0a0a0c")
     w = max(2, int(4 * s))
     d.rounded_rectangle([24 * s, 10 * s, 40 * s, 38 * s], radius=8 * s, fill=BRAND)
     d.arc([16 * s, 20 * s, 48 * s, 46 * s], start=0, end=180, fill=BRAND, width=w)

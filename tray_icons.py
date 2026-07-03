@@ -2,10 +2,10 @@
 from PIL import Image, ImageDraw
 
 COLORS = {
-    "idle": "#D1D5DB",
-    "loading": "#D1D5DB",
+    "idle": "#8A8F98",
+    "loading": "#8A8F98",
     "recording": "#DC2626",
-    "transcribing": "#2563EB",
+    "transcribing": "#5E6AD2",
     "error": "#D97706",
 }
 
