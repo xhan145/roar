@@ -180,12 +180,31 @@
 
     <section id="privacy">
       <h1>Privacy</h1>
-      <div class="row locked"><div class="icon">🔒</div>Audio retention controls and privacy options arrive in the next update. Today, audio is processed in memory and never written to disk.</div>
+      <div class="row flex">
+        <div>Save dictation history<div class="hint">Store transcripts locally so you can review and reuse them</div></div>
+        <button class="toggle" id="t-history" aria-pressed="true" aria-label="Save dictation history"></button>
+      </div>
+      <div class="row">
+        <div style="margin-bottom:8px;">Keep audio recordings</div>
+        <select id="s-retention" aria-label="Audio retention">
+          <option value="0">Off — delete right after transcription</option>
+          <option value="1">1 day</option>
+          <option value="7">7 days</option>
+          <option value="30">30 days</option>
+          <option value="90">90 days</option>
+        </select>
+        <div class="hint" style="margin-top:6px;">Off deletes audio the moment it's transcribed. Transcripts are always kept unless you turn off history.</div>
+      </div>
+      <div class="row"><div class="kv" id="privacy-stats">…</div></div>
+      <button class="btn" id="b-delete-all" style="border-color:#F87171;color:#FCA5A5;">Delete all history &amp; audio</button>
+      <div class="msg" id="m-privacy"></div>
     </section>
 
     <section id="history">
       <h1>History</h1>
-      <div class="row locked"><div class="icon">📊</div>Dictation history, word-use stats and your speech profile arrive in an upcoming update.</div>
+      <div id="history-list"></div>
+      <div class="msg" id="m-history"></div>
+      <button class="btn" id="b-clear-all" style="margin-top:6px;">Clear all history</button>
     </section>
 
     <section id="about">
@@ -269,8 +288,75 @@ async function init() {
   $("a-version").textContent = state.version;
   $("a-config").textContent = state.config_path;
   $("a-log").textContent = state.log_path;
+  setToggle($("t-history"), c.history_enabled);
+  $("s-retention").value = String(c.audio_retention_days);
+  renderHistory();
+  refreshStats();
 }
 window.addEventListener("pywebviewready", init);
+
+/* ---- history + privacy ---- */
+function relTime(ts) {
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + "m ago";
+  if (s < 86400) return Math.floor(s / 3600) + "h ago";
+  return Math.floor(s / 86400) + "d ago";
+}
+async function renderHistory() {
+  const rows = await api().history_list(100);
+  const box = $("history-list");
+  box.innerHTML = "";
+  if (!rows.length) {
+    const e = document.createElement("div");
+    e.className = "row locked";
+    e.textContent = "No dictations yet — hold your hotkey and speak.";
+    box.appendChild(e); return;
+  }
+  rows.forEach(r => {
+    const card = document.createElement("div"); card.className = "row";
+    const meta = document.createElement("div"); meta.className = "hint";
+    meta.textContent = relTime(r.ts_utc) + " · " + r.word_count + " words" + (r.has_audio ? " · 🔊" : "");
+    const txt = document.createElement("div");
+    txt.style.cssText = "display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:4px 0;";
+    txt.textContent = r.text;
+    const actions = document.createElement("div"); actions.style.cssText = "display:flex;gap:8px;";
+    const copy = document.createElement("button"); copy.className = "btn"; copy.textContent = "Copy";
+    copy.onclick = () => navigator.clipboard.writeText(r.text);
+    const del = document.createElement("button"); del.className = "btn"; del.textContent = "Delete";
+    del.onclick = async () => { await api().history_delete(r.id); renderHistory(); refreshStats(); };
+    actions.appendChild(copy); actions.appendChild(del);
+    card.appendChild(meta); card.appendChild(txt); card.appendChild(actions);
+    box.appendChild(card);
+  });
+}
+async function refreshStats() {
+  const s = await api().privacy_stats();
+  $("privacy-stats").textContent =
+    s.count + " dictations · " + s.audio_count + " audio clips · " + s.audio_mb + " MB";
+}
+function twoStep(btn, action) {
+  if (btn.dataset.armed === "1") { btn.dataset.armed = "0"; btn.textContent = btn.dataset.label; action(); return; }
+  btn.dataset.label = btn.textContent; btn.dataset.armed = "1"; btn.textContent = "Click again to confirm";
+  setTimeout(() => { if (btn.dataset.armed === "1") { btn.dataset.armed = "0"; btn.textContent = btn.dataset.label; } }, 4000);
+}
+$("t-history").addEventListener("click", async () => {
+  const want = !isOn($("t-history"));
+  const r = await api().set_value("history_enabled", want);
+  if (r.ok) setToggle($("t-history"), want); else msg("m-privacy", r.error, "err");
+});
+$("s-retention").addEventListener("change", async e => {
+  const r = await api().set_value("audio_retention_days", parseInt(e.target.value, 10));
+  msg("m-privacy", r.ok ? "Saved" : r.error, r.ok ? "ok" : "err");
+  refreshStats();
+});
+$("b-clear-all").addEventListener("click", e =>
+  twoStep(e.target, async () => { await api().history_clear(); renderHistory(); refreshStats(); }));
+$("b-delete-all").addEventListener("click", e =>
+  twoStep(e.target, async () => {
+    await api().history_clear(); renderHistory(); refreshStats();
+    msg("m-privacy", "All history and audio deleted", "ok");
+  }));
 
 /* ---- instant handlers ---- */
 $("t-autostart").addEventListener("click", async () => {

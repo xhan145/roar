@@ -193,7 +193,9 @@ def run_settings(smoke=False):
                         "document.querySelectorAll('.nav').length")
                     ver = window.evaluate_js(
                         "document.getElementById('a-version').textContent")
-                    print(f"FlowLocal: settings probe navs={navs} version={ver}",
+                    has_priv = window.evaluate_js(
+                        "document.getElementById('s-retention') ? 1 : 0")
+                    print(f"FlowLocal: settings probe navs={navs} version={ver} priv={has_priv}",
                           flush=True)
                 finally:
                     window.destroy()
