@@ -79,3 +79,11 @@ def test_profile_sentences_thresholds():
     sentences = compute_insights(many, now=NOW)["profile_sentences"]
     assert len(sentences) >= 2
     assert any("burst" in s or "thought" in s or "passage" in s for s in sentences)
+
+
+def test_stopwords_cover_common_fillers():
+    rows = [_row("I also think because why would you as such however", NOW)]
+    words = dict(compute_insights(rows, now=NOW)["top_words"])
+    for filler in ("also", "because", "why", "however", "such"):
+        assert filler not in words
+    assert "think" in words  # real content word survives

@@ -14,7 +14,11 @@ STOPWORDS = frozenset(
     "may might must shall am let us dont cant wont isnt arent wasnt werent im ive "
     "youre theyre weve hes shes its lets thats whats heres theres yes no okay ok "
     "get got make made go going went come came know knew like want said say says "
-    "one two three new line paragraph".split())
+    "one two three new line paragraph "
+    "as also because why how where however therefore although though unless "
+    "since until upon per via among between during within across toward "
+    "towards off out ago ever never always sometimes often really actually "
+    "maybe perhaps quite rather anyway anymore".split())
 
 _WORD_RE = re.compile(r"[a-zA-Z']+")
 DAY = 86400

@@ -93,7 +93,12 @@ class SettingsAPI:
     # -- history / privacy / insights ------------------------------------
     def get_insights(self):
         from insights import compute_insights
-        return compute_insights(self._history.list(limit=5000))
+        rows = self._history.list(limit=5000)
+        result = compute_insights(rows)
+        # be honest when the analysis window doesn't cover everything
+        total = self._history.stats()["count"]
+        result["truncated_from"] = total if total > len(rows) else None
+        return result
 
     def history_list(self, limit=100, query=None):
         return self._history.list(limit=limit, query=query or None)
@@ -216,8 +221,15 @@ def run_settings(smoke=False):
                             if attempt == 2:
                                 raise
                             _time.sleep(1.5)
-                    ver = window.evaluate_js(
-                        "document.getElementById('a-version').textContent")
+                    # version is populated by init() AFTER pywebviewready —
+                    # poll until it's actually there instead of racing it
+                    ver = ""
+                    for _ in range(20):
+                        ver = window.evaluate_js(
+                            "document.getElementById('a-version').textContent") or ""
+                        if any(ch.isdigit() for ch in ver):
+                            break
+                        _time.sleep(0.5)
                     has_priv = window.evaluate_js(
                         "document.getElementById('s-retention') ? 1 : 0")
                     # tabs must be REACHABLE, not merely present in the DOM

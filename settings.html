@@ -209,6 +209,7 @@
           <div class="hint" style="margin-top:8px;">These will boost transcription accuracy in a future update.</div>
         </div>
         <div class="row" id="ins-profile"></div>
+        <div class="hint" id="ins-truncated" style="display:none;margin:2px 2px 8px;"></div>
       </div>
     </section>
 
@@ -425,6 +426,14 @@ async function renderInsights() {
     prof.appendChild(p);
   });
   prof.style.display = d.profile_sentences.length ? "" : "none";
+  const tr = $("ins-truncated");
+  if (d.truncated_from) {
+    tr.style.display = "";
+    tr.textContent = "Based on your 5,000 most recent dictations (of " +
+      d.truncated_from.toLocaleString() + " total).";
+  } else {
+    tr.style.display = "none";
+  }
 }
 let searchTimer = null;
 function twoStep(btn, action) {
@@ -443,10 +452,16 @@ $("s-retention").addEventListener("change", async e => {
   refreshStats();
 });
 $("b-clear-all").addEventListener("click", e =>
-  twoStep(e.target, async () => { await api().history_clear(); renderHistory(); refreshStats(); renderInsights(); }));
+  twoStep(e.target, async () => {
+    await api().history_clear();
+    $("history-search").value = "";  // keep search state coherent with the empty list
+    renderHistory(); refreshStats(); renderInsights();
+  }));
 $("b-delete-all").addEventListener("click", e =>
   twoStep(e.target, async () => {
-    await api().history_clear(); renderHistory(); refreshStats(); renderInsights();
+    await api().history_clear();
+    $("history-search").value = "";
+    renderHistory(); refreshStats(); renderInsights();
     msg("m-privacy", "All history and audio deleted", "ok");
   }));
 $("history-search").addEventListener("input", e => {

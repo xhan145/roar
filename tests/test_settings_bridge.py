@@ -89,3 +89,23 @@ def test_get_insights_and_search(tmp_path, monkeypatch):
     ins = api.get_insights()
     assert ins["totals"]["dictations"] == 2
     assert [r["text"] for r in api.history_list(query="keyboard")] == ["searchable keyboard text"]
+
+
+def test_insights_truncation_flag(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    from settings_ui import SettingsAPI
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("small history", ts=1.0)
+    assert api.get_insights()["truncated_from"] is None
+    # bulk-load past the cap directly (record() x5001 would be slow-ish)
+    with api._history._lock:
+        api._history._conn.executemany(
+            "INSERT INTO dictations (ts_utc,text,char_count,word_count,model,audio_path,duration_s)"
+            " VALUES (?,?,?,?,?,NULL,NULL)",
+            [(float(i), f"row {i}", 5, 2, None) for i in range(5100)])
+        api._history._conn.commit()
+    ins = api.get_insights()
+    assert ins["truncated_from"] == 5101
+    assert ins["totals"]["dictations"] == 5000
