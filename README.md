@@ -26,6 +26,15 @@ Both are configurable in `config.json` (`hotkey_ptt`, `hotkey_toggle`), using [`
 
 > **Note:** Win+Ctrl+Space is also the Windows shortcut to switch input methods. If you use multiple input languages, change `hotkey_toggle`.
 
+## Live dictation pill
+
+While you record, a small always-on-top pill shows a **live waveform** of your
+voice and — with **Live text preview** on — your words appearing in real time.
+The final, polished text is typed into the target app when you release the
+hotkey (previews are never typed, so nothing needs un-typing). Feedback tones
+are soft chimes. Both the pill and the preview can be toggled in Settings →
+General.
+
 ## Settings
 
 Tray icon → **Settings…** opens the settings window (dark "Deep Focus" UI):
@@ -132,7 +141,7 @@ The app lands in `dist\ROAR\ROAR.exe` — copy or zip the whole `dist\ROAR` fold
 
 ## Development
 
-Run the test suite (91 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
+Run the test suite (117 tests: unit + real-speech transcription + focused-window injection + history/insights/capture integration + app and settings smoke tests). The injection tests type into a small window they open — they skip with a notice if the desktop is busy:
 
 ```
 venv\Scripts\python.exe -m pytest tests/ -v
