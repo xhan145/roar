@@ -37,7 +37,7 @@ General.
 
 ## Settings
 
-Tray icon → **Settings…** opens the settings window (dark "Deep Focus" UI):
+Tray icon → **Settings…** opens the settings window (dark "Cinema Dark" UI):
 
 - **Instant apply:** start with Windows, tones, paste fallback, silence sensitivity, microphone.
 - **Apply button:** hotkeys (click *Set*, hold the combo you want) and model — the tray app picks changes up within a couple of seconds, no restart.
