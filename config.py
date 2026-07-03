@@ -18,6 +18,8 @@ DEFAULTS = {
     "tones_enabled": True,
     "language": "en",
     "replacements": {"new line": "\n", "new paragraph": "\n\n"},
+    "history_enabled": True,
+    "audio_retention_days": 0,
 }
 
 

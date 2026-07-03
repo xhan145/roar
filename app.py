@@ -13,6 +13,7 @@ from pystray import Menu, MenuItem as Item
 
 import commands
 import config as config_mod
+import history as history_mod
 import injector
 import paths
 import recorder as recorder_mod
@@ -33,6 +34,19 @@ def acquire_single_instance():
     if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
         return None
     return handle
+
+
+def record_history(hist, cfg, text, model=None, audio=None):
+    """Failure-isolated history write — never breaks dictation."""
+    if not cfg.get("history_enabled", True):
+        return
+    try:
+        retention = cfg.get("audio_retention_days", 0)
+        hist.record(text, model=model,
+                    audio=(audio if retention > 0 else None),
+                    retention_days=retention)
+    except Exception as e:
+        print(f"FlowLocal: history write failed: {e}", flush=True)
 
 
 def diff_config(old: dict, new: dict):
@@ -65,6 +79,8 @@ class FlowLocalApp:
         self.last_transcript = ""
         self.ptt_chord = parse_chord(cfg["hotkey_ptt"])
         self.recorder = recorder_mod.Recorder(device=cfg["input_device"])
+        self.history = history_mod.History()
+        self._purge_ticks = 0
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
@@ -208,6 +224,8 @@ class FlowLocalApp:
         self.last_transcript = text
         injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
         self.log(f"injected {len(text)} chars")
+        record_history(self.history, self.cfg, text,
+                       model=self.transcriber.active_model, audio=audio)
 
     # -- tray menu -----------------------------------------------------------
     def _status_text(self):
@@ -310,6 +328,12 @@ class FlowLocalApp:
                             self.recorder.device = arg
             except OSError:
                 pass  # config briefly missing/locked — retry next tick
+            self._purge_ticks += 1
+            if self._purge_ticks == 1 or self._purge_ticks % 1800 == 0:  # first + ~hourly
+                try:
+                    self.history.purge_expired(self.cfg.get("audio_retention_days", 0))
+                except Exception as e:
+                    self.log(f"purge failed: {e}")
             self._stop_watch.wait(2.0)
 
     # -- lifecycle -------------------------------------------------------------
@@ -321,6 +345,10 @@ class FlowLocalApp:
             pass
         self.jobs.put(None)
         self.worker.join(timeout=5)
+        try:
+            self.history.close()
+        except Exception:
+            pass
         self.icon.stop()
 
     def _on_tray_ready(self, icon):

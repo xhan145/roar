@@ -8,3 +8,7 @@ __pycache__/
 .pytest_cache/
 config.json
 *.wav
+history.db
+history.db-wal
+history.db-shm
+audio/
