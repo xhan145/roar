@@ -30,7 +30,7 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
-    excludes=["pytest", "tkinter"],
+    excludes=["pytest"],  # tkinter required by overlay.py since v0.7.0
     noarchive=False,
 )
 
