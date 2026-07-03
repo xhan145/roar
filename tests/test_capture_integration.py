@@ -31,6 +31,7 @@ def _make_app(tmp_path, cfg_overrides=None):
     a = app_mod.FlowLocalApp.__new__(app_mod.FlowLocalApp)
     a.cfg = cfg
     a.last_transcript = ""
+    a._dictation_count = 0
     a.history = history_mod.History(db_path=str(tmp_path / "h.db"),
                                     audio_dir=str(tmp_path / "audio"))
     a.log = lambda msg: None
@@ -95,4 +96,22 @@ def test_duration_recorded(tmp_path, monkeypatch):
     a._handle_transcription(_loud_audio(seconds=2.0))
     row = a.history.list()[0]
     assert row["duration_s"] is not None and abs(row["duration_s"] - 2.0) < 0.01
+    a.history.close()
+
+
+def test_rebuild_hotwords_merges_custom_and_signature(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: None)
+    a = _make_app(tmp_path)
+    a.cfg["custom_vocabulary"] = ["ScratchEdge"]
+    a.cfg["auto_vocabulary"] = True
+    for i in range(3):
+        a.history.record("kubernetes deployment pipeline kubernetes", ts=float(i))
+    a._rebuild_hotwords()
+    hw = a.transcriber.hotwords
+    assert hw.startswith("ScratchEdge")
+    assert "kubernetes" in hw
+    a.cfg["auto_vocabulary"] = False
+    a._rebuild_hotwords()
+    assert a.transcriber.hotwords == "ScratchEdge"
     a.history.close()

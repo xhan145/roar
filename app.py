@@ -84,6 +84,7 @@ class FlowLocalApp:
         self.recorder = recorder_mod.Recorder(device=cfg["input_device"])
         self.history = history_mod.History()
         self._purge_ticks = 0
+        self._dictation_count = 0
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
@@ -191,6 +192,7 @@ class FlowLocalApp:
             import numpy as np
             self.transcriber.transcribe(np.zeros(8000, dtype=np.float32))
             self.log(f"model loaded: {self.transcriber.description()}")
+            self._rebuild_hotwords()
         except Exception as e:
             self.notify(f"Model load failed: {e}. Check your internet connection "
                         "for the first-run download, then restart FlowLocal.")
@@ -230,6 +232,9 @@ class FlowLocalApp:
         record_history(self.history, self.cfg, text,
                        model=self.transcriber.active_model, audio=audio,
                        duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
+        self._dictation_count += 1
+        if self._dictation_count % 25 == 0:  # signature words drift slowly
+            self._rebuild_hotwords()
 
     # -- tray menu -----------------------------------------------------------
     def _status_text(self):
@@ -300,6 +305,22 @@ class FlowLocalApp:
     def _open_config(self):
         subprocess.Popen(["notepad.exe", config_mod.PATH])
 
+    def _rebuild_hotwords(self):
+        """Merge custom + auto signature words into the transcriber. Never
+        raises; on failure the previous hotwords stay in effect."""
+        import vocabulary
+        try:
+            signature = []
+            if (self.cfg.get("auto_vocabulary", True)
+                    and self.cfg.get("history_enabled", True)):
+                from insights import compute_insights
+                signature = compute_insights(
+                    self.history.list(limit=5000))["signature_words"]
+            self.transcriber.hotwords = vocabulary.merge_hotwords(
+                self.cfg.get("custom_vocabulary", []), signature)
+        except Exception as e:
+            self.log(f"hotwords rebuild failed: {e}")
+
     def _watch_config(self):
         """Hot-apply external edits to config.json (settings process or hand
         edits). Compares file CONTENT, not mtime — this filesystem's mtime
@@ -330,6 +351,8 @@ class FlowLocalApp:
                             self.jobs.put(("reload", arg))
                         elif action == "set_device":
                             self.recorder.device = arg
+                        elif action == "rebuild_hotwords":
+                            self._rebuild_hotwords()
             except OSError:
                 pass  # config briefly missing/locked — retry next tick
             self._purge_ticks += 1
