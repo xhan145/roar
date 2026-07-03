@@ -36,7 +36,7 @@ def acquire_single_instance():
     return handle
 
 
-def record_history(hist, cfg, text, model=None, audio=None):
+def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
     """Failure-isolated history write — never breaks dictation."""
     if not cfg.get("history_enabled", True):
         return
@@ -44,7 +44,7 @@ def record_history(hist, cfg, text, model=None, audio=None):
         retention = cfg.get("audio_retention_days", 0)
         hist.record(text, model=model,
                     audio=(audio if retention > 0 else None),
-                    retention_days=retention)
+                    retention_days=retention, duration_s=duration_s)
     except Exception as e:
         print(f"FlowLocal: history write failed: {e}", flush=True)
 
@@ -225,7 +225,8 @@ class FlowLocalApp:
         injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
         self.log(f"injected {len(text)} chars")
         record_history(self.history, self.cfg, text,
-                       model=self.transcriber.active_model, audio=audio)
+                       model=self.transcriber.active_model, audio=audio,
+                       duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
 
     # -- tray menu -----------------------------------------------------------
     def _status_text(self):

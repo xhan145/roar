@@ -90,9 +90,13 @@ class SettingsAPI:
                 pass
         return {"ok": True}
 
-    # -- history / privacy ----------------------------------------------
-    def history_list(self, limit=100):
-        return self._history.list(limit=limit)
+    # -- history / privacy / insights ------------------------------------
+    def get_insights(self):
+        from insights import compute_insights
+        return compute_insights(self._history.list(limit=5000))
+
+    def history_list(self, limit=100, query=None):
+        return self._history.list(limit=limit, query=query or None)
 
     def history_delete(self, rid):
         self._history.delete(int(rid))

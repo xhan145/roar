@@ -74,3 +74,18 @@ def test_history_list_delete_clear(tmp_path, monkeypatch):
     assert api.privacy_stats()["count"] == 1
     assert api.history_clear()["removed"] == 1
     assert api.privacy_stats()["count"] == 0
+
+
+def test_get_insights_and_search(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    from settings_ui import SettingsAPI
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    ins = api.get_insights()
+    assert ins["totals"]["dictations"] == 0 and len(ins["activity"]) == 14
+    api._history.record("searchable keyboard text", ts=1.0, duration_s=2.0)
+    api._history.record("other entry", ts=2.0)
+    ins = api.get_insights()
+    assert ins["totals"]["dictations"] == 2
+    assert [r["text"] for r in api.history_list(query="keyboard")] == ["searchable keyboard text"]

@@ -86,3 +86,13 @@ def test_retained_audio_saved_on_capture(tmp_path, monkeypatch):
     rows = a.history.list()
     assert len(rows) == 1 and rows[0]["has_audio"] is True
     a.history.close()
+
+
+def test_duration_recorded(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: None)
+    a = _make_app(tmp_path)
+    a._handle_transcription(_loud_audio(seconds=2.0))
+    row = a.history.list()[0]
+    assert row["duration_s"] is not None and abs(row["duration_s"] - 2.0) < 0.01
+    a.history.close()
