@@ -36,13 +36,16 @@ class SettingsAPI:
     def __init__(self, config_path=None):
         self.config_path = config_path or config_mod.PATH
         self._hist = None
+        # pywebview runs each JS call on its own thread — guard lazy init
+        self._hist_lock = threading.Lock()
 
     @property
     def _history(self):
-        if self._hist is None:
-            import history as history_mod
-            self._hist = history_mod.History()
-        return self._hist
+        with self._hist_lock:
+            if self._hist is None:
+                import history as history_mod
+                self._hist = history_mod.History()
+            return self._hist
 
     # -- state ---------------------------------------------------------
     def get_state(self):
@@ -195,8 +198,13 @@ def run_settings(smoke=False):
                         "document.getElementById('a-version').textContent")
                     has_priv = window.evaluate_js(
                         "document.getElementById('s-retention') ? 1 : 0")
-                    print(f"FlowLocal: settings probe navs={navs} version={ver} priv={has_priv}",
-                          flush=True)
+                    # tabs must be REACHABLE, not merely present in the DOM
+                    priv_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"privacy\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('privacy').classList.contains('active')?1:0;})()")
+                    print(f"FlowLocal: settings probe navs={navs} version={ver} "
+                          f"priv={has_priv} privnav={priv_nav}", flush=True)
                 finally:
                     window.destroy()
             threading.Timer(2.5, probe_and_close).start()

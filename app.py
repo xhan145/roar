@@ -409,6 +409,14 @@ def main():
     if args.smoke:
         app.transcriber.force_device = "cpu"
     app.run()
+    # Native thread pools (ctranslate2 / onnxruntime / PortAudio) intermittently
+    # crash with an access violation while the interpreter finalizes (observed
+    # 0xC000041D in ~1/3 of runs, native thread, no Python frame). Everything
+    # we own is already closed and flushed by _quit — exit without running
+    # interpreter finalization at all.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0)
 
 
 if __name__ == "__main__":

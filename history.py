@@ -32,6 +32,7 @@ class History:
         self._conn = self._open()
 
     def _open(self):
+        conn = None
         try:
             conn = self._sqlite.connect(self.db_path, check_same_thread=False)
             conn.row_factory = self._sqlite.Row
@@ -41,10 +42,20 @@ class History:
             conn.commit()
             return conn
         except self._sqlite.DatabaseError:
-            # corrupt file: move aside and recreate
+            # Corrupt file: close the half-open connection FIRST (on Windows
+            # it holds a lock that would make os.replace fail), then move the
+            # bad file aside — preserved for manual recovery — and recreate.
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
             if os.path.exists(self.db_path):
-                os.replace(self.db_path,
-                           self.db_path + f".corrupt-{int(time.time())}")
+                aside = self.db_path + f".corrupt-{int(time.time())}"
+                os.replace(self.db_path, aside)
+                print(f"FlowLocal: history database was corrupt — moved to "
+                      f"{aside} and started fresh. The old file is kept in "
+                      f"case you want to recover it.", flush=True)
             conn = self._sqlite.connect(self.db_path, check_same_thread=False)
             conn.row_factory = self._sqlite.Row
             conn.executescript(SCHEMA)
@@ -82,14 +93,17 @@ class History:
             rid = cur.lastrowid
             self._conn.commit()
         if audio is not None and retention_days > 0:
+            path = self._audio_path_for(rid)
             try:
-                path = self._write_wav(rid, audio)
+                self._write_wav(rid, audio)
                 with self._lock:
                     self._conn.execute(
                         "UPDATE dictations SET audio_path=? WHERE id=?",
                         (path, rid))
                     self._conn.commit()
-            except OSError as e:
+            except Exception as e:
+                # never leave an untracked partial WAV behind
+                self._delete_audio(path)
                 print(f"FlowLocal: could not save audio for {rid}: {e}",
                       flush=True)
         return rid

@@ -91,3 +91,31 @@ def test_stats_math(hist):
     hist.record("y", ts=2.0)
     s = hist.stats()
     assert s["count"] == 2 and s["audio_count"] == 1 and s["audio_bytes"] > 0
+
+
+def test_corrupt_db_recovers_and_preserves_bad_file(tmp_path):
+    import os
+    db = tmp_path / "history.db"
+    db.write_bytes(b"this is definitely not a sqlite database" * 100)
+    h = History(db_path=str(db), audio_dir=str(tmp_path / "audio"))
+    rid = h.record("works after recovery", ts=1.0)
+    assert h.list()[0]["id"] == rid
+    h.close()
+    corpses = [f for f in os.listdir(tmp_path) if ".corrupt-" in f]
+    assert len(corpses) == 1  # bad file moved aside, not deleted
+
+
+def test_failed_wav_write_leaves_no_orphan(hist, monkeypatch):
+    import os
+
+    def boom(self, rid, audio):
+        # simulate a failure AFTER the file was created (partial write)
+        open(self._audio_path_for(rid), "wb").close()
+        raise OSError("disk full")
+
+    monkeypatch.setattr(History, "_write_wav", boom)
+    rid = hist.record("text survives", audio=_tone(), retention_days=7)
+    row = hist._row(rid)
+    assert row["text"] == "text survives"
+    assert row["audio_path"] is None
+    assert not os.path.exists(hist._audio_path_for(rid))  # partial cleaned up
