@@ -84,7 +84,10 @@ class Overlay:
             except Exception:
                 pass
         try:
-            self._root.after(33, self._tick)
+            # Adaptive cadence: 30 fps only while visible. Hidden/disabled the
+            # thread idles at 4 Hz, so keeping the overlay always-constructed
+            # (for instant enable from Settings) costs effectively nothing.
+            self._root.after(33 if self._visible else 250, self._tick)
         except Exception:
             pass
 
