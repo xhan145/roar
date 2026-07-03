@@ -24,6 +24,8 @@ def _make_app(tmp_path, cfg_overrides=None):
         "paste_fallback": False,
         "replacements": {},
         "tones_enabled": False,
+        "overlay_enabled": False,
+        "streaming_preview": False,
     }
     if cfg_overrides:
         cfg.update(cfg_overrides)
@@ -32,6 +34,8 @@ def _make_app(tmp_path, cfg_overrides=None):
     a.cfg = cfg
     a.last_transcript = ""
     a._dictation_count = 0
+    a._session_gen = 0
+    a.overlay = None
     a.history = history_mod.History(db_path=str(tmp_path / "h.db"),
                                     audio_dir=str(tmp_path / "audio"))
     a.log = lambda msg: None

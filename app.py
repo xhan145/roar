@@ -81,7 +81,10 @@ class ROARApp:
         self.jobs = queue.Queue()
         self.last_transcript = ""
         self.ptt_chord = parse_chord(cfg["hotkey_ptt"])
-        self.recorder = recorder_mod.Recorder(device=cfg["input_device"])
+        self.recorder = recorder_mod.Recorder(device=cfg["input_device"],
+                                              on_level=self._on_level)
+        self._session_gen = 0
+        self.overlay = None
         self.history = history_mod.History()
         self._purge_ticks = 0
         self._dictation_count = 0
@@ -172,6 +175,10 @@ class ROARApp:
                 self.session_mode = None
                 return
             self._set_state(self.RECORDING)
+            if self.overlay is not None and self.cfg.get("overlay_enabled", True):
+                self.overlay.show_recording()
+                if self.cfg.get("streaming_preview", True):
+                    self.jobs.put(("partial", self._session_gen))
 
     def _finish_recording(self):
         with self.state_lock:
@@ -180,8 +187,42 @@ class ROARApp:
             recorder_mod.play_tone("stop", self.cfg["tones_enabled"])
             audio = self.recorder.stop()
             self.session_mode = None
+            self._session_gen += 1  # stale partials drain as no-ops
+            if self.overlay is not None:
+                self.overlay.show_transcribing()
             self._set_state(self.TRANSCRIBING)
             self.jobs.put(("transcribe", audio))
+
+    def _on_level(self, v):
+        ov = self.overlay
+        if ov is not None and self.state == self.RECORDING:
+            ov.push_level(v)
+
+    def _handle_partial(self, gen):
+        """Preview-only streaming: transcribe the buffer tail and show it in
+        the overlay. Never blocks the worker with pacing sleeps — the next
+        partial is scheduled via a daemon Timer."""
+        if (gen != self._session_gen or self.state != self.RECORDING
+                or not self.cfg.get("streaming_preview", True)):
+            return
+        import time as _time
+        delay = 0.7
+        audio = self.recorder.snapshot()
+        if audio.size >= int(0.6 * recorder_mod.SAMPLE_RATE):
+            t0 = _time.time()
+            try:
+                text = self.transcriber.transcribe(
+                    recorder_mod.tail_window(audio))
+            except Exception as e:
+                self.log(f"partial preview failed (waveform-only): {e}")
+                return
+            if gen == self._session_gen and self.overlay is not None:
+                self.overlay.set_partial(text)
+            delay = max(0.7, _time.time() - t0)
+        timer = threading.Timer(
+            delay, lambda: self.jobs.put(("partial", gen)))
+        timer.daemon = True
+        timer.start()
 
     # -- worker thread ------------------------------------------------------
     def _worker(self):
@@ -211,10 +252,15 @@ class ROARApp:
                     self.notify(f"Model ready: {self.transcriber.description()}")
                 elif kind == "transcribe":
                     self._handle_transcription(payload)
+                    if self.overlay is not None:
+                        self.overlay.hide()
+                elif kind == "partial":
+                    self._handle_partial(payload)
             except Exception as e:
                 recorder_mod.play_tone("error", self.cfg["tones_enabled"])
                 self.notify(f"Transcription failed: {e}")
-            self._set_state(self.IDLE)
+            if kind != "partial":  # partials must not reset RECORDING to IDLE
+                self._set_state(self.IDLE)
 
     def _handle_transcription(self, audio):
         if not recorder_mod.passes_gate(audio, self.cfg["silence_rms_threshold"],
@@ -370,6 +416,8 @@ class ROARApp:
             keyboard.unhook_all()
         except Exception:
             pass
+        if self.overlay is not None:
+            self.overlay.stop()
         self.jobs.put(None)
         self.worker.join(timeout=5)
         try:
@@ -388,6 +436,9 @@ class ROARApp:
             threading.Thread(target=stop_after_load, daemon=True).start()
 
     def run(self):
+        import overlay as overlay_mod
+        self.overlay = overlay_mod.Overlay()
+        self.overlay.start()
         self.worker.start()
         self._register_hotkeys()
         threading.Thread(target=self._watch_config, daemon=True).start()

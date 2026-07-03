@@ -22,6 +22,8 @@ DEFAULTS = {
     "audio_retention_days": 0,
     "custom_vocabulary": [],
     "auto_vocabulary": True,
+    "overlay_enabled": True,
+    "streaming_preview": True,
 }
 
 
