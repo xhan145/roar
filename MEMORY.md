@@ -15,9 +15,9 @@ every rule below exists because violating it already broke something once.
   absolute paths and would break.
 - Version history: v0.1.0 core app → v0.2.0 settings window → v0.3.0 history+
   privacy → v0.4.0 insights+profile+search → v0.5.0 custom vocabulary/hotwords
-  → v0.6.0 product rename. Tags exist for each.
-- Roadmap (user wants all): **SP5 streaming dictation** (live text while
-  speaking) → **SP6 multilingual**.
+  → v0.6.0 product rename → v0.7.0 streaming preview + waveform pill + chimes.
+  Tags exist for each.
+- Roadmap (user wants all): **SP6 multilingual** remains.
 
 ## Environment
 
@@ -116,7 +116,21 @@ Two processes, one config file:
     it (`-dAppVersion`); tests assert it; bump it for every release.
 12. Installer: UpgradeCode `a7a83e4a-83a0-4834-8edc-8dc058eb254f` — NEVER
     change it (upgrade continuity). `AllowSameVersionUpgrades` is on. Per-user
-    scope, no admin.
+    scope, no admin. **KILL the installed app + its webviews BEFORE any MSI
+    upgrade** — a running ROAR.exe holds pythonnet DLLs → Error 1304 → 1603
+    with the old product already removed (no effective rollback; reinstall
+    fresh after clearing + deleting the leftover Programs\ROAR tree).
+13. Streaming/overlay (v0.7.0): the worker NEVER sleeps for pacing — partials
+    self-reschedule via daemon `threading.Timer`; a session `_session_gen`
+    counter (bumped in `_finish_recording`) makes stale partials no-ops; the
+    worker's IDLE reset is skipped for `("partial", gen)` jobs (state must
+    stay RECORDING). `overlay.py` is COSMETIC-ONLY: Tk on a dedicated thread,
+    all Tk calls thread-confined via a command queue, adaptive tick (33 ms
+    visible / 250 ms hidden), every public method exception-proof. `roar.spec`
+    must NOT exclude tkinter (overlay needs it). TONES are `make_chime`
+    envelopes (C5→E5 start, E5→C5 stop, double 165 Hz error), amp ≤ 0.08.
+    When killing processes by command-line filter in PowerShell, exclude the
+    current shell — the filter string itself matches (self-kill incident).
 
 ## Build & release recipes
 
