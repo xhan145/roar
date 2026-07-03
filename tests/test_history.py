@@ -119,3 +119,40 @@ def test_failed_wav_write_leaves_no_orphan(hist, monkeypatch):
     assert row["text"] == "text survives"
     assert row["audio_path"] is None
     assert not os.path.exists(hist._audio_path_for(rid))  # partial cleaned up
+
+
+def test_fresh_db_is_v2_with_duration(hist):
+    rid = hist.record("timed words", ts=1.0, duration_s=2.5)
+    row = hist._row(rid)
+    assert row["duration_s"] == 2.5
+    assert hist.list()[0]["duration_s"] == 2.5
+
+
+def test_v1_db_migrates_in_place(tmp_path):
+    import sqlite3
+    db = str(tmp_path / "old.db")
+    conn = sqlite3.connect(db)
+    conn.execute("""CREATE TABLE dictations (id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts_utc REAL NOT NULL, text TEXT NOT NULL, char_count INTEGER NOT NULL,
+        word_count INTEGER NOT NULL, model TEXT, audio_path TEXT)""")
+    conn.execute("INSERT INTO dictations (ts_utc,text,char_count,word_count,model,audio_path)"
+                 " VALUES (1.0,'legacy row',10,2,'small.en',NULL)")
+    conn.execute("PRAGMA user_version=1")
+    conn.commit(); conn.close()
+    h = History(db_path=db, audio_dir=str(tmp_path / "a"))
+    rows = h.list()
+    assert rows[0]["text"] == "legacy row" and rows[0]["duration_s"] is None
+    h.record("new row", ts=2.0, duration_s=1.5)
+    assert h.list()[0]["duration_s"] == 1.5
+    h.close()
+
+
+def test_search_matches_and_escapes(hist):
+    hist.record("hello wonderful world", ts=1.0)
+    hist.record("100% sure_thing", ts=2.0)
+    hist.record("unrelated", ts=3.0)
+    assert [r["text"] for r in hist.list(query="wonderful")] == ["hello wonderful world"]
+    assert [r["text"] for r in hist.list(query="100%")] == ["100% sure_thing"]
+    assert [r["text"] for r in hist.list(query="e_thing")] == ["100% sure_thing"]
+    assert hist.list(query="zzz") == []
+    assert len(hist.list(query=None)) == 3

@@ -16,10 +16,21 @@ CREATE TABLE IF NOT EXISTS dictations (
     char_count  INTEGER NOT NULL,
     word_count  INTEGER NOT NULL,
     model       TEXT,
-    audio_path  TEXT
+    audio_path  TEXT,
+    duration_s  REAL
 );
 CREATE INDEX IF NOT EXISTS idx_dictations_ts ON dictations(ts_utc);
 """
+
+
+def _migrate(conn):
+    """Bring an existing DB to user_version 2 (adds duration_s to v1 files)."""
+    ver = conn.execute("PRAGMA user_version").fetchone()[0]
+    if ver < 2:
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(dictations)")]
+        if "duration_s" not in cols:
+            conn.execute("ALTER TABLE dictations ADD COLUMN duration_s REAL")
+    conn.execute("PRAGMA user_version=2")
 
 
 class History:
@@ -38,7 +49,7 @@ class History:
             conn.row_factory = self._sqlite.Row
             conn.executescript(SCHEMA)
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA user_version=1")
+            _migrate(conn)
             conn.commit()
             return conn
         except self._sqlite.DatabaseError:
@@ -59,6 +70,7 @@ class History:
             conn = self._sqlite.connect(self.db_path, check_same_thread=False)
             conn.row_factory = self._sqlite.Row
             conn.executescript(SCHEMA)
+            _migrate(conn)
             conn.commit()
             return conn
 
@@ -82,14 +94,15 @@ class History:
             w.writeframes(pcm.tobytes())
         return path
 
-    def record(self, text, model=None, audio=None, retention_days=0, ts=None):
+    def record(self, text, model=None, audio=None, retention_days=0, ts=None,
+               duration_s=None):
         ts = time.time() if ts is None else ts
         words = len(text.split())
         with self._lock:
             cur = self._conn.execute(
-                "INSERT INTO dictations (ts_utc, text, char_count, word_count, model, audio_path)"
-                " VALUES (?, ?, ?, ?, ?, NULL)",
-                (ts, text, len(text), words, model))
+                "INSERT INTO dictations (ts_utc, text, char_count, word_count, model,"
+                " audio_path, duration_s) VALUES (?, ?, ?, ?, ?, NULL, ?)",
+                (ts, text, len(text), words, model, duration_s))
             rid = cur.lastrowid
             self._conn.commit()
         if audio is not None and retention_days > 0:
@@ -114,12 +127,19 @@ class History:
                 "SELECT * FROM dictations WHERE id=?", (rid,)).fetchone()
         return dict(r) if r else None
 
-    def list(self, limit=100, offset=0):
+    def list(self, limit=100, offset=0, query=None):
+        sql = ("SELECT id, ts_utc, text, char_count, word_count, model,"
+               " audio_path, duration_s FROM dictations")
+        args = []
+        if query:
+            esc = (query.replace("\\", "\\\\")
+                        .replace("%", "\\%").replace("_", "\\_"))
+            sql += " WHERE text LIKE ? ESCAPE '\\'"
+            args.append(f"%{esc}%")
+        sql += " ORDER BY ts_utc DESC, id DESC LIMIT ? OFFSET ?"
+        args += [limit, offset]
         with self._lock:
-            rows = self._conn.execute(
-                "SELECT id, ts_utc, text, char_count, word_count, model, audio_path"
-                " FROM dictations ORDER BY ts_utc DESC, id DESC LIMIT ? OFFSET ?",
-                (limit, offset)).fetchall()
+            rows = self._conn.execute(sql, args).fetchall()
         out = []
         for r in rows:
             d = dict(r)
