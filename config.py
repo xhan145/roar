@@ -24,6 +24,8 @@ DEFAULTS = {
     "auto_vocabulary": True,
     "overlay_enabled": True,
     "streaming_preview": True,
+    "snippets": {},
+    "snippet_keyword": "snippet",
 }
 
 
@@ -66,6 +68,16 @@ def load(path=None):
             else:
                 print(f"ROAR: unknown language {value!r} in config — using en",
                       flush=True)
+        elif key == "snippets" and isinstance(value, dict):
+            import snippets as snippets_mod
+            cfg["snippets"] = {
+                k: v for k, v in value.items()
+                if isinstance(k, str) and isinstance(v, str)
+                and snippets_mod.NAME_RE.match(k)
+                and 0 < len(v) <= snippets_mod.MAX_EXPANSION}
+        elif key == "snippet_keyword":
+            if isinstance(value, str) and value.strip():
+                cfg[key] = value.strip()
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
             # (a plain string would otherwise be iterated char-by-char)

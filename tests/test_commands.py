@@ -32,3 +32,18 @@ def test_solo_new_line_survives():
 
 def test_no_replacements_dict():
     assert commands.process("plain text", {}) == "Plain text"
+
+
+def test_snippet_expansion_in_pipeline():
+    out = commands.process("snippet sig", {}, {"sig": "Thanks,\nGreg"})
+    assert out == "Thanks,\nGreg"
+
+
+def test_snippets_after_replacements_and_capitalize():
+    out = commands.process("hello new line snippet sig", REPL,
+                           {"sig": "greg"})
+    assert out == "Hello\ngreg"   # capitalize hit transcript, not expansion
+
+
+def test_process_backcompat_two_args():
+    assert commands.process("plain", {}) == "Plain"

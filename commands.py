@@ -1,6 +1,8 @@
 """Spoken-command replacement and text normalization. Pure functions."""
 import re
 
+import snippets as snippets_mod
+
 
 def apply_replacements(text: str, replacements: dict) -> str:
     """Replace spoken phrases (case-insensitive, word-bounded), absorbing
@@ -18,9 +20,12 @@ def apply_replacements(text: str, replacements: dict) -> str:
     return text
 
 
-def process(text: str, replacements: dict) -> str:
-    """Full pipeline: strip -> replacements -> capitalize first letter.
-    Returns '' when there is nothing worth injecting."""
+def process(text: str, replacements: dict, snippets=None,
+            snippet_keyword: str = "snippet") -> str:
+    """Full pipeline: strip -> replacements -> capitalize -> snippets.
+    Snippets run last so expansions are injected verbatim (no capitalize or
+    replacement pass over their bodies). Returns '' when there is nothing
+    worth injecting."""
     text = text.strip()
     if not text:
         return ""
@@ -30,6 +35,8 @@ def process(text: str, replacements: dict) -> str:
             if ch.islower():
                 text = text[:i] + ch.upper() + text[i + 1:]
             break
+    if snippets:
+        text = snippets_mod.expand(text, snippets, keyword=snippet_keyword)
     if not text.strip():
         # whitespace-only result: keep it only if it came from an explicit
         # newline command (e.g. user said just "new line")

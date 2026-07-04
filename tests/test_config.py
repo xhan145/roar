@@ -62,3 +62,12 @@ def test_language_sanitized_on_load(tmp_path):
     assert config.load(str(p))["language"] == "auto"
     p.write_text(json.dumps({"language": "es"}))
     assert config.load(str(p))["language"] == "es"
+
+
+def test_snippets_sanitized_on_load(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps(
+        {"snippets": {"ok": "text", "bad": 7, "bad name": "x", "big": "y" * 3000}}))
+    cfg = config.load(str(p))
+    assert cfg["snippets"] == {"ok": "text"}
+    assert cfg["snippet_keyword"] == "snippet"
