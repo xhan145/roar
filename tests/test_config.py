@@ -95,3 +95,14 @@ def test_cleanup_flags_coerced_to_bool(tmp_path):
     cfg = config.load(str(p))
     assert cfg["cleanup_enabled"] is False
     assert cfg["remove_discourse_fillers"] is True
+
+
+def test_milestone_defaults_and_coercion(tmp_path):
+    cfg = config.load(str(tmp_path / "c1.json"))
+    assert cfg["milestones_enabled"] is True
+    assert cfg["milestone_notifications"] is True
+    p = tmp_path / "c2.json"
+    p.write_text(json.dumps({"milestones_enabled": 0, "milestone_notifications": 1}))
+    cfg = config.load(str(p))
+    assert cfg["milestones_enabled"] is False
+    assert cfg["milestone_notifications"] is True

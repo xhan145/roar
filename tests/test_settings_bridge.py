@@ -255,3 +255,23 @@ def test_check_updates_offline_degrades(tmp_path, monkeypatch):
     monkeypatch.setattr(su.urllib.request, "urlopen", boom)
     api = SettingsAPI(config_path=str(tmp_path / "config.json"))
     assert "error" in api.check_updates()
+
+
+def test_milestone_instant_keys(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    assert api.set_value("milestones_enabled", False)["ok"] is True
+    assert config.load(p)["milestones_enabled"] is False
+    assert api.set_value("milestone_notifications", False)["ok"] is True
+    assert config.load(p)["milestone_notifications"] is False
+
+
+def test_get_insights_includes_all_time_milestones(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("word " * 1200, ts=1.0)  # 1200 words -> First Roar
+    d = api.get_insights()
+    assert "milestones" in d
+    assert 1000 in [u["threshold"] for u in d["milestones"]["unlocked"]]
