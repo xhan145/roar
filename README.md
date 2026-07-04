@@ -149,8 +149,10 @@ Say it again to undo the injection before that (up to 10 back). Safety rules:
 the whole utterance must be the command (a sentence *containing* "scratch
 that" is typed normally), and undo only fires in the same window the text
 went to — click elsewhere and ROAR refuses with an error tone instead of
-backspacing into the wrong app. Caveat: apps that transform typed text
-(auto-indent, autocomplete) can make the backspace count imprecise.
+backspacing into the wrong app. Caveats: apps that transform typed text
+(auto-indent, autocomplete) can make the backspace count imprecise, and undo
+of emoji / other astral characters is best-effort (backspace granularity for
+them is app-dependent).
 
 ROAR never touches the network on its own; the **Check for updates** button
 in About is the one exception, and only when you click it.

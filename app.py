@@ -315,14 +315,15 @@ class ROARApp:
             recorder_mod.play_tone("error", self.cfg["tones_enabled"])
             self.log("scratch refused — nothing typed here to undo")
             return
-        send_backspaces(len(entry.typed))
+        n = editing.keystroke_len(entry.typed)
+        send_backspaces(n)
         if entry.history_id is not None:
             try:
                 self.history.delete(entry.history_id)
             except Exception:
                 pass
         recorder_mod.play_tone("stop", self.cfg["tones_enabled"])
-        self.log(f"scratched {len(entry.typed)} chars")
+        self.log(f"scratched {n} chars")
 
     # -- tray menu -----------------------------------------------------------
     def _status_text(self):
