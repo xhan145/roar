@@ -126,6 +126,7 @@
     <button class="nav" data-s="insights"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Insights</button>
     <button class="nav" data-s="privacy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>Privacy</button>
     <button class="nav" data-s="history"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>History</button>
+    <button class="nav" data-s="snippets"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.1 7.9L20 20M8.1 16.1L20 4"/></svg>Snippets</button>
     <button class="nav" data-s="about"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg>About</button>
   </aside>
 
@@ -277,6 +278,30 @@
       <button class="btn" id="b-clear-all" style="margin-top:6px;">Clear all history</button>
     </section>
 
+    <section id="snippets">
+      <h1>Snippets</h1>
+      <div class="row">
+        <div class="hint" style="margin-bottom:10px;">Say "snippet <b>name</b>" (or type /name) while dictating and ROAR types the full text.
+          Variables: <b>{date}</b>, <b>{time}</b>, <b>{clipboard}</b>.</div>
+        <div id="snip-list"></div>
+      </div>
+      <div class="row">
+        <div style="margin-bottom:8px;">Add or edit a snippet</div>
+        <input id="snip-name" type="text" maxlength="30" placeholder="Name — letters, digits, dashes (e.g. sig)"
+               style="width:100%;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;color:var(--text);"
+               aria-label="Snippet name">
+        <textarea id="snip-text" rows="4" maxlength="2000" placeholder="Expansion text…"
+               style="width:100%;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);resize:vertical;box-sizing:border-box;"
+               aria-label="Snippet expansion"></textarea>
+        <div style="margin-top:8px;display:flex;gap:8px;">
+          <button class="btn" id="b-snip-save">Save snippet</button>
+          <button class="btn" id="b-snip-export">Export pack</button>
+          <button class="btn" id="b-snip-import">Import pack</button>
+        </div>
+        <div class="msg" id="m-snip"></div>
+      </div>
+    </section>
+
     <section id="about">
       <h1>About</h1>
       <div class="row">
@@ -302,6 +327,7 @@ document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click
   document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
   $(b.dataset.s).classList.add("active");
   if (b.dataset.s === "insights") renderInsights();
+  if (b.dataset.s === "snippets") renderSnippets();
 }));
 
 /* ---- helpers ---- */
@@ -377,6 +403,7 @@ async function init() {
   refreshStats();
   renderInsights();
   renderVocab();
+  renderSnippets();
 }
 window.addEventListener("pywebviewready", init);
 
@@ -518,6 +545,57 @@ $("t-autovocab").addEventListener("click", async () => {
   const want = !isOn($("t-autovocab"));
   const r = await api().set_value("auto_vocabulary", want);
   if (r.ok) renderVocab(); else msg("m-vocab", r.error, "err");
+});
+
+/* ---- snippets ---- */
+async function renderSnippets() {
+  const d = await api().snippets_get();
+  const list = $("snip-list"); list.innerHTML = "";
+  const names = Object.keys(d.snippets).sort((a, b) => a.localeCompare(b));
+  if (!names.length) {
+    const e = document.createElement("div"); e.className = "hint";
+    e.textContent = "No snippets yet. Add one below — try \"sig\" with your email signature.";
+    list.appendChild(e);
+    return;
+  }
+  names.forEach(name => {
+    const card = document.createElement("div");
+    card.style.cssText = "display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#0a0a0c;";
+    const body = document.createElement("div"); body.style.cssText = "flex:1;min-width:0;";
+    const title = document.createElement("div");
+    title.textContent = name; title.style.cssText = "font-weight:600;margin-bottom:2px;";
+    const preview = document.createElement("div"); preview.className = "hint";
+    preview.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+    preview.textContent = d.snippets[name];
+    body.appendChild(title); body.appendChild(preview);
+    const edit = document.createElement("button"); edit.className = "btn"; edit.textContent = "Edit";
+    edit.onclick = () => { $("snip-name").value = name; $("snip-text").value = d.snippets[name]; $("snip-text").focus(); };
+    const del = document.createElement("button"); del.className = "btn"; del.textContent = "Delete";
+    del.onclick = async () => { await api().snippet_delete(name); renderSnippets(); };
+    card.appendChild(body); card.appendChild(edit); card.appendChild(del);
+    list.appendChild(card);
+  });
+}
+$("b-snip-save").addEventListener("click", async () => {
+  const r = await api().snippet_save($("snip-name").value.trim(), $("snip-text").value);
+  if (r.error) { msg("m-snip", r.error, "err"); return; }
+  $("snip-name").value = ""; $("snip-text").value = "";
+  msg("m-snip", "Saved — say \"snippet name\" while dictating to use it", "ok");
+  renderSnippets();
+});
+$("b-snip-export").addEventListener("click", async () => {
+  const r = await api().snippets_export();
+  if (r.error) { msg("m-snip", r.error, "err"); return; }
+  if (r.cancelled) return;
+  msg("m-snip", "Exported to " + r.path, "ok");
+});
+$("b-snip-import").addEventListener("click", async () => {
+  const r = await api().snippets_import();
+  if (r.error) { msg("m-snip", r.error, "err"); return; }
+  if (r.cancelled) return;
+  msg("m-snip", "Imported " + r.added + " snippet" + (r.added === 1 ? "" : "s") +
+      (r.renamed ? " (" + r.renamed + " renamed to avoid collisions)" : ""), "ok");
+  renderSnippets();
 });
 
 let searchTimer = null;

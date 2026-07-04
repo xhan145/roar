@@ -44,6 +44,9 @@ _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right windows": "windows"}
 _ORDER = {"ctrl": 0, "alt": 1, "shift": 2, "windows": 3}
 
+# set by run_settings once the window exists; file dialogs hang off it
+_WINDOW = None
+
 
 def normalize_combo(keys) -> str:
     canon = {_SIDE.get(k, k) for k in keys}
@@ -235,6 +238,88 @@ class SettingsAPI:
             self._write(custom_vocabulary=custom)
         return {"ok": True, "custom": custom}
 
+    # -- snippets ----------------------------------------------------------
+    def snippets_get(self):
+        cfg = config_mod.load(self.config_path)
+        return {"snippets": cfg.get("snippets", {}),
+                "keyword": cfg.get("snippet_keyword", "snippet")}
+
+    def snippet_save(self, name, text):
+        from snippets import validate
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            sn = dict(cfg.get("snippets", {}))
+            err = validate(name, text, sn)
+            if err:
+                return {"error": err}
+            for k in list(sn):
+                if k.lower() == name.lower():
+                    del sn[k]
+            sn[name] = text
+            self._write(snippets=sn)
+        return {"ok": True}
+
+    def snippet_delete(self, name):
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            sn = {k: v for k, v in cfg.get("snippets", {}).items()
+                  if k.lower() != str(name).lower()}
+            self._write(snippets=sn)
+        return {"ok": True}
+
+    def snippets_export(self):
+        import json as _json
+        import webview
+        if _WINDOW is None:
+            return {"error": "no window"}
+        path = _WINDOW.create_file_dialog(
+            webview.SAVE_DIALOG, save_filename="roar-snippets.json")
+        if not path:
+            return {"cancelled": True}
+        path = path if isinstance(path, str) else path[0]
+        cfg = config_mod.load(self.config_path)
+        with open(path, "w", encoding="utf-8") as f:
+            _json.dump(cfg.get("snippets", {}), f, indent=2, ensure_ascii=False)
+        return {"ok": True, "path": str(path)}
+
+    def snippets_import(self):
+        import json as _json
+        import webview
+        from snippets import validate
+        if _WINDOW is None:
+            return {"error": "no window"}
+        path = _WINDOW.create_file_dialog(webview.OPEN_DIALOG)
+        if not path:
+            return {"cancelled": True}
+        path = path if isinstance(path, str) else path[0]
+        try:
+            with open(path, encoding="utf-8") as f:
+                incoming = _json.load(f)
+            if not isinstance(incoming, dict):
+                raise ValueError("top level must be an object")
+        except Exception as e:
+            return {"error": f"not a snippet pack: {e}"}
+        added = renamed = 0
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            sn = dict(cfg.get("snippets", {}))
+            lower = {k.lower() for k in sn}
+            for name, text in incoming.items():
+                if not isinstance(name, str) or not isinstance(text, str):
+                    continue
+                target = name
+                if name.lower() in lower:
+                    target = f"{name}-2"
+                    if target.lower() in lower:
+                        continue
+                    renamed += 1
+                if validate(target, text, sn) is None:
+                    sn[target] = text
+                    lower.add(target.lower())
+                    added += 1
+            self._write(snippets=sn)
+        return {"ok": True, "added": added, "renamed": renamed}
+
     def open_path(self, path):
         allowed = {self.config_path, paths.log_path()}
         if path in allowed and os.path.exists(path):
@@ -262,11 +347,13 @@ def run_settings(smoke=False):
               flush=True)
         os.startfile(config_mod.PATH)
         return 1
+    global _WINDOW
     api = SettingsAPI()
     window = webview.create_window(
         "ROAR Settings", url=html,
         js_api=api, width=900, height=640, min_size=(760, 560),
         background_color="#020203")
+    _WINDOW = window
 
     page_loaded = threading.Event()
 
@@ -319,13 +406,16 @@ def run_settings(smoke=False):
                         "return document.getElementById('insights').classList.contains('active')?1:0;})()")
                     has_vocab = window.evaluate_js(
                         "document.getElementById('vocab-input') ? 1 : 0")
-                    has_ovl = window.evaluate_js(
-                        "document.getElementById('t-overlay') ? 1 : 0")
-                    has_lang = window.evaluate_js(
-                        "document.getElementById('s-language') ? 1 : 0")
+                    has_snip = window.evaluate_js(
+                        "document.getElementById('snip-name') ? 1 : 0")
+                    snip_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"snippets\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('snippets').classList.contains('active')?1:0;})()")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
-                          f"vocab={has_vocab} ovl={has_ovl} lang={has_lang}", flush=True)
+                          f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
+                          f"snip={has_snip} snipnav={snip_nav}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()
