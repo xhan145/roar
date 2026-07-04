@@ -24,6 +24,10 @@ for pkg in (
 
 datas += [("settings.html", ".")]
 
+import os as _os2
+if _os2.path.isdir("assets"):
+    datas += [("assets", "assets")]  # roar-logo-purple* brand images
+
 # multilingual model seed (scripts/fetch_models.py) — ships offline languages
 import os as _os
 if _os.path.isdir("models-seed"):

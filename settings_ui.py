@@ -456,12 +456,17 @@ def run_settings(smoke=False):
                         "document.getElementById('b-check-updates') ? 1 : 0")
                     has_credits = window.evaluate_js(
                         "document.getElementById('a-credits') ? 1 : 0")
+                    has_ms = window.evaluate_js(
+                        "document.getElementById('ms-shelf') ? 1 : 0")
+                    has_logo = window.evaluate_js(
+                        "document.getElementById('a-logo') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
                           f"snip={has_snip} snipnav={snip_nav} "
                           f"cleanup={has_cleanup} discourse={has_discourse} "
-                          f"updates={has_updates} credits={has_credits}", flush=True)
+                          f"updates={has_updates} credits={has_credits} "
+                          f"ms={has_ms} logo={has_logo}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()

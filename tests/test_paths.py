@@ -21,7 +21,7 @@ def test_redirect_is_noop_when_not_frozen(capsys):
 
 def test_app_name_is_roar():
     assert paths.APP_NAME == "ROAR"
-    assert paths.APP_VERSION == "0.12.0"
+    assert paths.APP_VERSION == "0.13.0"
 
 
 def test_migrate_legacy_data_renames_dirs(tmp_path, monkeypatch):
