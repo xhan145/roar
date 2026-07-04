@@ -10,6 +10,7 @@ import types
 import numpy as np
 
 import app as app_mod
+import editing
 import history as history_mod
 import injector
 import recorder as recorder_mod
@@ -39,6 +40,7 @@ def _make_app(tmp_path, cfg_overrides=None):
     a.history = history_mod.History(db_path=str(tmp_path / "h.db"),
                                     audio_dir=str(tmp_path / "audio"))
     a.log = lambda msg: None
+    a._inject_stack = editing.InjectionStack()
     a.transcriber = types.SimpleNamespace(
         active_model="small.en",
         transcribe=lambda audio: "hello from the test")
@@ -118,4 +120,42 @@ def test_rebuild_hotwords_merges_custom_and_signature(tmp_path, monkeypatch):
     a.cfg["auto_vocabulary"] = False
     a._rebuild_hotwords()
     assert a.transcriber.hotwords == "ScratchEdge"
+    a.history.close()
+
+
+def test_scratch_undoes_last_injection(tmp_path, monkeypatch):
+    sent = {"backspaces": 0}
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: 42))
+    monkeypatch.setattr(app_mod, "send_backspaces",
+                        lambda n: sent.__setitem__("backspaces", n))
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path)
+    a._handle_transcription(_loud_audio())
+    assert a.history.stats()["count"] == 1
+    a.transcriber.transcribe = lambda audio: "scratch that"
+    a._handle_transcription(_loud_audio())
+    # prepared text = pipeline text + trailing space
+    assert sent["backspaces"] == len("Hello from the test ")
+    assert a.history.stats()["count"] == 0    # history row removed
+    a.history.close()
+
+
+def test_scratch_refuses_on_focus_change(tmp_path, monkeypatch):
+    sent = {"backspaces": 0}
+    hwnd = {"v": 42}
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: hwnd["v"]))
+    monkeypatch.setattr(app_mod, "send_backspaces",
+                        lambda n: sent.__setitem__("backspaces", n))
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path)
+    a._handle_transcription(_loud_audio())
+    hwnd["v"] = 99                            # user clicked elsewhere
+    a.transcriber.transcribe = lambda audio: "scratch that"
+    a._handle_transcription(_loud_audio())
+    assert sent["backspaces"] == 0            # refused
+    assert a.history.stats()["count"] == 1    # row kept
     a.history.close()

@@ -13,6 +13,7 @@ from pystray import Menu, MenuItem as Item
 
 import commands
 import config as config_mod
+import editing
 import history as history_mod
 import injector
 import paths
@@ -37,16 +38,24 @@ def acquire_single_instance():
 
 
 def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
-    """Failure-isolated history write — never breaks dictation."""
+    """Failure-isolated history write — never breaks dictation.
+    Returns the new row id (or None) so scratch-that can roll it back."""
     if not cfg.get("history_enabled", True):
-        return
+        return None
     try:
         retention = cfg.get("audio_retention_days", 0)
-        hist.record(text, model=model,
-                    audio=(audio if retention > 0 else None),
-                    retention_days=retention, duration_s=duration_s)
+        return hist.record(text, model=model,
+                           audio=(audio if retention > 0 else None),
+                           retention_days=retention, duration_s=duration_s)
     except Exception as e:
         print(f"ROAR: history write failed: {e}", flush=True)
+        return None
+
+
+def send_backspaces(n):
+    """Undo helper: one backspace per typed char (module-level, test-patchable)."""
+    for _ in range(n):
+        keyboard.send("backspace")
 
 
 def diff_config(old: dict, new: dict):
@@ -89,6 +98,7 @@ class ROARApp:
         self.history = history_mod.History()
         self._purge_ticks = 0
         self._dictation_count = 0
+        self._inject_stack = editing.InjectionStack()
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
@@ -270,6 +280,9 @@ class ROARApp:
             self.log("recording gated (silence/too short) — nothing injected")
             return
         raw = self.transcriber.transcribe(audio)
+        if editing.is_scratch(raw):
+            self._scratch()
+            return
         text = commands.process(
             raw, self.cfg["replacements"],
             self.cfg.get("snippets"),
@@ -280,14 +293,36 @@ class ROARApp:
             self.log("empty transcript — nothing injected")
             return
         self.last_transcript = text
+        hwnd = self._foreground_hwnd()
         injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
         self.log(f"injected {len(text)} chars")
-        record_history(self.history, self.cfg, text,
-                       model=self.transcriber.active_model, audio=audio,
-                       duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
+        rid = record_history(self.history, self.cfg, text,
+                             model=self.transcriber.active_model, audio=audio,
+                             duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
+        self._inject_stack.push(injector.prepare(text), hwnd, rid)
         self._dictation_count += 1
         if self._dictation_count % 25 == 0:  # signature words drift slowly
             self._rebuild_hotwords()
+
+    @staticmethod
+    def _foreground_hwnd():
+        return ctypes.windll.user32.GetForegroundWindow()
+
+    def _scratch(self):
+        """Undo the last injection — only into the SAME window it went to."""
+        entry = self._inject_stack.pop_if(self._foreground_hwnd())
+        if entry is None:
+            recorder_mod.play_tone("error", self.cfg["tones_enabled"])
+            self.log("scratch refused — nothing typed here to undo")
+            return
+        send_backspaces(len(entry.typed))
+        if entry.history_id is not None:
+            try:
+                self.history.delete(entry.history_id)
+            except Exception:
+                pass
+        recorder_mod.play_tone("stop", self.cfg["tones_enabled"])
+        self.log(f"scratched {len(entry.typed)} chars")
 
     # -- tray menu -----------------------------------------------------------
     def _status_text(self):
