@@ -20,17 +20,23 @@ CREATE TABLE IF NOT EXISTS dictations (
     duration_s  REAL
 );
 CREATE INDEX IF NOT EXISTS idx_dictations_ts ON dictations(ts_utc);
+CREATE TABLE IF NOT EXISTS badge_unlocks (
+    threshold   INTEGER PRIMARY KEY,
+    unlocked_ts REAL    NOT NULL
+);
 """
 
 
 def _migrate(conn):
-    """Bring an existing DB to user_version 2 (adds duration_s to v1 files)."""
+    """Bring an existing DB forward. v2 adds duration_s; v3 adds badge_unlocks
+    (created by SCHEMA's IF NOT EXISTS on every open, so v3 just records the
+    version)."""
     ver = conn.execute("PRAGMA user_version").fetchone()[0]
     if ver < 2:
         cols = [r[1] for r in conn.execute("PRAGMA table_info(dictations)")]
         if "duration_s" not in cols:
             conn.execute("ALTER TABLE dictations ADD COLUMN duration_s REAL")
-    conn.execute("PRAGMA user_version=2")
+    conn.execute("PRAGMA user_version=3")
 
 
 class History:
@@ -178,6 +184,24 @@ class History:
         for p in audio_paths:
             self._delete_audio(p)
         return n
+
+    def total_words(self):
+        with self._lock:
+            return self._conn.execute(
+                "SELECT COALESCE(SUM(word_count), 0) FROM dictations").fetchone()[0]
+
+    def record_unlock(self, threshold, ts):
+        with self._lock:
+            self._conn.execute(
+                "INSERT OR IGNORE INTO badge_unlocks (threshold, unlocked_ts)"
+                " VALUES (?, ?)", (int(threshold), float(ts)))
+            self._conn.commit()
+
+    def unlocks(self):
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT threshold, unlocked_ts FROM badge_unlocks").fetchall()
+        return {r["threshold"]: r["unlocked_ts"] for r in rows}
 
     def stats(self):
         with self._lock:
