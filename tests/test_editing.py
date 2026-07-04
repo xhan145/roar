@@ -36,3 +36,13 @@ def test_stack_depth_cap():
         seen.append(e.history_id)
     assert len(seen) == editing.MAX_DEPTH == 10
     assert seen[0] == 14 and seen[-1] == 5  # oldest 5 dropped
+
+
+def test_is_scratch_whisper_punctuation_variants():
+    # Whisper sometimes appends ellipses or wraps short utterances in quotes
+    assert editing.is_scratch("Scratch that…")
+    assert editing.is_scratch('"Scratch that."')
+    assert editing.is_scratch("'undo that'")
+    assert editing.is_scratch("Scratch that —")
+    # still standalone-only
+    assert not editing.is_scratch('"please scratch that"')
