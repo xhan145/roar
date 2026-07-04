@@ -8,7 +8,7 @@ import os
 import sys
 
 APP_NAME = "ROAR"
-APP_VERSION = "0.11.1"
+APP_VERSION = "0.12.0"
 
 
 def is_frozen() -> bool:
