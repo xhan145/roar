@@ -1,6 +1,7 @@
 """Spoken-command replacement and text normalization. Pure functions."""
 import re
 
+import cleanup as cleanup_mod
 import snippets as snippets_mod
 
 
@@ -21,14 +22,19 @@ def apply_replacements(text: str, replacements: dict) -> str:
 
 
 def process(text: str, replacements: dict, snippets=None,
-            snippet_keyword: str = "snippet") -> str:
-    """Full pipeline: strip -> replacements -> capitalize -> snippets.
-    Snippets run last so expansions are injected verbatim (no capitalize or
-    replacement pass over their bodies). Returns '' when there is nothing
-    worth injecting."""
+            snippet_keyword: str = "snippet", cleanup: bool = False,
+            discourse_fillers: bool = False) -> str:
+    """Full pipeline: strip -> cleanup -> replacements -> capitalize -> snippets.
+    Cleanup runs first so capitalization lands on the real first word and
+    commands/snippets see already-cleaned text. Snippets run last so expansions
+    are injected verbatim. Returns '' when there is nothing worth injecting."""
     text = text.strip()
     if not text:
         return ""
+    if cleanup:
+        text = cleanup_mod.clean(text, discourse=discourse_fillers)
+        if not text:
+            return ""
     text = apply_replacements(text, replacements)
     for i, ch in enumerate(text):
         if ch.isalpha():

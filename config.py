@@ -26,6 +26,8 @@ DEFAULTS = {
     "streaming_preview": True,
     "snippets": {},
     "snippet_keyword": "snippet",
+    "cleanup_enabled": True,
+    "remove_discourse_fillers": False,
 }
 
 
@@ -81,6 +83,8 @@ def load(path=None):
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()
+        elif key in ("cleanup_enabled", "remove_discourse_fillers"):
+            cfg[key] = bool(value)
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
             # (a plain string would otherwise be iterated char-by-char)

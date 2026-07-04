@@ -273,7 +273,9 @@ class ROARApp:
         text = commands.process(
             raw, self.cfg["replacements"],
             self.cfg.get("snippets"),
-            self.cfg.get("snippet_keyword", "snippet"))
+            self.cfg.get("snippet_keyword", "snippet"),
+            cleanup=self.cfg.get("cleanup_enabled", True),
+            discourse_fillers=self.cfg.get("remove_discourse_fillers", False))
         if not text:
             self.log("empty transcript — nothing injected")
             return
