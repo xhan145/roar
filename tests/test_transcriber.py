@@ -87,3 +87,35 @@ def test_auto_language_reaches_transcribe_as_none():
     t.language = "es"
     t.transcribe("x.wav")
     assert t._model.kwargs["language"] == "es"
+
+
+def test_seed_dir_resolution(tmp_path, monkeypatch):
+    import paths
+    from transcriber import seed_dir
+    monkeypatch.setattr(paths, "resource_path",
+                        lambda name: str(tmp_path / name))
+    assert seed_dir("small") is None
+    (tmp_path / "models-seed" / "small").mkdir(parents=True)
+    assert seed_dir("small").endswith("small")
+
+
+def test_load_source_order_uses_seed(monkeypatch, tmp_path):
+    import paths
+    import transcriber as tr
+    (tmp_path / "models-seed" / "small").mkdir(parents=True)
+    monkeypatch.setattr(paths, "resource_path",
+                        lambda name: str(tmp_path / name))
+    calls = []
+
+    class StubWM:
+        def __init__(self, src, **kw):
+            calls.append((src, kw.get("local_files_only")))
+            if kw.get("local_files_only"):
+                raise RuntimeError("not in cache")
+
+    monkeypatch.setattr(tr, "WhisperModel", StubWM)
+    t = tr.Transcriber(model_name="small", force_device="cpu")
+    t.load()
+    assert calls[0][1] is True                       # cache first
+    assert calls[1][0].endswith("small")             # then bundled seed
+    assert t.active_model == "small"
