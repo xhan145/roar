@@ -100,6 +100,7 @@ Implemented milestones include:
 - `v0.11.0` speech cleanup — filler-word and disfluency removal
 - `v0.11.1` slim white + lavender capsule pill (simplified dictation overlay)
 - `v0.12.0` "scratch that" spoken undo, manual update check, credits
+- `v0.13.0` private offline word milestones + lavender ROAR branding
 
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
@@ -140,6 +141,20 @@ default because that heuristic can occasionally clip a real word.
 
 The filler lists are English; the stutter/repeat and false-start collapse are
 language-agnostic and help every language.
+
+## Milestones
+
+ROAR tracks how many words you've dictated and unlocks quiet local badges as
+you go — from **First Roar** (1,000 words) up to **Million Word Roar**. See your
+shelf, next milestone, and progress in Settings → Insights. When you cross a
+threshold, a tray notification says so.
+
+These are **private and offline**: the count and unlock times live only in your
+local history database. There are no leaderboards, no sharing, no accounts, and
+nothing leaves your machine. Badges are sticky — once earned, they stay even if
+you later clear your history. Turn tracking or notifications off any time in
+Insights. The nine milestones: First Roar, Warming Up, Voice Layer, Fluent Flow,
+Local Legend, Hundred-K Roar, Dictation Engine, Thunder Typist, Million Word Roar.
 
 ## Scratch that
 
