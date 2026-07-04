@@ -71,3 +71,39 @@ def test_hyphenated_affirmations_preserved():
 def test_no_double_comma_after_interjection_removal():
     assert cleanup.clean("I think, um, so") == "I think, so"
     assert cleanup.clean("well, uh, maybe") == "well, maybe"
+
+
+def test_interjection_only_with_punctuation_yields_empty():
+    # "hmm." must not inject a lone period
+    assert cleanup.clean("hmm.") == ""
+    assert cleanup.clean("um.") == ""
+    assert cleanup.clean("uh?") == ""
+    assert cleanup.clean("um. hello") == "hello"
+
+
+def test_asr_split_hyphenates_preserved():
+    # Whisper splits hyphenates on a pause: fragment is NOT a prefix of the
+    # next word, so it's a real word, not a stutter
+    assert cleanup.clean("e- mail me") == "e- mail me"
+    assert cleanup.clean("co- op meeting") == "co- op meeting"
+    assert cleanup.clean("x- ray results") == "x- ray results"
+    assert cleanup.clean("well- known fact") == "well- known fact"
+    # true stutters (fragment IS a prefix of the next word) still trim
+    assert cleanup.clean("tha- that works") == "that works"
+
+
+def test_stacked_discourse_fillers_all_removed():
+    assert cleanup.clean("it's, like, you know, cool", discourse=True) == "it's cool"
+    assert cleanup.clean("so, you know, like, i mean, anyway",
+                         discourse=True) == "so anyway"
+    assert cleanup.clean("well, i mean, you know, sure", discourse=True) == "well sure"
+
+
+def test_homograph_fillers_safe_at_sentence_edges():
+    # single-word homographs are removed ONLY when fully comma-bounded;
+    # at sentence edges they are real words ("Actually, ..." = contrast,
+    # ", right" = tag question that changes meaning if dropped)
+    assert cleanup.clean("Actually, I think so", discourse=True) == "Actually, I think so"
+    assert cleanup.clean("It works, right", discourse=True) == "It works, right"
+    # multi-word phrases at edges are unambiguous fillers -> removed
+    assert cleanup.clean("You know, maybe later", discourse=True) == "maybe later"
