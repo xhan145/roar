@@ -184,3 +184,20 @@ def test_milestone_disabled_no_unlock(tmp_path, monkeypatch):
     a._handle_transcription(_loud_audio())
     assert a.history.unlocks() == {}
     a.history.close()
+
+
+def test_milestone_no_renotify_after_history_clear(tmp_path, monkeypatch):
+    notes = []
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path, {"milestones_enabled": True,
+                             "milestone_notifications": True})
+    a.notify = lambda msg: notes.append(msg)
+    a.transcriber.transcribe = lambda audio: "word " * 1000
+    a._handle_transcription(_loud_audio())          # crosses First Roar -> 1 note
+    assert len([n for n in notes if "First Roar" in n]) == 1
+    a.history.clear()                                # badges sticky, total -> 0
+    a._handle_transcription(_loud_audio())           # re-crosses 1000
+    # badge already earned -> must NOT notify again
+    assert len([n for n in notes if "First Roar" in n]) == 1
+    a.history.close()

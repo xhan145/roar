@@ -319,7 +319,10 @@ class ROARApp:
         try:
             new_total = self.history.total_words()
             old_total = new_total - len(text.split())
+            earned = self.history.unlocks()  # already-unlocked, sticky
             for t in milestones.newly_crossed(old_total, new_total):
+                if t in earned:
+                    continue  # e.g. re-crossed after a history clear — never re-notify
                 self.history.record_unlock(t, time.time())
                 if self.cfg.get("milestone_notifications", True):
                     self.notify(f"Milestone unlocked: {milestones.name_for(t)}"
