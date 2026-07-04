@@ -47,3 +47,23 @@ def test_snippets_after_replacements_and_capitalize():
 
 def test_process_backcompat_two_args():
     assert commands.process("plain", {}) == "Plain"
+
+
+def test_cleanup_runs_before_capitalize():
+    out = commands.process("um, hello there", {}, cleanup=True)
+    assert out == "Hello there"
+
+
+def test_cleanup_off_by_default_in_signature():
+    assert commands.process("um hello", {}) == "Um hello"
+
+
+def test_cleanup_then_replacement():
+    out = commands.process("uh new line done", REPL, cleanup=True)
+    assert out == "\nDone"
+
+
+def test_discourse_gated_by_flag():
+    assert commands.process("it's, like, cool", {}, cleanup=True) == "It's, like, cool"
+    assert commands.process("it's, like, cool", {}, cleanup=True,
+                            discourse_fillers=True) == "It's cool"

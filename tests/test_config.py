@@ -81,3 +81,17 @@ def test_non_dict_snippets_and_replacements_ignored(tmp_path):
     cfg = config.load(str(p))
     assert cfg["snippets"] == {}
     assert cfg["replacements"]["new line"] == "\n"  # defaults intact
+
+
+def test_cleanup_defaults_present(tmp_path):
+    cfg = config.load(str(tmp_path / "config.json"))
+    assert cfg["cleanup_enabled"] is True
+    assert cfg["remove_discourse_fillers"] is False
+
+
+def test_cleanup_flags_coerced_to_bool(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"cleanup_enabled": 0, "remove_discourse_fillers": 1}))
+    cfg = config.load(str(p))
+    assert cfg["cleanup_enabled"] is False
+    assert cfg["remove_discourse_fillers"] is True
