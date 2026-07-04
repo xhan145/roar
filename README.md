@@ -93,12 +93,10 @@ Implemented milestones include:
 - `v0.4.0` insights, profile, and search
 - `v0.5.0` custom vocabulary and hotwords
 - `v0.6.0` product rename from FlowLocal to ROAR
-
-Planned roadmap:
-
-- **SP5:** Streaming dictation with live partial text while speaking
-- **SP6:** Multilingual dictation
-- **SP7+:** ROAR Snippets, local text expansion, variables, snippet packs, and voice-created reusable phrases
+- `v0.7.0` streaming dictation with live partial text while speaking
+- `v0.8.0` Cinema Dark interface refresh
+- `v0.9.0` multilingual dictation
+- `v0.10.0` ROAR Snippets + multilingual models bundled in the installer
 
 ---
 
@@ -107,19 +105,36 @@ Planned roadmap:
 Settings → Transcription → **Language**: pick any of Whisper's 100 languages,
 or **Auto-detect** to let ROAR identify the language each time you dictate.
 With the model on `auto`, non-English languages switch to multilingual models
-(`large-v3-turbo` on GPU, `small` on CPU) — the first switch downloads the
-model. Notes: spoken commands ("new line") are English phrases (add your own
-per-language in `replacements`), and Insights word filtering is
-English-centric.
+(`large-v3-turbo` on GPU, `small` on CPU). **Both multilingual models ship
+inside the installer**, so switching languages works immediately and fully
+offline — no first-switch download. Notes: spoken commands ("new line") are
+English phrases (add your own per-language in `replacements`), and Insights
+word filtering is English-centric.
 
-## Planned: ROAR Snippets
+## ROAR Snippets
 
-ROAR Snippets is the planned text-expansion layer for ROAR.
-
-The goal is to combine dictation and abbreviation expansion:
+ROAR Snippets is the text-expansion layer for ROAR — dictation plus
+abbreviation expansion:
 
 ```text
 /sig → Thanks,
 Greg
 ```
+
+While dictating, say **"snippet sig"** (or type the literal form `/sig`) and
+ROAR types the stored expansion instead. Manage snippets in Settings →
+**Snippets**: names are 1–30 letters/digits/dashes, expansions up to 2,000
+characters, 100 snippets max.
+
+Expansions can include variables, resolved at the moment of dictation:
+
+| Variable | Becomes |
+|---|---|
+| `{date}` | today's date |
+| `{time}` | current time (HH:MM) |
+| `{clipboard}` | current clipboard text |
+
+Snippets live in `config.json` and can be shared as **packs** — plain JSON
+files exported/imported from the Snippets tab. Imports never overwrite: a
+colliding name is added with a `-2` suffix instead.
 
