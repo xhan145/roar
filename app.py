@@ -270,7 +270,10 @@ class ROARApp:
             self.log("recording gated (silence/too short) — nothing injected")
             return
         raw = self.transcriber.transcribe(audio)
-        text = commands.process(raw, self.cfg["replacements"])
+        text = commands.process(
+            raw, self.cfg["replacements"],
+            self.cfg.get("snippets"),
+            self.cfg.get("snippet_keyword", "snippet"))
         if not text:
             self.log("empty transcript — nothing injected")
             return
