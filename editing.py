@@ -7,12 +7,17 @@ SCRATCH_PHRASES = frozenset({"scratch that", "scratch it", "undo that"})
 MAX_DEPTH = 10
 
 
+# Whisper decorates short utterances: trailing ellipses, wrapping quotes,
+# dashes. Strip that ornamentation before matching — words stay untouched.
+_ORNAMENT = " .,!?;:…\"'`—–-“”‘’"
+
+
 def is_scratch(text) -> bool:
     """True only when the ENTIRE utterance is a scratch phrase — a sentence
     that merely contains one must be typed, not executed."""
     if not isinstance(text, str):
         return False
-    norm = " ".join(text.lower().split()).strip(" .,!?;:")
+    norm = " ".join(text.lower().split()).strip(_ORNAMENT)
     return norm in SCRATCH_PHRASES
 
 
