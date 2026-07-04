@@ -155,3 +155,34 @@ def test_get_state_languages(tmp_path):
     assert langs[0] == ["auto", "Auto-detect"]
     assert ["es", "Español"] in langs
     assert len(langs) > 50
+
+
+def test_apply_language_only_leaves_model_untouched(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    api.apply_model("small.en")
+    assert api.apply_model(None, "fr")["ok"] is True
+    cfg = config.load(p)
+    assert cfg["model"] == "small.en" and cfg["language"] == "fr"
+    assert "error" in api.apply_model(None, None)  # nothing to apply
+
+
+def test_settings_process_never_imports_ml_stack():
+    # design invariant: the settings process stays lightweight — building the
+    # language list must not pull faster_whisper/ctranslate2
+    import subprocess
+    import sys
+    code = (
+        "import sys, settings_ui, config; "
+        "settings_ui._language_options(); "
+        "config.valid_language('es'); "
+        "assert 'faster_whisper' not in sys.modules, 'ML stack leaked'; "
+        "assert 'ctranslate2' not in sys.modules; "
+        "print('lightweight OK')"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True,
+                         text=True, timeout=120,
+                         cwd=__import__('os').path.dirname(
+                             __import__('os').path.dirname(
+                                 __import__('os').path.abspath(__file__))))
+    assert "lightweight OK" in out.stdout, out.stderr

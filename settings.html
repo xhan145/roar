@@ -631,7 +631,7 @@ $("s-language").addEventListener("change", e => {
 /* ---- model apply ---- */
 $("b-apply-model").addEventListener("click", async () => {
   if (!pending.model && !pending.langsel) return;
-  const r = await api().apply_model(pending.model || state.config.model,
+  const r = await api().apply_model(pending.model || null,
                                     pending.langsel || null);
   if (r.ok) {
     if (pending.model) state.config.model = pending.model;

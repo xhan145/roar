@@ -29,11 +29,8 @@ _COMMON_ORDER = ["auto", "en", "es", "fr", "de", "it", "pt", "nl", "pl",
 
 
 def _language_options():
-    try:
-        from faster_whisper.tokenizer import _LANGUAGE_CODES
-        codes = sorted(_LANGUAGE_CODES)
-    except Exception:
-        codes = sorted(set(LANGUAGE_LABELS) - {"auto"})
+    from languages import CODES  # static — never imports faster_whisper
+    codes = sorted(CODES)
     rest = [c for c in codes if c not in _COMMON_ORDER]
     return ([[c, LANGUAGE_LABELS.get(c, c)] for c in _COMMON_ORDER]
             + [[c, c] for c in rest])
@@ -153,15 +150,21 @@ class SettingsAPI:
         self._write(hotkey_ptt=ptt, hotkey_toggle=toggle)
         return {"ok": True}
 
-    def apply_model(self, name, language=None):
-        if name not in MODEL_CHOICES:
-            return {"error": f"unknown model {name}"}
-        if language is None:
-            self._write(model=name)
-            return {"ok": True}
-        if not config_mod.valid_language(language):
-            return {"error": f"unknown language {language}"}
-        self._write(model=name, language=language)
+    def apply_model(self, name=None, language=None):
+        """Write only what the user actually changed — sending a cached model
+        on a language-only change could clobber external edits."""
+        changes = {}
+        if name is not None:
+            if name not in MODEL_CHOICES:
+                return {"error": f"unknown model {name}"}
+            changes["model"] = name
+        if language is not None:
+            if not config_mod.valid_language(language):
+                return {"error": f"unknown language {language}"}
+            changes["language"] = language
+        if not changes:
+            return {"error": "nothing to apply"}
+        self._write(**changes)
         return {"ok": True}
 
     def set_autostart(self, enabled):
