@@ -39,6 +39,14 @@ def bar_cluster_x(has_text, w=W):
     return 18 if has_text else (w - CLUSTER_W) // 2
 
 
+def fit_tail(text, budget_px, measure):
+    """Shave chars off the head until the text fits budget_px (measured in
+    real font pixels) — char-count truncation alone overflows on wide glyphs."""
+    while len(text) > 2 and measure(text) > budget_px:
+        text = "…" + (text[2:] if text.startswith("…") else text[1:])
+    return text
+
+
 class Overlay:
     def __init__(self):
         self.available = False
@@ -67,6 +75,8 @@ class Overlay:
             canvas = tk.Canvas(root, width=W, height=H, bg=TRANS_KEY,
                                highlightthickness=0)
             canvas.pack()
+            import tkinter.font as tkfont
+            self._font = tkfont.Font(family="Segoe UI", size=10)
             self._root, self._canvas = root, canvas
             self.available = True
             root.after(33, self._tick)
@@ -116,9 +126,11 @@ class Overlay:
             c.create_rectangle(x0, mid - bh // 2, x0 + BAR_W, mid + bh // 2,
                                fill=color, outline="")
         if txt:
-            c.create_text(x_start + CLUSTER_W + 14, mid,
-                          text=tail_text(txt, 34), fill=TEXT,
-                          font=("Segoe UI", 10), anchor="w")
+            text_x = x_start + CLUSTER_W + 14
+            shown = fit_tail(tail_text(txt, 34), W - text_x - 16,
+                             self._font.measure)
+            c.create_text(text_x, mid, text=shown, fill=TEXT,
+                          font=self._font, anchor="w")
 
     # -- public, thread-safe, exception-proof ------------------------------
     def _post(self, fn):
