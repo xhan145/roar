@@ -100,6 +100,11 @@ Implemented milestones include:
 - `v0.11.0` speech cleanup — filler-word and disfluency removal
 - `v0.11.1` slim white + lavender capsule pill (simplified dictation overlay)
 
+Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
+`roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
+external cabinets — keep them next to the msi). `scripts/build_setup.sh` then
+wraps all of it into a single double-clickable `dist/ROAR-Setup-<version>.exe`.
+
 ---
 
 ## Multilingual dictation
