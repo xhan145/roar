@@ -99,6 +99,7 @@ Implemented milestones include:
 - `v0.10.0` ROAR Snippets + multilingual models bundled in the installer
 - `v0.11.0` speech cleanup — filler-word and disfluency removal
 - `v0.11.1` slim white + lavender capsule pill (simplified dictation overlay)
+- `v0.12.0` "scratch that" spoken undo, manual update check, credits
 
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
@@ -139,6 +140,20 @@ default because that heuristic can occasionally clip a real word.
 
 The filler lists are English; the stutter/repeat and false-start collapse are
 language-agnostic and help every language.
+
+## Scratch that
+
+Said something you regret? Hold the hotkey and say just **"scratch that"**
+(or "scratch it" / "undo that") — ROAR backspaces exactly what it last typed.
+Say it again to undo the injection before that (up to 10 back). Safety rules:
+the whole utterance must be the command (a sentence *containing* "scratch
+that" is typed normally), and undo only fires in the same window the text
+went to — click elsewhere and ROAR refuses with an error tone instead of
+backspacing into the wrong app. Caveat: apps that transform typed text
+(auto-indent, autocomplete) can make the backspace count imprecise.
+
+ROAR never touches the network on its own; the **Check for updates** button
+in About is the one exception, and only when you click it.
 
 ## ROAR Snippets
 
