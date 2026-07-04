@@ -59,3 +59,15 @@ def test_empty_and_whitespace():
 def test_whitespace_and_punctuation_normalized():
     assert cleanup.clean("hello  ,  world") == "hello, world"
     assert cleanup.clean("uh,  hello") == "hello"
+
+
+def test_hyphenated_affirmations_preserved():
+    # 'uh-huh'/'mm-hmm' carry meaning (yes) — must not be split into a stray dash
+    assert cleanup.clean("uh-huh") == "uh-huh"
+    assert cleanup.clean("mm-hmm") == "mm-hmm"
+    assert cleanup.clean("yeah uh-huh") == "yeah uh-huh"
+
+
+def test_no_double_comma_after_interjection_removal():
+    assert cleanup.clean("I think, um, so") == "I think, so"
+    assert cleanup.clean("well, uh, maybe") == "well, maybe"

@@ -21,9 +21,12 @@ DISCOURSE_FILLERS = (
     "basically", "actually", "literally", "you see", "like", "right",
 )
 
+# Lookarounds exclude hyphens as well as word chars, so a hyphen-joined
+# affirmation ("uh-huh", "mm-hmm" — which mean "yes") is left whole instead of
+# being split into a stray dash.
 _INTERJ_RE = re.compile(
-    r"\b(?:" + "|".join(sorted(INTERJECTIONS, key=len, reverse=True)) + r")\b",
-    re.IGNORECASE)
+    r"(?<![-\w])(?:" + "|".join(sorted(INTERJECTIONS, key=len, reverse=True))
+    + r")(?![-\w])", re.IGNORECASE)
 _FALSE_START_RE = re.compile(r"\b\w{1,4}[‒-―\-]\s+", re.UNICODE)
 _COLLAPSE_RE = re.compile(
     r"\b(" + "|".join(sorted(COLLAPSE_WORDS, key=len, reverse=True))
@@ -50,6 +53,7 @@ def _remove_discourse(text):
 
 def _normalize(text):
     text = re.sub(r"[ \t]*—[ \t]*", " ", text)  # leftover em-dashes -> space
+    text = re.sub(r",(\s*,)+", ",", text)              # ",," (removed filler) -> ","
     text = re.sub(r"\s+([,.!?;:])", r"\1", text)      # no space before punct
     text = re.sub(r"^[\s,]+", "", text)                # no leading comma/space
     text = re.sub(r"[ \t]{2,}", " ", text)             # collapse runs of spaces
