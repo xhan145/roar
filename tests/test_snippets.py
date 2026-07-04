@@ -59,3 +59,10 @@ def test_validate_rules():
     full = {f"s{i}": "x" for i in range(snippets.MAX_SNIPPETS)}
     assert snippets.validate("new", "x", full) is not None
     assert snippets.validate("s1", "x", full) is None  # editing existing ok
+
+
+def test_no_recursion_slash_form_in_expansion():
+    out = snippets.expand("snippet a", {"a": "see /b", "b": "BOOM"})
+    assert out == "see /b"
+    out = snippets.expand("/a", {"a": "chain /a", "b": "x"})
+    assert out == "chain /a"

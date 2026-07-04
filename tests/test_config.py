@@ -69,5 +69,15 @@ def test_snippets_sanitized_on_load(tmp_path):
     p.write_text(json.dumps(
         {"snippets": {"ok": "text", "bad": 7, "bad name": "x", "big": "y" * 3000}}))
     cfg = config.load(str(p))
-    assert cfg["snippets"] == {"ok": "text"}
+    # non-strings dropped; hand-edited string entries KEPT even when invalid
+    # (deleting them here would clobber the user's file on the next save)
+    assert cfg["snippets"] == {"ok": "text", "bad name": "x", "big": "y" * 3000}
     assert cfg["snippet_keyword"] == "snippet"
+
+
+def test_non_dict_snippets_and_replacements_ignored(tmp_path):
+    p = tmp_path / "config.json"
+    p.write_text(json.dumps({"snippets": "boom", "replacements": ["boom"]}))
+    cfg = config.load(str(p))
+    assert cfg["snippets"] == {}
+    assert cfg["replacements"]["new line"] == "\n"  # defaults intact

@@ -37,10 +37,11 @@ def expand(text, snippets, keyword="snippet", clipboard_getter=None):
             return resolve_variables(table[name], clipboard_getter)
         return match.group(0)
 
-    text = re.sub(r"(?<!\S)" + re.escape(keyword) + r"\s+([A-Za-z0-9-]{1,30})\b",
-                  sub, text, flags=re.IGNORECASE)
-    text = re.sub(r"(?<!\S)/([A-Za-z0-9-]{1,30})\b", sub, text)
-    return text
+    # both trigger forms in ONE sub: re.sub never rescans replacement text,
+    # so expansions containing "/name" or "keyword name" stay literal
+    pattern = (r"(?<!\S)(?:" + re.escape(keyword)
+               + r"\s+|/)([A-Za-z0-9-]{1,30})\b")
+    return re.sub(pattern, sub, text, flags=re.IGNORECASE)
 
 
 def validate(name, expansion, existing):

@@ -28,6 +28,11 @@ datas += [("settings.html", ".")]
 import os as _os
 if _os.path.isdir("models-seed"):
     datas += [("models-seed", "models-seed")]
+else:
+    # gitignored, so fresh clones won't have it — warn instead of silently
+    # shipping a build whose language switching needs a download
+    print("WARNING: models-seed/ missing — run scripts/fetch_models.py first "
+          "to bundle the multilingual models", flush=True)
 
 a = Analysis(
     ["app.py"],
