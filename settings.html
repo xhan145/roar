@@ -234,6 +234,25 @@
           <div class="row" style="flex:1;text-align:center;"><div class="hint">Words</div><div class="stat" id="st-words">0</div></div>
           <div class="row" style="flex:1;text-align:center;"><div class="hint">Avg length</div><div class="stat" id="st-avg">0</div></div>
         </div>
+        <div class="row" id="ms-block">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <div class="hint">Milestones</div>
+            <div class="hint" id="ms-next"></div>
+          </div>
+          <div style="background:#1A1D29;border-radius:6px;height:8px;margin:8px 0 4px;overflow:hidden;">
+            <div id="ms-bar" style="height:100%;width:0;background:#A78BFA;border-radius:6px;"></div>
+          </div>
+          <div class="hint" id="ms-remaining"></div>
+          <div id="ms-shelf" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+          <div class="row flex" style="background:#0a0a0c;margin-top:10px;">
+            <div>Track word milestones<div class="hint">Private, on this device only</div></div>
+            <button class="toggle" id="t-milestones" aria-pressed="true" aria-label="Track word milestones"></button>
+          </div>
+          <div class="row flex" style="background:#0a0a0c;margin-top:8px;">
+            <div>Notify on unlock</div>
+            <button class="toggle" id="t-ms-notify" aria-pressed="true" aria-label="Notify on milestone unlock"></button>
+          </div>
+        </div>
         <div class="row">
           <div class="hint" style="margin-bottom:8px;">Last 14 days</div>
           <div id="ins-activity" style="display:flex;align-items:flex-end;gap:4px;height:80px;"></div>
@@ -313,6 +332,8 @@
     </section>
 
     <section id="about">
+      <img id="a-logo" src="assets/roar-logo-purple-256.png" alt="ROAR"
+           style="width:96px;height:96px;display:block;margin:0 0 8px;">
       <h1>About</h1>
       <div class="row">
         <div class="kv">Version <b id="a-version" style="color:var(--text)"></b></div>
@@ -331,6 +352,7 @@
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
+const MILESTONES_FOR_UI = [[1000,"First Roar"],[5000,"Warming Up"],[10000,"Voice Layer"],[25000,"Fluent Flow"],[50000,"Local Legend"],[100000,"Hundred-K Roar"],[250000,"Dictation Engine"],[500000,"Thunder Typist"],[1000000,"Million Word Roar"]];
 let state = null;
 let pending = { ptt: null, toggle: null, model: null };
 
@@ -412,6 +434,8 @@ async function init() {
   $("a-log").textContent = state.log_path;
   setToggle($("t-overlay"), c.overlay_enabled);
   setToggle($("t-streamprev"), c.streaming_preview);
+  setToggle($("t-milestones"), c.milestones_enabled);
+  setToggle($("t-ms-notify"), c.milestone_notifications);
   setToggle($("t-cleanup"), c.cleanup_enabled);
   setToggle($("t-discourse"), c.remove_discourse_fillers);
   setToggle($("t-history"), c.history_enabled);
@@ -474,6 +498,27 @@ async function renderInsights() {
   $("st-dictations").textContent = d.totals.dictations;
   $("st-words").textContent = d.totals.words.toLocaleString();
   $("st-avg").textContent = d.totals.avg_words + " words";
+  const ms = d.milestones, msOn = state.config.milestones_enabled !== false;
+  $("ms-block").style.display = msOn ? "" : "none";
+  if (msOn && ms) {
+    $("ms-bar").style.width = (ms.next ? ms.percent : 100) + "%";
+    $("ms-next").textContent = ms.next
+      ? "Next: " + ms.next.name + " (" + ms.next.threshold.toLocaleString() + ")"
+      : "All milestones unlocked";
+    $("ms-remaining").textContent = ms.next
+      ? ms.words_remaining.toLocaleString() + " words to go" : "";
+    const shelf = $("ms-shelf"); shelf.innerHTML = "";
+    const unlocked = new Set(ms.unlocked.map(u => u.threshold));
+    MILESTONES_FOR_UI.forEach(([t, name]) => {
+      const chip = document.createElement("span");
+      chip.className = "chipword";
+      chip.textContent = name;
+      if (!unlocked.has(t)) { chip.style.opacity = "0.4"; }
+      else { chip.style.background = "#2A2547"; chip.style.color = "#C9BEF5"; }
+      chip.title = t.toLocaleString() + " words";
+      shelf.appendChild(chip);
+    });
+  }
   const act = $("ins-activity"); act.innerHTML = "";
   const max = Math.max(1, ...d.activity.map(a => a.words));
   d.activity.forEach(a => {
@@ -675,6 +720,16 @@ $("t-cleanup").addEventListener("click", async () => {
   const want = !isOn($("t-cleanup"));
   const r = await api().set_value("cleanup_enabled", want);
   if (r.ok) setToggle($("t-cleanup"), want); else msg("m-vocab", r.error, "err");
+});
+$("t-milestones").addEventListener("click", async () => {
+  const want = !isOn($("t-milestones"));
+  const r = await api().set_value("milestones_enabled", want);
+  if (r.ok) { setToggle($("t-milestones"), want); state.config.milestones_enabled = want; renderInsights(); }
+});
+$("t-ms-notify").addEventListener("click", async () => {
+  const want = !isOn($("t-ms-notify"));
+  const r = await api().set_value("milestone_notifications", want);
+  if (r.ok) setToggle($("t-ms-notify"), want);
 });
 $("t-discourse").addEventListener("click", async () => {
   const want = !isOn($("t-discourse"));
