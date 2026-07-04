@@ -318,7 +318,12 @@
         <div class="kv">Version <b id="a-version" style="color:var(--text)"></b></div>
         <div class="kv">Config: <span class="pathlink" id="a-config" role="button" tabindex="0"></span></div>
         <div class="kv">Log: <span class="pathlink" id="a-log" role="button" tabindex="0"></span></div>
-        <div class="kv" style="margin-top:10px;">100% local — audio and text never leave this machine.</div>
+        <div class="kv" style="margin-top:10px;">
+          <button class="btn" id="b-check-updates">Check for updates</button>
+          <span class="msg" id="m-updates" style="margin-left:8px;"></span>
+        </div>
+        <div class="kv" id="a-credits" style="margin-top:10px;">Created, Coded, and Developed by Greg M and Ben Y</div>
+        <div class="kv" style="margin-top:10px;">100% local — audio and text never leave this machine. Checking for updates is the one exception, and only when you click it.</div>
       </div>
     </section>
   </main>
@@ -747,6 +752,26 @@ $("b-apply-model").addEventListener("click", async () => {
   const open = () => api().open_path($(id).textContent);
   $(id).addEventListener("click", open);
   $(id).addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") open(); });
+});
+
+/* ---- check for updates (manual, click-only) ---- */
+$("b-check-updates").addEventListener("click", async () => {
+  const el = $("m-updates");
+  el.textContent = "Checking…"; el.className = "msg";
+  const r = await api().check_updates();
+  if (r.error) { el.textContent = r.error; el.className = "msg err"; return; }
+  if (r.newer) {
+    el.textContent = "v" + r.latest + " is available — ";
+    const a = document.createElement("span");
+    a.className = "pathlink"; a.setAttribute("role", "button");
+    a.textContent = "open GitHub";
+    a.onclick = () => api().open_repo();
+    el.appendChild(a);
+    el.className = "msg";
+  } else {
+    el.textContent = "You're up to date (v" + r.current + ")";
+    el.className = "msg ok";
+  }
 });
 </script>
 </body>

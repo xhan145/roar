@@ -46,7 +46,7 @@ def test_get_state_shape(tmp_path):
     s = api.get_state()
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
-    assert s["version"] == "0.11.1"
+    assert s["version"] == "0.12.0"
 
 
 def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
@@ -225,3 +225,33 @@ def test_cleanup_instant_keys(tmp_path):
     assert config.load(p)["cleanup_enabled"] is False
     assert api.set_value("remove_discourse_fillers", True)["ok"] is True
     assert config.load(p)["remove_discourse_fillers"] is True
+
+
+def test_check_updates_newer_and_current(tmp_path, monkeypatch):
+    import io
+    import json as _json
+    import settings_ui as su
+
+    def fake_urlopen(req, timeout=0):
+        return io.BytesIO(_json.dumps([{"name": "v9.9.9"}]).encode())
+    monkeypatch.setattr(su.urllib.request, "urlopen", fake_urlopen)
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    r = api.check_updates()
+    assert r["ok"] is True and r["newer"] is True and r["latest"] == "9.9.9"
+
+    def fake_same(req, timeout=0):
+        import paths
+        return io.BytesIO(_json.dumps([{"name": "v" + paths.APP_VERSION}]).encode())
+    monkeypatch.setattr(su.urllib.request, "urlopen", fake_same)
+    r = api.check_updates()
+    assert r["ok"] is True and r["newer"] is False
+
+
+def test_check_updates_offline_degrades(tmp_path, monkeypatch):
+    import settings_ui as su
+
+    def boom(req, timeout=0):
+        raise OSError("no network")
+    monkeypatch.setattr(su.urllib.request, "urlopen", boom)
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    assert "error" in api.check_updates()

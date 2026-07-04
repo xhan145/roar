@@ -4,8 +4,10 @@ Must never import app.py or transcriber.py — those pull the ML stack
 (ctranslate2 + CUDA DLLs) into what should be a lightweight UI process.
 """
 import ctypes
+import json
 import os
 import threading
+import urllib.request
 
 import autostart
 import config as config_mod
@@ -47,6 +49,13 @@ _ORDER = {"ctrl": 0, "alt": 1, "shift": 2, "windows": 3}
 
 # set by run_settings once the window exists; file dialogs hang off it
 _WINDOW = None
+
+REPO_URL = "https://github.com/xhan145/roar"
+TAGS_URL = "https://api.github.com/repos/xhan145/roar/tags?per_page=1"
+
+
+def _version_tuple(v):
+    return tuple(int(p) for p in v.strip().lstrip("v").split("."))
 
 
 def normalize_combo(keys) -> str:
@@ -322,6 +331,26 @@ class SettingsAPI:
             self._write(snippets=sn)
         return {"ok": True, "added": added, "renamed": renamed}
 
+    # -- updates -----------------------------------------------------------
+    def check_updates(self):
+        """Manual, click-only: the ONLY place ROAR ever touches the network."""
+        try:
+            req = urllib.request.Request(TAGS_URL,
+                                         headers={"User-Agent": "ROAR"})
+            # no `with`: works for both real responses and BytesIO test stubs
+            resp = urllib.request.urlopen(req, timeout=5)
+            tags = json.loads(resp.read().decode("utf-8"))
+            latest = tags[0]["name"].lstrip("v")
+            newer = _version_tuple(latest) > _version_tuple(paths.APP_VERSION)
+            return {"ok": True, "current": paths.APP_VERSION,
+                    "latest": latest, "newer": newer}
+        except Exception as e:
+            return {"error": f"couldn't reach GitHub: {e}"}
+
+    def open_repo(self):
+        os.startfile(REPO_URL)  # fixed URL only — never caller-supplied
+        return {"ok": True}
+
     def open_path(self, path):
         allowed = {self.config_path, paths.log_path()}
         if path in allowed and os.path.exists(path):
@@ -418,11 +447,16 @@ def run_settings(smoke=False):
                         "document.getElementById('t-cleanup') ? 1 : 0")
                     has_discourse = window.evaluate_js(
                         "document.getElementById('t-discourse') ? 1 : 0")
+                    has_updates = window.evaluate_js(
+                        "document.getElementById('b-check-updates') ? 1 : 0")
+                    has_credits = window.evaluate_js(
+                        "document.getElementById('a-credits') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
                           f"snip={has_snip} snipnav={snip_nav} "
-                          f"cleanup={has_cleanup} discourse={has_discourse}", flush=True)
+                          f"cleanup={has_cleanup} discourse={has_discourse} "
+                          f"updates={has_updates} credits={has_credits}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()
