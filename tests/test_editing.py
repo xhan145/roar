@@ -46,3 +46,14 @@ def test_is_scratch_whisper_punctuation_variants():
     assert editing.is_scratch("Scratch that —")
     # still standalone-only
     assert not editing.is_scratch('"please scratch that"')
+
+
+def test_keystroke_len_counts_utf16_units():
+    # keyboard.write emits one KEYEVENTF_UNICODE event per UTF-16 unit, so
+    # undo must backspace per unit, not per Python code point
+    assert editing.keystroke_len("hello ") == 6      # BMP == code points
+    assert editing.keystroke_len("café ") == 5       # é is 1 BMP unit
+    assert editing.keystroke_len("\n") == 1
+    assert editing.keystroke_len("") == 0
+    assert editing.keystroke_len("😀 ") == 3          # emoji = 2 units + space
+    assert editing.keystroke_len("a😀b ") == 5        # 1+2+1+1

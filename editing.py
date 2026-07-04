@@ -21,6 +21,14 @@ def is_scratch(text) -> bool:
     return norm in SCRATCH_PHRASES
 
 
+def keystroke_len(typed) -> int:
+    """Backspaces needed to undo `typed`. keyboard.write emits one
+    KEYEVENTF_UNICODE event per UTF-16 code UNIT, so an astral char (emoji,
+    U+10000+) costs 2 keystrokes though it is one Python code point. Equal to
+    len() for all BMP text (every ordinary dictation)."""
+    return len(str(typed).encode("utf-16-le")) // 2
+
+
 class Entry(NamedTuple):
     typed: str        # the PREPARED string actually sent (incl. trailing space)
     hwnd: int         # foreground window at inject time
