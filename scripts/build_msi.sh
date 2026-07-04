@@ -19,6 +19,9 @@ fi
 # Build to a temp name and rename atomically: nobody can double-click a
 # half-written MSI mid-build. Then purge superseded versions so the only
 # clickable installer in dist/ is the current one.
+# CABs are external (an .msi file is hard-capped at 2 GB) and land next to
+# the -out target; clear stale ones so the set always matches this msi.
+rm -f dist/roar*.cab
 "$WIX/light.exe" -nologo -b dist/ROAR -sval \
   -out "dist/ROAR-$VERSION.msi.building" build/harvest.wixobj build/roar.wixobj
 mv -f "dist/ROAR-$VERSION.msi.building" "dist/ROAR-$VERSION.msi"

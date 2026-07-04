@@ -7,11 +7,14 @@
              Description="ROAR - local voice-to-text dictation" />
     <MajorUpgrade AllowSameVersionUpgrades="yes"
                   DowngradeErrorMessage="A newer version of ROAR is already installed." />
-    <!-- mszip + multi-CAB: the model weights are already-compressed tensors;
-         'high' would burn ~an hour on ~3 GB for near-zero gain, and a single
-         CAB tops out at 2 GB uncompressed. -->
-    <MediaTemplate EmbedCab="yes" CompressionLevel="mszip"
-                   MaximumUncompressedMediaSize="1024" />
+    <!-- External multi-CAB, mszip: an .msi FILE is hard-capped at 2 GB
+         (structured storage), so the ~2.8 GB payload must live in roar*.cab
+         files next to the .msi — msiexec finds them by name. mszip because
+         the model weights are already-compressed tensors; 'high' would burn
+         ~an hour for near-zero gain. -->
+    <MediaTemplate EmbedCab="no" CompressionLevel="mszip"
+                   MaximumUncompressedMediaSize="1024"
+                   CabinetTemplate="roar{0}.cab" />
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="LocalAppDataFolder">
         <Directory Id="ProgramsFolder" Name="Programs">
