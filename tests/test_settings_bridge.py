@@ -46,7 +46,7 @@ def test_get_state_shape(tmp_path):
     s = api.get_state()
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
-    assert s["version"] == "0.9.0"
+    assert s["version"] == "0.10.0"
 
 
 def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
@@ -186,3 +186,33 @@ def test_settings_process_never_imports_ml_stack():
                              __import__('os').path.dirname(
                                  __import__('os').path.abspath(__file__))))
     assert "lightweight OK" in out.stdout, out.stderr
+
+
+def test_snippet_crud(tmp_path):
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    assert api.snippets_get()["snippets"] == {}
+    assert api.snippet_save("sig", "Thanks,\nGreg")["ok"] is True
+    assert "error" in api.snippet_save("bad name", "x")
+    assert api.snippet_save("SIG", "replaced")["ok"] is True   # case-insensitive replace
+    assert api.snippets_get()["snippets"] == {"SIG": "replaced"}
+    assert api.snippet_delete("sig")["ok"] is True
+    assert api.snippets_get()["snippets"] == {}
+
+
+def test_snippet_pack_round_trip(tmp_path, monkeypatch):
+    import settings_ui as su
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api.snippet_save("sig", "Greg")
+    pack = tmp_path / "pack.json"
+
+    class StubWin:
+        def create_file_dialog(self, kind, **kw):
+            return str(pack)
+    monkeypatch.setattr(su, "_WINDOW", StubWin())
+    assert api.snippets_export()["ok"] is True
+    api.snippet_delete("sig")
+    api.snippet_save("sig", "different")          # collision on import
+    r = api.snippets_import()
+    assert r["ok"] is True and r["added"] == 1 and r["renamed"] == 1
+    snaps = api.snippets_get()["snippets"]
+    assert snaps["sig"] == "different" and snaps["sig-2"] == "Greg"
