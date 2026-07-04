@@ -54,3 +54,12 @@ def test_bar_cluster_x_left_when_text_centered_when_not():
 def test_bar_heights_new_defaults():
     out = overlay.bar_heights([1.0] * 12)
     assert len(out) == 12 and max(out) == 20
+
+
+def test_fit_tail_clamps_to_pixel_budget():
+    measure = lambda s: len(s) * 10  # fake font: 10px per char
+    assert overlay.fit_tail("short", 100, measure) == "short"
+    out = overlay.fit_tail("abcdefghijklmnop", 100, measure)  # 160px -> clamp
+    assert measure(out) <= 100
+    assert out.startswith("…") and out.endswith("p")  # newest words kept
+    assert overlay.fit_tail("xy", 10, measure) == "xy"  # floor: never < 2 chars
