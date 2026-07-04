@@ -24,6 +24,11 @@ for pkg in (
 
 datas += [("settings.html", ".")]
 
+# multilingual model seed (scripts/fetch_models.py) — ships offline languages
+import os as _os
+if _os.path.isdir("models-seed"):
+    datas += [("models-seed", "models-seed")]
+
 a = Analysis(
     ["app.py"],
     pathex=[],

@@ -6,6 +6,8 @@ import sys
 
 from faster_whisper import WhisperModel
 
+import paths
+
 GPU_MODEL_EN = "distil-large-v3"     # English-only distillation
 GPU_MODEL_MULTI = "large-v3-turbo"   # multilingual, fast
 CPU_MODEL_EN = "small.en"
@@ -29,6 +31,12 @@ def resolve_model(name: str, device: str, language: str = "en") -> str:
     if device == "cuda":
         return GPU_MODEL_EN if english else GPU_MODEL_MULTI
     return CPU_MODEL_EN if english else CPU_MODEL_MULTI
+
+
+def seed_dir(model_name):
+    """Bundled offline copy of a model, when the installer shipped one."""
+    p = paths.resource_path(os.path.join("models-seed", model_name))
+    return p if os.path.isdir(p) else None
 
 
 def _add_nvidia_dll_dirs():
@@ -85,17 +93,25 @@ class Transcriber:
                          "cpu", "int8"))
         last_err = None
         for model, dev, compute in attempts:
-            try:
-                if dev == "cuda":
-                    _add_nvidia_dll_dirs()
-                self.log(f"loading {model} on {dev} ({compute})...")
-                self._model = WhisperModel(model, device=dev, compute_type=compute,
-                                           download_root=self.models_dir)
-                self.active_model, self.device = model, dev
-                return
-            except Exception as e:  # missing cuDNN, OOM, bad model name on gpu...
-                last_err = e
-                self.log(f"load failed for {model} on {dev}: {e}")
+            # source order: local cache -> installer-bundled seed -> download
+            sources = [(model, {"download_root": self.models_dir,
+                                "local_files_only": True})]
+            seed = seed_dir(model)
+            if seed:
+                sources.append((seed, {}))
+            sources.append((model, {"download_root": self.models_dir}))
+            for src, extra in sources:
+                try:
+                    if dev == "cuda":
+                        _add_nvidia_dll_dirs()
+                    self.log(f"loading {model} on {dev} ({compute})...")
+                    self._model = WhisperModel(src, device=dev,
+                                               compute_type=compute, **extra)
+                    self.active_model, self.device = model, dev
+                    return
+                except Exception as e:  # not cached, missing cuDNN, OOM...
+                    last_err = e
+            self.log(f"load failed for {model} on {dev}: {last_err}")
         raise RuntimeError(f"could not load any model: {last_err}")
 
     def _run(self, audio) -> str:
