@@ -38,3 +38,19 @@ def test_overlay_lifecycle_smoke():
     ov.hide()
     ov.stop()
     time.sleep(0.3)          # clean shutdown, no exceptions
+
+
+def test_new_geometry_constants():
+    assert (overlay.W, overlay.H) == (360, 44)
+    assert overlay.N_BARS == 12 and overlay.BAR_AREA_H == 20
+
+
+def test_bar_cluster_x_left_when_text_centered_when_not():
+    assert overlay.bar_cluster_x(True) == 18
+    # cluster = 12 bars * 7px step - 3px trailing gap = 81px
+    assert overlay.bar_cluster_x(False) == (overlay.W - 81) // 2
+
+
+def test_bar_heights_new_defaults():
+    out = overlay.bar_heights([1.0] * 12)
+    assert len(out) == 12 and max(out) == 20
