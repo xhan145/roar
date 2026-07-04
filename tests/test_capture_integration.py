@@ -159,3 +159,28 @@ def test_scratch_refuses_on_focus_change(tmp_path, monkeypatch):
     assert sent["backspaces"] == 0            # refused
     assert a.history.stats()["count"] == 1    # row kept
     a.history.close()
+
+
+def test_milestone_unlock_records_and_notifies(tmp_path, monkeypatch):
+    notes = []
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path, {"milestones_enabled": True,
+                             "milestone_notifications": True})
+    a.notify = lambda msg: notes.append(msg)
+    a.transcriber.transcribe = lambda audio: "word " * 1000
+    a._handle_transcription(_loud_audio())
+    assert a.history.unlocks().get(1000) is not None
+    assert any("First Roar" in n for n in notes)
+    a.history.close()
+
+
+def test_milestone_disabled_no_unlock(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path, {"milestones_enabled": False})
+    a.notify = lambda msg: None
+    a.transcriber.transcribe = lambda audio: "word " * 1000
+    a._handle_transcription(_loud_audio())
+    assert a.history.unlocks() == {}
+    a.history.close()

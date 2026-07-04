@@ -6,6 +6,7 @@ import queue
 import subprocess
 import sys
 import threading
+import time
 
 import keyboard
 import pystray
@@ -14,6 +15,7 @@ from pystray import Menu, MenuItem as Item
 import commands
 import config as config_mod
 import editing
+import milestones
 import history as history_mod
 import injector
 import paths
@@ -300,6 +302,7 @@ class ROARApp:
                              model=self.transcriber.active_model, audio=audio,
                              duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
         self._inject_stack.push(injector.prepare(text), hwnd, rid)
+        self._check_milestones(text, rid)
         self._dictation_count += 1
         if self._dictation_count % 25 == 0:  # signature words drift slowly
             self._rebuild_hotwords()
@@ -307,6 +310,22 @@ class ROARApp:
     @staticmethod
     def _foreground_hwnd():
         return ctypes.windll.user32.GetForegroundWindow()
+
+    def _check_milestones(self, text, rid):
+        """Persist + notify any word-count milestones this dictation crossed.
+        Failure-isolated: milestones must never affect dictation."""
+        if rid is None or not self.cfg.get("milestones_enabled", True):
+            return
+        try:
+            new_total = self.history.total_words()
+            old_total = new_total - len(text.split())
+            for t in milestones.newly_crossed(old_total, new_total):
+                self.history.record_unlock(t, time.time())
+                if self.cfg.get("milestone_notifications", True):
+                    self.notify(f"Milestone unlocked: {milestones.name_for(t)}"
+                                f" — {t:,} words")
+        except Exception as e:
+            self.log(f"milestone check failed: {e}")
 
     def _scratch(self):
         """Undo the last injection — only into the SAME window it went to."""
