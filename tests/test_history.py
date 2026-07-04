@@ -156,3 +156,41 @@ def test_search_matches_and_escapes(hist):
     assert [r["text"] for r in hist.list(query="e_thing")] == ["100% sure_thing"]
     assert hist.list(query="zzz") == []
     assert len(hist.list(query=None)) == 3
+
+
+def test_total_words_all_time(tmp_path):
+    from history import History
+    h = History(db_path=str(tmp_path / "h.db"), audio_dir=str(tmp_path / "a"))
+    assert h.total_words() == 0
+    h.record("one two three", ts=1.0)      # 3 words
+    h.record("four five", ts=2.0)          # 2 words
+    assert h.total_words() == 5
+    h.close()
+
+
+def test_badge_unlocks_sticky(tmp_path):
+    from history import History
+    h = History(db_path=str(tmp_path / "h.db"), audio_dir=str(tmp_path / "a"))
+    assert h.unlocks() == {}
+    h.record_unlock(1000, 111.0)
+    h.record_unlock(1000, 999.0)           # INSERT OR IGNORE — first wins
+    h.record_unlock(5000, 222.0)
+    assert h.unlocks() == {1000: 111.0, 5000: 222.0}
+    h.close()
+
+
+def test_migration_v2_db_gains_badge_unlocks(tmp_path):
+    import sqlite3
+    import history as history_mod
+    p = str(tmp_path / "old.db")
+    con = sqlite3.connect(p)
+    con.execute("""CREATE TABLE dictations (id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts_utc REAL NOT NULL, text TEXT NOT NULL, char_count INTEGER NOT NULL,
+        word_count INTEGER NOT NULL, model TEXT, audio_path TEXT, duration_s REAL)""")
+    con.execute("PRAGMA user_version=2")
+    con.commit(); con.close()
+    h = history_mod.History(db_path=p, audio_dir=str(tmp_path / "a"))
+    assert h.unlocks() == {}                 # table exists, empty
+    h.record_unlock(1000, 5.0)
+    assert h.unlocks() == {1000: 5.0}
+    h.close()
