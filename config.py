@@ -58,23 +58,26 @@ def load(path=None):
               f"Fix or delete {path} to silence this.", flush=True)
         return cfg
     for key, value in user.items():
-        if key == "replacements" and isinstance(value, dict):
-            cfg["replacements"].update(
-                {k: v for k, v in value.items()
-                 if isinstance(k, str) and isinstance(v, str)})
+        if key == "replacements":
+            if isinstance(value, dict):
+                cfg["replacements"].update(
+                    {k: v for k, v in value.items()
+                     if isinstance(k, str) and isinstance(v, str)})
         elif key == "language":
             if valid_language(value):
                 cfg[key] = value
             else:
                 print(f"ROAR: unknown language {value!r} in config — using en",
                       flush=True)
-        elif key == "snippets" and isinstance(value, dict):
-            import snippets as snippets_mod
-            cfg["snippets"] = {
-                k: v for k, v in value.items()
-                if isinstance(k, str) and isinstance(v, str)
-                and snippets_mod.NAME_RE.match(k)
-                and 0 < len(v) <= snippets_mod.MAX_EXPANSION}
+        elif key == "snippets":
+            # type safety only — name/length rules are enforced where entries
+            # are CREATED (bridge save/import). Dropping hand-edited entries
+            # here would silently delete them on the next settings write, and
+            # an invalid name is inert anyway: the expansion regex can only
+            # capture [A-Za-z0-9-]{1,30}.
+            if isinstance(value, dict):
+                cfg["snippets"] = {k: v for k, v in value.items()
+                                   if isinstance(k, str) and isinstance(v, str)}
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()
