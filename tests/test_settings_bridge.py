@@ -46,7 +46,7 @@ def test_get_state_shape(tmp_path):
     s = api.get_state()
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
-    assert s["version"] == "0.10.0"
+    assert s["version"] == "0.11.0"
 
 
 def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
@@ -216,3 +216,12 @@ def test_snippet_pack_round_trip(tmp_path, monkeypatch):
     assert r["ok"] is True and r["added"] == 1 and r["renamed"] == 1
     snaps = api.snippets_get()["snippets"]
     assert snaps["sig"] == "different" and snaps["sig-2"] == "Greg"
+
+
+def test_cleanup_instant_keys(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    assert api.set_value("cleanup_enabled", False)["ok"] is True
+    assert config.load(p)["cleanup_enabled"] is False
+    assert api.set_value("remove_discourse_fillers", True)["ok"] is True
+    assert config.load(p)["remove_discourse_fillers"] is True

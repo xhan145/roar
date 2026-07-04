@@ -17,5 +17,6 @@ def test_settings_smoke():
     assert "ovl=1" in out
     assert "lang=1" in out
     assert "snip=1" in out and "snipnav=1" in out
+    assert "cleanup=1" in out and "discourse=1" in out
     assert "ROAR: settings closed" in out
     assert proc.returncode == 0
