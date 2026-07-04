@@ -4,6 +4,8 @@ import statistics
 import time
 from collections import Counter
 
+import milestones
+
 STOPWORDS = frozenset(
     "the a an and or but if then else when while for nor so yet to of in on at by "
     "from up down with without about into over after before under again further "
@@ -33,7 +35,7 @@ def _words(text):
     return out
 
 
-def compute_insights(rows, now=None):
+def compute_insights(rows, now=None, total_words=None, unlocks=None):
     now = time.time() if now is None else now
     dictations = len(rows)
     words_total = sum(r.get("word_count", 0) for r in rows)
@@ -88,6 +90,9 @@ def compute_insights(rows, now=None):
         if top_words:
             sentences.append(f"You reach for “{top_words[0][0]}” more than any other word.")
 
+    ms_total = words_total if total_words is None else total_words
+    milestones_block = milestones.progress(ms_total, unlocks)
+
     return {
         "totals": {"dictations": dictations, "words": words_total, "avg_words": avg_words},
         "activity": activity,
@@ -95,4 +100,5 @@ def compute_insights(rows, now=None):
         "top_words": top_words,
         "signature_words": signature_words,
         "profile_sentences": sentences,
+        "milestones": milestones_block,
     }

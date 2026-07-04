@@ -28,6 +28,8 @@ DEFAULTS = {
     "snippet_keyword": "snippet",
     "cleanup_enabled": True,
     "remove_discourse_fillers": False,
+    "milestones_enabled": True,
+    "milestone_notifications": True,
 }
 
 
@@ -83,7 +85,8 @@ def load(path=None):
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()
-        elif key in ("cleanup_enabled", "remove_discourse_fillers"):
+        elif key in ("cleanup_enabled", "remove_discourse_fillers",
+                     "milestones_enabled", "milestone_notifications"):
             cfg[key] = bool(value)
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
