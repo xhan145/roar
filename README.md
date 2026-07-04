@@ -98,6 +98,7 @@ Implemented milestones include:
 - `v0.9.0` multilingual dictation
 - `v0.10.0` ROAR Snippets + multilingual models bundled in the installer
 - `v0.11.0` speech cleanup — filler-word and disfluency removal
+- `v0.11.1` slim white + lavender capsule pill (simplified dictation overlay)
 
 ---
 
