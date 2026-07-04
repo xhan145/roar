@@ -97,6 +97,7 @@ Implemented milestones include:
 - `v0.8.0` Cinema Dark interface refresh
 - `v0.9.0` multilingual dictation
 - `v0.10.0` ROAR Snippets + multilingual models bundled in the installer
+- `v0.11.0` speech cleanup — filler-word and disfluency removal
 
 ---
 
@@ -110,6 +111,28 @@ inside the installer**, so switching languages works immediately and fully
 offline — no first-switch download. Notes: spoken commands ("new line") are
 English phrases (add your own per-language in `replacements`), and Insights
 word filtering is English-centric.
+
+## Speech cleanup
+
+Settings → Transcription → **Clean up speech** (on by default) makes dictation
+read like writing instead of raw speech. It runs entirely locally and
+deterministically — no cloud, no language model, no delay:
+
+- **Interjections** — "um", "uh", "er", "hmm" and their variants are removed
+  (word-bounded, so "umbrella" and "summer" are safe).
+- **Stutters and repeats** — an immediately repeated word collapses
+  ("the the cat" → "the cat"), but only for common stutter-prone words, so
+  grammatical doubles like "had had" and "very very" survive.
+- **False starts** — a cut-off fragment before a dash is dropped
+  ("I— I think" → "I think").
+
+A second, opt-in toggle — **Remove filler phrases** (off by default) — also
+strips "like", "you know", "I mean" and similar, but only when they appear as
+comma-bounded fillers (", like,"), so "I like it" is never touched. It's off by
+default because that heuristic can occasionally clip a real word.
+
+The filler lists are English; the stutter/repeat and false-start collapse are
+language-agnostic and help every language.
 
 ## ROAR Snippets
 
