@@ -91,14 +91,14 @@ def test_stopwords_cover_common_fillers():
 
 def test_milestones_block_from_rows_sum():
     rows = [{"ts_utc": 1.0, "word_count": 1200, "text": "x", "duration_s": None}]
-    d = compute_insights(rows, now=1000.0)
+    d = compute_insights(rows, now=NOW)
     assert d["milestones"]["next"]["threshold"] == 5000
     assert 1000 in [u["threshold"] for u in d["milestones"]["unlocked"]]
 
 
 def test_milestones_block_uses_all_time_total_when_given():
     rows = [{"ts_utc": 1.0, "word_count": 50, "text": "x", "duration_s": None}]
-    d = compute_insights(rows, now=1000.0, total_words=12000,
+    d = compute_insights(rows, now=NOW, total_words=12000,
                                   unlocks={1000: 7.0})
     assert d["milestones"]["total_words"] == 12000
     assert d["milestones"]["next"]["threshold"] == 25000
