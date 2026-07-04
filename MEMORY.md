@@ -15,9 +15,21 @@ every rule below exists because violating it already broke something once.
   absolute paths and would break.
 - Version history: v0.1.0 core app → v0.2.0 settings window → v0.3.0 history+
   privacy → v0.4.0 insights+profile+search → v0.5.0 custom vocabulary/hotwords
-  → v0.6.0 product rename → v0.7.0 streaming preview + waveform pill + chimes.
-  Tags exist for each.
-- Roadmap (user wants all): **SP6 multilingual** remains.
+  → v0.6.0 product rename → v0.7.0 streaming preview + waveform pill + chimes
+  → v0.8.0 Cinema Dark UI refresh → v0.9.0 multilingual. Tags exist for each.
+  **The original upgrade queue is COMPLETE.**
+- Roadmap next (user's README, "Planned: ROAR Snippets" SP7+): text expansion
+  layer — /sig-style abbreviations, variables, snippet packs, voice-created
+  reusable phrases.
+- Multilingual invariants (v0.9.0): `distil-large-v3` is ENGLISH-ONLY — the
+  auto policy forks by language (`resolve_model(name, device, language)`:
+  non-en/auto → `large-v3-turbo` gpu / `small` cpu); `language="auto"` passes
+  `language=None` to transcribe (per-utterance detection); `languages.py` is
+  a STATIC 100-code table so the settings process never imports
+  faster_whisper (regression test spawns a clean interpreter and asserts no
+  ML modules); `apply_model(name=None, language=None)` writes ONLY the keys
+  given (a language-only Apply must not send the UI's cached model);
+  config sanitizes unknown languages to "en" with a log line.
 
 ## Environment
 
