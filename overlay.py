@@ -8,17 +8,17 @@ import queue
 import threading
 from collections import deque
 
-ACCENT = "#5E6AD2"
-BG = "#0a0a0c"
-BORDER = "#23263B"
-TEXT = "#EDEDEF"
-MUTED = "#8A8F98"
-REC = "#F25757"
-DIM = "#3A3F58"
+PILL = "#FFFFFF"
+PILL_BORDER = "#E4DEF7"
+BAR_ACTIVE = "#A78BFA"   # recording
+BAR_IDLE = "#DDD6FE"     # transcribing / resting
+TEXT = "#4C4568"
 TRANS_KEY = "#010203"   # transparentcolor => rounded pill corners
-W, H = 400, 76
-N_BARS = 24
-BAR_AREA_H = 28
+W, H = 360, 44
+N_BARS = 12
+BAR_AREA_H = 20
+BAR_W, BAR_STEP = 4, 7
+CLUSTER_W = N_BARS * BAR_STEP - (BAR_STEP - BAR_W)  # 81
 
 
 def bar_heights(levels, n=N_BARS, h=BAR_AREA_H):
@@ -32,6 +32,11 @@ def tail_text(text, max_chars=52):
     if len(text) <= max_chars:
         return text
     return "…" + text[-(max_chars - 1):]
+
+
+def bar_cluster_x(has_text, w=W):
+    """Bars hug the left when text shares the row, center otherwise."""
+    return 18 if has_text else (w - CLUSTER_W) // 2
 
 
 class Overlay:
@@ -94,26 +99,26 @@ class Overlay:
     def _draw(self):
         c = self._canvas
         c.delete("all")
-        r = 24
+        r = H // 2  # capsule: fully rounded ends
         c.create_polygon(
             r, 2, W - r, 2, W - 2, 2, W - 2, r, W - 2, H - r, W - 2, H - 2,
             W - r, H - 2, r, H - 2, 2, H - 2, 2, H - r, 2, r, 2, 2,
-            smooth=True, fill=BG, outline=BORDER)
-        dot = REC if self._mode == "recording" else MUTED
-        c.create_oval(18, 16, 28, 26, fill=dot, outline="")
-        color = ACCENT if self._mode == "recording" else DIM
-        heights = bar_heights(self._levels)
-        mid = 22
-        for i, bh in enumerate(heights):
-            x0 = 40 + i * 14
-            c.create_rectangle(x0, mid - bh // 2, x0 + 8, mid + bh // 2,
-                               fill=color, outline="")
+            smooth=True, fill=PILL, outline=PILL_BORDER)
         txt = self._partial
         if self._mode == "transcribing":
             txt = (txt + " …") if txt else "…"
+        color = BAR_ACTIVE if self._mode == "recording" else BAR_IDLE
+        heights = bar_heights(self._levels)
+        mid = H // 2
+        x_start = bar_cluster_x(bool(txt))
+        for i, bh in enumerate(heights):
+            x0 = x_start + i * BAR_STEP
+            c.create_rectangle(x0, mid - bh // 2, x0 + BAR_W, mid + bh // 2,
+                               fill=color, outline="")
         if txt:
-            c.create_text(W // 2, 56, text=tail_text(txt), fill=TEXT,
-                          font=("Segoe UI", 10))
+            c.create_text(x_start + CLUSTER_W + 14, mid,
+                          text=tail_text(txt, 34), fill=TEXT,
+                          font=("Segoe UI", 10), anchor="w")
 
     # -- public, thread-safe, exception-proof ------------------------------
     def _post(self, fn):
