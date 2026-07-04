@@ -1,0 +1,37 @@
+"""Spoken editing commands: standalone-utterance detection + the injection
+stack that makes undo possible. Pure logic — win32/keyboard stay in app.py."""
+from collections import deque
+from typing import NamedTuple
+
+SCRATCH_PHRASES = frozenset({"scratch that", "scratch it", "undo that"})
+MAX_DEPTH = 10
+
+
+def is_scratch(text) -> bool:
+    """True only when the ENTIRE utterance is a scratch phrase — a sentence
+    that merely contains one must be typed, not executed."""
+    if not isinstance(text, str):
+        return False
+    norm = " ".join(text.lower().split()).strip(" .,!?;:")
+    return norm in SCRATCH_PHRASES
+
+
+class Entry(NamedTuple):
+    typed: str        # the PREPARED string actually sent (incl. trailing space)
+    hwnd: int         # foreground window at inject time
+    history_id: object  # history row id or None
+
+
+class InjectionStack:
+    def __init__(self):
+        self._items = deque(maxlen=MAX_DEPTH)
+
+    def push(self, typed, hwnd, history_id):
+        self._items.append(Entry(typed, hwnd, history_id))
+
+    def pop_if(self, hwnd):
+        """Pop the newest entry only when it was typed into the SAME window;
+        otherwise leave the stack untouched and return None."""
+        if self._items and self._items[-1].hwnd == hwnd:
+            return self._items.pop()
+        return None
