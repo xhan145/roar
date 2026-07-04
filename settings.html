@@ -213,6 +213,16 @@
         </div>
         <div class="hint" id="vocab-auto-words" style="margin-top:6px;"></div>
       </div>
+      <div class="row" style="margin-top:14px;">
+        <div class="row flex" style="background:#0a0a0c;">
+          <div>Clean up speech<div class="hint">Removes "um", "uh", stutters, and repeated words</div></div>
+          <button class="toggle" id="t-cleanup" aria-pressed="true" aria-label="Clean up speech"></button>
+        </div>
+        <div class="row flex" style="background:#0a0a0c;margin-top:8px;">
+          <div>Remove filler phrases<div class="hint">Also strips "like", "you know", "I mean" when used as fillers — may occasionally remove a real word</div></div>
+          <button class="toggle" id="t-discourse" aria-pressed="false" aria-label="Remove filler phrases"></button>
+        </div>
+      </div>
     </section>
 
     <section id="insights">
@@ -397,6 +407,8 @@ async function init() {
   $("a-log").textContent = state.log_path;
   setToggle($("t-overlay"), c.overlay_enabled);
   setToggle($("t-streamprev"), c.streaming_preview);
+  setToggle($("t-cleanup"), c.cleanup_enabled);
+  setToggle($("t-discourse"), c.remove_discourse_fillers);
   setToggle($("t-history"), c.history_enabled);
   $("s-retention").value = String(c.audio_retention_days);
   renderHistory();
@@ -653,6 +665,16 @@ $("t-streamprev").addEventListener("click", async () => {
   const want = !isOn($("t-streamprev"));
   const r = await api().set_value("streaming_preview", want);
   if (r.ok) setToggle($("t-streamprev"), want); else msg("m-general", r.error, "err");
+});
+$("t-cleanup").addEventListener("click", async () => {
+  const want = !isOn($("t-cleanup"));
+  const r = await api().set_value("cleanup_enabled", want);
+  if (r.ok) setToggle($("t-cleanup"), want); else msg("m-vocab", r.error, "err");
+});
+$("t-discourse").addEventListener("click", async () => {
+  const want = !isOn($("t-discourse"));
+  const r = await api().set_value("remove_discourse_fillers", want);
+  if (r.ok) setToggle($("t-discourse"), want); else msg("m-vocab", r.error, "err");
 });
 $("t-paste").addEventListener("click", async () => {
   const want = !isOn($("t-paste"));

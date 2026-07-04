@@ -36,7 +36,8 @@ def _language_options():
             + [[c, c] for c in rest])
 INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "input_device", "history_enabled", "audio_retention_days",
-                "auto_vocabulary", "overlay_enabled", "streaming_preview"}
+                "auto_vocabulary", "overlay_enabled", "streaming_preview",
+                "cleanup_enabled", "remove_discourse_fillers"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -107,7 +108,8 @@ class SettingsAPI:
             if value not in RETENTION_CHOICES:
                 return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
         if key in ("history_enabled", "auto_vocabulary",
-                   "overlay_enabled", "streaming_preview"):
+                   "overlay_enabled", "streaming_preview",
+                   "cleanup_enabled", "remove_discourse_fillers"):
             value = bool(value)
         self._write(**{key: value})
         if key == "audio_retention_days":
@@ -412,10 +414,15 @@ def run_settings(smoke=False):
                         "(function(){var b=document.querySelector('.nav[data-s=\"snippets\"]');"
                         "if(!b||b.disabled)return 0; b.click();"
                         "return document.getElementById('snippets').classList.contains('active')?1:0;})()")
+                    has_cleanup = window.evaluate_js(
+                        "document.getElementById('t-cleanup') ? 1 : 0")
+                    has_discourse = window.evaluate_js(
+                        "document.getElementById('t-discourse') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
-                          f"snip={has_snip} snipnav={snip_nav}", flush=True)
+                          f"snip={has_snip} snipnav={snip_nav} "
+                          f"cleanup={has_cleanup} discourse={has_discourse}", flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()
