@@ -27,6 +27,10 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
   - Hold hotkey, speak, release to type.
   - Default workflow is fast and low-friction.
 
+- **Hands-free dictation**
+  - Double-tap the hotkey to lock recording on — no holding for long passages.
+  - Single tap to stop and type. Tune the double-tap window with `double_tap_ms`.
+
 - **100% local transcription**
   - Powered by `faster-whisper`.
   - No remote API required.
@@ -101,6 +105,7 @@ Implemented milestones include:
 - `v0.11.1` slim white + lavender capsule pill (simplified dictation overlay)
 - `v0.12.0` "scratch that" spoken undo, manual update check, credits
 - `v0.13.0` private offline word milestones + lavender ROAR branding
+- `v0.14.0` hands-free dictation — double-tap the hotkey to lock recording on
 
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
