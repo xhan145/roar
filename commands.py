@@ -23,7 +23,7 @@ def apply_replacements(text: str, replacements: dict) -> str:
 
 def process(text: str, replacements: dict, snippets=None,
             snippet_keyword: str = "snippet", cleanup: bool = False,
-            discourse_fillers: bool = False) -> str:
+            discourse_fillers: bool = False, capitalize: bool = True) -> str:
     """Full pipeline: strip -> cleanup -> replacements -> capitalize -> snippets.
     Cleanup runs first so capitalization lands on the real first word and
     commands/snippets see already-cleaned text. Snippets run last so expansions
@@ -36,11 +36,12 @@ def process(text: str, replacements: dict, snippets=None,
         if not text:
             return ""
     text = apply_replacements(text, replacements)
-    for i, ch in enumerate(text):
-        if ch.isalpha():
-            if ch.islower():
-                text = text[:i] + ch.upper() + text[i + 1:]
-            break
+    if capitalize:
+        for i, ch in enumerate(text):
+            if ch.isalpha():
+                if ch.islower():
+                    text = text[:i] + ch.upper() + text[i + 1:]
+                break
     if snippets:
         text = snippets_mod.expand(text, snippets, keyword=snippet_keyword)
     if not text.strip():

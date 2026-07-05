@@ -106,6 +106,7 @@ Implemented milestones include:
 - `v0.12.0` "scratch that" spoken undo, manual update check, credits
 - `v0.13.0` private offline word milestones + lavender ROAR branding
 - `v0.14.0` hands-free dictation — double-tap the hotkey to lock recording on
+- `v0.15.0` context-aware formatting — verbatim in code editors, terser in chat
 
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in

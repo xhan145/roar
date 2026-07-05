@@ -67,3 +67,8 @@ def test_discourse_gated_by_flag():
     assert commands.process("it's, like, cool", {}, cleanup=True) == "It's, like, cool"
     assert commands.process("it's, like, cool", {}, cleanup=True,
                             discourse_fillers=True) == "It's cool"
+
+
+def test_capitalize_flag_disables_first_letter_upcase():
+    assert commands.process("hello world", {}, capitalize=False) == "hello world"
+    assert commands.process("hello world", {}) == "Hello world"  # default on

@@ -31,6 +31,7 @@ DEFAULTS = {
     "milestones_enabled": True,
     "milestone_notifications": True,
     "double_tap_ms": 400,
+    "context_aware": True,
 }
 
 
@@ -87,7 +88,8 @@ def load(path=None):
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()
         elif key in ("cleanup_enabled", "remove_discourse_fillers",
-                     "milestones_enabled", "milestone_notifications"):
+                     "milestones_enabled", "milestone_notifications",
+                     "context_aware"):
             cfg[key] = bool(value)
         elif key == "double_tap_ms":
             try:

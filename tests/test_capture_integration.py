@@ -253,3 +253,27 @@ def test_hold_is_still_ptt(tmp_path, monkeypatch):
     clock["t"] = 1.0; a._gesture("up")             # long hold -> finish now
     assert a.state in (a.TRANSCRIBING, a.IDLE)
     a.history.close()
+
+
+def test_context_aware_code_editor_is_verbatim(tmp_path, monkeypatch):
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "code.exe"))
+    a = _make_app(tmp_path, {"context_aware": True})
+    a._handle_transcription(_loud_audio())        # transcriber -> "hello from the test"
+    assert injected["text"] == "hello from the test"   # not capitalized
+    a.history.close()
+
+
+def test_context_aware_off_reverts_to_normal(tmp_path, monkeypatch):
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "code.exe"))
+    a = _make_app(tmp_path, {"context_aware": False})
+    a._handle_transcription(_loud_audio())
+    assert injected["text"] == "Hello from the test"   # capitalized as normal
+    a.history.close()

@@ -40,7 +40,8 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "input_device", "history_enabled", "audio_retention_days",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview",
                 "cleanup_enabled", "remove_discourse_fillers",
-                "milestones_enabled", "milestone_notifications"}
+                "milestones_enabled", "milestone_notifications",
+                "context_aware"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -121,7 +122,8 @@ class SettingsAPI:
         if key in ("history_enabled", "auto_vocabulary",
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
-                   "milestones_enabled", "milestone_notifications"):
+                   "milestones_enabled", "milestone_notifications",
+                   "context_aware"):
             value = bool(value)
         self._write(**{key: value})
         if key == "audio_retention_days":

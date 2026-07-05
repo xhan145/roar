@@ -14,6 +14,7 @@ from pystray import Menu, MenuItem as Item
 
 import commands
 import config as config_mod
+import context
 import editing
 import gestures
 import milestones
@@ -324,12 +325,17 @@ class ROARApp:
         if editing.is_scratch(raw):
             self._scratch()
             return
+        prof = (context.profile_for(self._foreground_exe())
+                if self.cfg.get("context_aware", True) else {})
         text = commands.process(
             raw, self.cfg["replacements"],
             self.cfg.get("snippets"),
             self.cfg.get("snippet_keyword", "snippet"),
-            cleanup=self.cfg.get("cleanup_enabled", True),
-            discourse_fillers=self.cfg.get("remove_discourse_fillers", False))
+            cleanup=prof.get("cleanup", self.cfg.get("cleanup_enabled", True)),
+            discourse_fillers=prof.get(
+                "discourse_fillers",
+                self.cfg.get("remove_discourse_fillers", False)),
+            capitalize=prof.get("capitalize", True))
         if not text:
             self.log("empty transcript — nothing injected")
             return
@@ -349,6 +355,29 @@ class ROARApp:
     @staticmethod
     def _foreground_hwnd():
         return ctypes.windll.user32.GetForegroundWindow()
+
+    @staticmethod
+    def _foreground_exe():
+        """Lowercased exe basename of the focused window, or '' on failure."""
+        try:
+            import os as _os
+            import ctypes.wintypes as wintypes
+            u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
+            hwnd = u32.GetForegroundWindow()
+            pid = wintypes.DWORD()
+            u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            h = k32.OpenProcess(0x1000, False, pid.value)  # QUERY_LIMITED_INFO
+            if not h:
+                return ""
+            try:
+                buf = ctypes.create_unicode_buffer(260)
+                size = wintypes.DWORD(260)
+                k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size))
+                return _os.path.basename(buf.value).lower()
+            finally:
+                k32.CloseHandle(h)
+        except Exception:
+            return ""
 
     def _check_milestones(self, text, rid):
         """Persist + notify any word-count milestones this dictation crossed.
