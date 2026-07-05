@@ -128,7 +128,17 @@ class History:
                 self._delete_audio(path)
                 print(f"ROAR: could not save audio for {rid}: {e}",
                       flush=True)
+        self._checkpoint()  # fold this dictation into the main DB immediately
         return rid
+
+    def _checkpoint(self):
+        """Fold committed WAL frames into the main DB file so a force-kill
+        (which can lose the -wal sidecar) never strands a committed row."""
+        with self._lock:
+            try:
+                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except self._sqlite.Error:
+                pass  # busy under a concurrent reader — frames still land later
 
     def _row(self, rid):
         with self._lock:
@@ -243,5 +253,6 @@ class History:
         return len(rows)
 
     def close(self):
+        self._checkpoint()
         with self._lock:
             self._conn.close()

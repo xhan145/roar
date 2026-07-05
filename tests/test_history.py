@@ -194,3 +194,29 @@ def test_migration_v2_db_gains_badge_unlocks(tmp_path):
     h.record_unlock(1000, 5.0)
     assert h.unlocks() == {1000: 5.0}
     h.close()
+
+
+def test_record_checkpoints_wal_into_main_db(tmp_path):
+    # durability: after each record the WAL is folded into the main file, so a
+    # force-kill (which can lose the -wal sidecar) never strands a dictation
+    from history import History
+    p = tmp_path / "h.db"
+    h = History(db_path=str(p), audio_dir=str(tmp_path / "a"))
+    h.record("durable row", ts=1.0)
+    wal = tmp_path / "h.db-wal"
+    assert (not wal.exists()) or wal.stat().st_size == 0
+    h.close()
+
+
+def test_close_truncates_wal_and_data_survives(tmp_path):
+    from history import History
+    p = tmp_path / "h.db"
+    h = History(db_path=str(p), audio_dir=str(tmp_path / "a"))
+    h.record("row a", ts=1.0)     # 2 words
+    h.record("row b two", ts=2.0)  # 3 words
+    h.close()
+    wal = tmp_path / "h.db-wal"
+    assert (not wal.exists()) or wal.stat().st_size == 0
+    h2 = History(db_path=str(p), audio_dir=str(tmp_path / "a"))
+    assert h2.total_words() == 5
+    h2.close()
