@@ -106,3 +106,14 @@ def test_milestone_defaults_and_coercion(tmp_path):
     cfg = config.load(str(p))
     assert cfg["milestones_enabled"] is False
     assert cfg["milestone_notifications"] is True
+
+
+def test_double_tap_ms_default_and_clamp(tmp_path):
+    assert config.load(str(tmp_path / "d.json"))["double_tap_ms"] == 400
+    p = tmp_path / "d2.json"
+    p.write_text(json.dumps({"double_tap_ms": 50}))
+    assert config.load(str(p))["double_tap_ms"] == 200      # clamped up
+    p.write_text(json.dumps({"double_tap_ms": 9999}))
+    assert config.load(str(p))["double_tap_ms"] == 1000     # clamped down
+    p.write_text(json.dumps({"double_tap_ms": "x"}))
+    assert config.load(str(p))["double_tap_ms"] == 400      # non-numeric -> default

@@ -30,6 +30,7 @@ DEFAULTS = {
     "remove_discourse_fillers": False,
     "milestones_enabled": True,
     "milestone_notifications": True,
+    "double_tap_ms": 400,
 }
 
 
@@ -88,6 +89,11 @@ def load(path=None):
         elif key in ("cleanup_enabled", "remove_discourse_fillers",
                      "milestones_enabled", "milestone_notifications"):
             cfg[key] = bool(value)
+        elif key == "double_tap_ms":
+            try:
+                cfg[key] = min(1000, max(200, int(value)))
+            except (TypeError, ValueError):
+                pass  # keep default 400
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
             # (a plain string would otherwise be iterated char-by-char)
