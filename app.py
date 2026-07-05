@@ -15,6 +15,7 @@ from pystray import Menu, MenuItem as Item
 import commands
 import config as config_mod
 import editing
+import gestures
 import milestones
 import history as history_mod
 import injector
@@ -101,6 +102,10 @@ class ROARApp:
         self._purge_ticks = 0
         self._dictation_count = 0
         self._inject_stack = editing.InjectionStack()
+        self._detector = gestures.TapToggleDetector(
+            double_tap_s=cfg.get("double_tap_ms", 400) / 1000)
+        self._gesture_lock = threading.Lock()
+        self._defer_timer = None
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
@@ -142,14 +147,48 @@ class ROARApp:
 
     def _on_key_event(self, event):
         name = (event.name or "").lower()
+        before = self._chord_down()
         if event.event_type == "down":
             self.pressed.add(name)
-            if self._chord_down():
-                self._start_recording("ptt")
         else:
             self.pressed.discard(name)
-            if (self.state == self.RECORDING and self.session_mode == "ptt"
-                    and any(self._matches(name, ck) for ck in self.ptt_chord)):
+        after = self._chord_down()
+        if after and not before:
+            self._gesture("down")
+        elif before and not after:
+            self._gesture("up")
+
+    def _gesture(self, kind):
+        with self._gesture_lock:
+            self._apply_gesture(self._detector.feed(kind, time.monotonic()))
+
+    def _apply_gesture(self, action):
+        if action == gestures.START:
+            self._start_recording("ptt")
+        elif action in (gestures.FINISH, gestures.STOP):
+            self._cancel_defer()
+            self._finish_recording()
+        elif action == gestures.DEFER:
+            self._cancel_defer()
+            self._defer_timer = threading.Timer(
+                self._detector.double_tap_s, self._deferred_finish)
+            self._defer_timer.daemon = True
+            self._defer_timer.start()
+        elif action == gestures.HANDSFREE:
+            self._cancel_defer()
+            with self.state_lock:
+                if self.state == self.RECORDING:
+                    self.session_mode = "toggle"
+            self.notify("Hands-free dictation on — tap to stop")
+
+    def _cancel_defer(self):
+        if self._defer_timer is not None:
+            self._defer_timer.cancel()
+            self._defer_timer = None
+
+    def _deferred_finish(self):
+        with self._gesture_lock:
+            if self._detector.on_defer_timeout(time.monotonic()) == gestures.FINISH:
                 self._finish_recording()
 
     def _on_toggle(self):
@@ -451,6 +490,9 @@ class ROARApp:
                         new_cfg = config_mod.load()
                         actions = diff_config(self.cfg, new_cfg)
                         self.cfg.update(new_cfg)
+                        # keep the tap window live without a full rehook
+                        self._detector.double_tap_s = (
+                            self.cfg.get("double_tap_ms", 400) / 1000)
                     for action, arg in actions:
                         if action == "rehook":
                             keyboard.unhook_all()

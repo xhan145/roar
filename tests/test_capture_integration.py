@@ -5,15 +5,26 @@ Exercises ROARApp._handle_transcription end-to-end (gate -> transcribe
 stubbed, against a REAL temp History DB. This is the deterministic stand-in
 for the mic-loopback manual test, which depends on system audio routing.
 """
+import queue
+import threading
 import types
 
 import numpy as np
 
 import app as app_mod
 import editing
+import gestures
 import history as history_mod
 import injector
 import recorder as recorder_mod
+
+
+class _StubRecorder:
+    def start(self):
+        pass
+
+    def stop(self):
+        return np.zeros(100, dtype=np.float32)
 
 
 def _make_app(tmp_path, cfg_overrides=None):
@@ -41,6 +52,13 @@ def _make_app(tmp_path, cfg_overrides=None):
                                     audio_dir=str(tmp_path / "audio"))
     a.log = lambda msg: None
     a._inject_stack = editing.InjectionStack()
+    a.state = a.IDLE
+    a.state_lock = threading.RLock()
+    a.session_mode = None
+    a.jobs = queue.Queue()
+    a._detector = gestures.TapToggleDetector()
+    a._gesture_lock = threading.Lock()
+    a._defer_timer = None
     a.transcriber = types.SimpleNamespace(
         active_model="small.en",
         transcribe=lambda audio: "hello from the test")
@@ -200,4 +218,38 @@ def test_milestone_no_renotify_after_history_clear(tmp_path, monkeypatch):
     a._handle_transcription(_loud_audio())           # re-crosses 1000
     # badge already earned -> must NOT notify again
     assert len([n for n in notes if "First Roar" in n]) == 1
+    a.history.close()
+
+
+def test_double_tap_enters_handsfree(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path)
+    a.notify = lambda msg: None
+    a.recorder = _StubRecorder()
+    clock = {"t": 0.0}
+    monkeypatch.setattr(app_mod.time, "monotonic", lambda: clock["t"])
+    a._gesture("down"); clock["t"] = 0.1
+    a._gesture("up");   clock["t"] = 0.3          # tap
+    a._gesture("down")                             # 2nd tap within 400ms
+    assert a.session_mode == "toggle"
+    assert a.state == a.RECORDING
+    clock["t"] = 0.4; a._gesture("up")             # release ignored
+    assert a.state == a.RECORDING
+    clock["t"] = 5.0; a._gesture("down")           # single tap stops
+    assert a.state in (a.TRANSCRIBING, a.IDLE)
+    a.history.close()
+
+
+def test_hold_is_still_ptt(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path)
+    a.notify = lambda msg: None
+    a.recorder = _StubRecorder()
+    clock = {"t": 0.0}
+    monkeypatch.setattr(app_mod.time, "monotonic", lambda: clock["t"])
+    a._gesture("down"); assert a.state == a.RECORDING
+    clock["t"] = 1.0; a._gesture("up")             # long hold -> finish now
+    assert a.state in (a.TRANSCRIBING, a.IDLE)
     a.history.close()
