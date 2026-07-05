@@ -363,6 +363,18 @@ class ROARApp:
             import os as _os
             import ctypes.wintypes as wintypes
             u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
+            # explicit signatures: default ctypes int types truncate 64-bit
+            # handles/pointers on Win64
+            u32.GetForegroundWindow.restype = wintypes.HWND
+            u32.GetWindowThreadProcessId.argtypes = [
+                wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+            k32.OpenProcess.restype = wintypes.HANDLE
+            k32.OpenProcess.argtypes = [
+                wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            k32.QueryFullProcessImageNameW.argtypes = [
+                wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR,
+                ctypes.POINTER(wintypes.DWORD)]
+            k32.CloseHandle.argtypes = [wintypes.HANDLE]
             hwnd = u32.GetForegroundWindow()
             pid = wintypes.DWORD()
             u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
