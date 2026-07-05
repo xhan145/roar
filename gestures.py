@@ -29,6 +29,7 @@ class TapToggleDetector:
                 self._press_start = None
                 return HANDSFREE
             self._press_start = now
+            self._last_tap_up = None  # a late defer-timeout must not FINISH this fresh press
             return START
         # kind == "up"
         if self._handsfree:
