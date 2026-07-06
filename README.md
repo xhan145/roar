@@ -1,5 +1,10 @@
 # ROAR
 
+<!-- ROAR-VERSION -->
+**Version:** v0.16.0
+<!-- /ROAR-VERSION -->
+
+
 **Local voice-to-text for Windows. Speak. Release. Type.**
 
 ROAR is a free, local-first Windows dictation tray app inspired by fast push-to-talk tools like Wispr Flow. Hold your hotkey, speak naturally, release, and ROAR types the transcript into whatever app is focused.
@@ -163,6 +168,8 @@ the opt-in Code formatting mode — never in Clean or Raw.)
 
 Note: `v0.16.0` is the current source version; installers for it are produced
 by the release scripts below — the newest *published* tag may trail this.
+
+**Version parity:** `scripts/roar_versions.py` is the single source of truth check — it reads each ROAR component's canonical version, syncs the README version badge + version-asserting tests, and writes `VERSIONS.md`. A pre-commit hook runs `--check` so docs/tests can't drift. Run `python scripts/roar_versions.py --fix` after any version bump.
 
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
