@@ -356,6 +356,17 @@
           <span class="msg" id="m-updates" style="margin-left:8px;"></span>
         </div>
         <div class="kv" id="a-credits" style="margin-top:10px;">Created, Coded, and Developed by Greg M and Ben Y</div>
+      </div>
+      <div class="row" id="diag-block" style="margin-top:14px;">
+        <div>Diagnostics</div>
+        <div class="hint" style="margin:4px 0 8px;">Operational facts only — never transcripts, clipboard, audio, snippets, vocabulary, or window titles. Paths are shortened.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="b-diag-copy">Copy safe diagnostics</button>
+          <button class="btn" id="b-safe-mode">Safe Mode</button>
+        </div>
+        <div class="hint" style="margin-top:6px;">Safe Mode turns off the overlay and streaming preview and switches to paste injection — three settings you can flip back any time.</div>
+        <div class="msg" id="m-diag"></div>
+        <pre id="diag-out" style="display:none;white-space:pre-wrap;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;"></pre>
         <div class="kv" style="margin-top:10px;">100% local — audio and text never leave this machine. Checking for updates is the one exception, and only when you click it.</div>
       </div>
     </section>
@@ -894,6 +905,33 @@ $("b-check-updates").addEventListener("click", async () => {
     el.className = "msg ok";
   }
 });
+
+/* ---- diagnostics / safe mode ---- */
+$("b-diag-copy").addEventListener("click", async () => {
+  const r = await api().diagnostics_get();
+  const out = $("diag-out");
+  out.textContent = r.report;
+  out.style.display = "";
+  try {
+    await navigator.clipboard.writeText(r.report);
+    msg("m-diag", "Copied — safe to paste into a bug report", "ok");
+  } catch (e) {
+    msg("m-diag", "Shown below — select and copy", "ok");
+  }
+});
+$("b-safe-mode").addEventListener("click", e => twoStep(e.target, async () => {
+  const r = await api().safe_mode();
+  if (!r.ok) return;
+  setToggle($("t-overlay"), false);
+  setToggle($("t-streamprev"), false);
+  setToggle($("t-paste"), true);
+  const p = r.previous;
+  msg("m-diag", "Safe Mode on: overlay off, preview off, paste injection on. " +
+      "Previously: overlay " + (p.overlay_enabled ? "on" : "off") +
+      ", preview " + (p.streaming_preview ? "on" : "off") +
+      ", paste " + (p.paste_fallback ? "on" : "off") +
+      " — flip the toggles back any time.", "");
+}));
 </script>
 </body>
 </html>

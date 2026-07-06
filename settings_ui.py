@@ -388,6 +388,41 @@ class SettingsAPI:
         os.startfile(REPO_URL)  # fixed URL only — never caller-supplied
         return {"ok": True}
 
+    # -- diagnostics / safe mode -------------------------------------------
+    def diagnostics_get(self):
+        import diagnostics
+        cfg = config_mod.load(self.config_path)
+        info = {
+            "version": paths.APP_VERSION,
+            "model": cfg.get("model"),
+            "language": cfg.get("language"),
+            "context_aware": cfg.get("context_aware"),
+            "appearance": cfg.get("appearance", "dark"),
+            "overlay_enabled": cfg.get("overlay_enabled"),
+            "streaming_preview": cfg.get("streaming_preview"),
+            "paste_fallback": cfg.get("paste_fallback"),
+            "cleanup_enabled": cfg.get("cleanup_enabled"),
+            "history_enabled": cfg.get("history_enabled"),
+            "audio_retention_days": cfg.get("audio_retention_days"),
+            "milestones_enabled": cfg.get("milestones_enabled"),
+            "double_tap_ms": cfg.get("double_tap_ms"),
+            "history_count": self._history.stats()["count"],
+            "config_path": self.config_path,
+            "log_path": paths.log_path(),
+        }
+        return {"report": diagnostics.format_report(info)}
+
+    def safe_mode(self):
+        """Conservative settings for troubleshooting. Reversible: returns the
+        previous values so the UI can tell the user exactly what changed."""
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            before = {k: cfg.get(k) for k in
+                      ("overlay_enabled", "streaming_preview", "paste_fallback")}
+            self._write(overlay_enabled=False, streaming_preview=False,
+                        paste_fallback=True)
+        return {"ok": True, "previous": before}
+
     def open_path(self, path):
         allowed = {self.config_path, paths.log_path()}
         if path in allowed and os.path.exists(path):
@@ -494,6 +529,8 @@ def run_settings(smoke=False):
                         "document.getElementById('ms-shelf') ? 1 : 0")
                     has_logo = window.evaluate_js(
                         "document.getElementById('a-logo') ? 1 : 0")
+                    has_diag = window.evaluate_js(
+                        "document.getElementById('b-diag-copy') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
@@ -501,7 +538,8 @@ def run_settings(smoke=False):
                           f"cleanup={has_cleanup} discourse={has_discourse} "
                           f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
-                          f"ms={has_ms} logo={has_logo}", flush=True)
+                          f"ms={has_ms} logo={has_logo} diag={has_diag}",
+                          flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()

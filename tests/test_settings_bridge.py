@@ -294,3 +294,31 @@ def test_get_insights_includes_all_time_milestones(tmp_path, monkeypatch):
     d = api.get_insights()
     assert "milestones" in d
     assert 1000 in [u["threshold"] for u in d["milestones"]["unlocked"]]
+
+
+def test_diagnostics_report_is_safe(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("very private words", ts=1.0)
+    api.snippet_save("sig", "private signature")
+    rep = api.diagnostics_get()["report"]
+    assert "version:" in rep and "history_count: 1" in rep
+    assert "private" not in rep            # no transcripts, no snippets
+    import os
+    assert os.path.expanduser("~").lower() not in rep.lower()  # paths redacted
+
+
+def test_safe_mode_is_reversible(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    r = api.safe_mode()
+    assert r["ok"] is True
+    assert r["previous"] == {"overlay_enabled": True,
+                             "streaming_preview": True,
+                             "paste_fallback": False}
+    cfg = config.load(p)
+    assert cfg["overlay_enabled"] is False
+    assert cfg["streaming_preview"] is False
+    assert cfg["paste_fallback"] is True
