@@ -32,8 +32,8 @@ MUTEX_NAME = "Global\\ROARSingleton"
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en", "distil-large-v3"]
 
 
-def acquire_single_instance():
-    handle = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
+def acquire_single_instance(name=MUTEX_NAME):
+    handle = ctypes.windll.kernel32.CreateMutexW(None, False, name)
     if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
         return None
     return handle
@@ -101,6 +101,7 @@ class ROARApp:
         self._purge_ticks = 0
         self._dictation_count = 0
         self._inject_stack = editing.InjectionStack()
+        self._target_hwnd = None
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
@@ -180,12 +181,14 @@ class ROARApp:
             self.session_mode = mode
             recorder_mod.play_tone("start", self.cfg["tones_enabled"])
             try:
+                self._target_hwnd = self._foreground_hwnd()
                 self.recorder.start()
             except Exception as e:
                 recorder_mod.play_tone("error", self.cfg["tones_enabled"])
                 self.notify("No microphone found — plug one in or pick a device "
                             f"in the tray menu ({e})")
                 self.session_mode = None
+                self._target_hwnd = None
                 return
             self._set_state(self.RECORDING)
             if self.overlay is not None and self.cfg.get("overlay_enabled", True):
@@ -232,8 +235,10 @@ class ROARApp:
             if gen == self._session_gen and self.overlay is not None:
                 self.overlay.set_partial(text)
             delay = max(0.7, _time.time() - t0)
-        timer = threading.Timer(
-            delay, lambda: self.jobs.put(("partial", gen)))
+        jobs = getattr(self, "jobs", None)
+        if jobs is None:
+            return
+        timer = threading.Timer(delay, lambda: jobs.put(("partial", gen)))
         timer.daemon = True
         timer.start()
 
@@ -290,18 +295,27 @@ class ROARApp:
             self.cfg.get("snippets"),
             self.cfg.get("snippet_keyword", "snippet"),
             cleanup=self.cfg.get("cleanup_enabled", True),
-            discourse_fillers=self.cfg.get("remove_discourse_fillers", False))
+            discourse_fillers=self.cfg.get("remove_discourse_fillers", False),
+            mode=self.cfg.get("format_mode", "clean"))
         if not text:
             self.log("empty transcript — nothing injected")
             return
         self.last_transcript = text
         hwnd = self._foreground_hwnd()
-        injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
+        target = getattr(self, "_target_hwnd", None) or hwnd
+        if hwnd != target:
+            recorder_mod.play_tone("error", self.cfg["tones_enabled"])
+            self.log("Focus changed. ROAR did not type.")
+            return
+        if not injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"]):
+            recorder_mod.play_tone("error", self.cfg["tones_enabled"])
+            self.log("injection failed - nothing typed")
+            return
         self.log(f"injected {len(text)} chars")
         rid = record_history(self.history, self.cfg, text,
                              model=self.transcriber.active_model, audio=audio,
                              duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
-        self._inject_stack.push(injector.prepare(text), hwnd, rid)
+        self._inject_stack.push(injector.prepare(text), target, rid)
         self._check_milestones(text, rid)
         self._dictation_count += 1
         if self._dictation_count % 25 == 0:  # signature words drift slowly
@@ -532,7 +546,8 @@ def main():
         import settings_ui
         sys.exit(settings_ui.run_settings(smoke=args.smoke))
 
-    mutex = acquire_single_instance()
+    mutex_name = f"{MUTEX_NAME}Smoke{os.getpid()}" if args.smoke else MUTEX_NAME
+    mutex = acquire_single_instance(mutex_name)
     if mutex is None:
         print("ROAR: already running — exiting", flush=True)
         sys.exit(1)

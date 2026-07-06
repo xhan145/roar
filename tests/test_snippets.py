@@ -66,3 +66,27 @@ def test_no_recursion_slash_form_in_expansion():
     assert out == "see /b"
     out = snippets.expand("/a", {"a": "chain /a", "b": "x"})
     assert out == "chain /a"
+
+
+def test_clipboard_variable_is_bounded_and_flagged():
+    text = snippets.resolve_variables("{clipboard}",
+                                      clipboard_getter=lambda: "x" * 50000)
+    assert len(text) == snippets.MAX_CLIPBOARD_CHARS
+    assert snippets.uses_clipboard("{date} {clipboard}") is True
+    assert snippets.uses_clipboard("{clip}") is False
+
+
+def test_validate_pack_skips_invalid_and_warns_clipboard():
+    existing = {"sig": "old"}
+    incoming = {
+        "sig": "new",
+        "bad name": "nope",
+        "clip": "paste {clipboard}",
+        "too-long": "x" * (snippets.MAX_EXPANSION + 1),
+    }
+    accepted, summary = snippets.validate_pack(incoming, existing)
+    assert accepted == {"sig-2": "new", "clip": "paste {clipboard}"}
+    assert summary["added"] == 2
+    assert summary["renamed"] == 1
+    assert summary["skipped"] == 2
+    assert summary["clipboard"] == ["clip"]

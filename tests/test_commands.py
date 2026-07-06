@@ -67,3 +67,21 @@ def test_discourse_gated_by_flag():
     assert commands.process("it's, like, cool", {}, cleanup=True) == "It's, like, cool"
     assert commands.process("it's, like, cool", {}, cleanup=True,
                             discourse_fillers=True) == "It's cool"
+
+
+def test_raw_mode_preserves_spoken_symbol_words():
+    out = commands.process("colon new line", {"new line": "\n"},
+                           cleanup=True, mode="raw")
+    assert out == "Colon new line"
+
+
+def test_code_mode_applies_symbols_without_prose_cleanup():
+    out = commands.process("foo colon bar new line baz", {},
+                           cleanup=True, mode="code")
+    assert out == "foo: bar\nbaz"
+
+
+def test_clean_mode_does_not_turn_symbol_words_into_punctuation():
+    out = commands.process("please type colon here", {},
+                           cleanup=True, mode="clean")
+    assert out == "Please type colon here"

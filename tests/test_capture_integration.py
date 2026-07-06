@@ -55,7 +55,8 @@ def _loud_audio(seconds=1.0):
 def test_transcription_records_history(tmp_path, monkeypatch):
     injected = {}
     monkeypatch.setattr(injector, "inject_text",
-                        lambda text, paste_fallback=False: injected.update(text=text))
+                        lambda text, paste_fallback=False:
+                        injected.update(text=text) or True)
     a = _make_app(tmp_path)
     a._handle_transcription(_loud_audio())
     # commands.process capitalizes the sentence start
@@ -69,7 +70,7 @@ def test_transcription_records_history(tmp_path, monkeypatch):
 
 def test_gated_audio_records_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(injector, "inject_text",
-                        lambda text, paste_fallback=False: None)
+                        lambda text, paste_fallback=False: True)
     a = _make_app(tmp_path)
     a._handle_transcription(np.zeros(recorder_mod.SAMPLE_RATE, dtype=np.float32))
     assert a.history.list() == []
@@ -78,7 +79,7 @@ def test_gated_audio_records_nothing(tmp_path, monkeypatch):
 
 def test_history_disabled_records_nothing(tmp_path, monkeypatch):
     monkeypatch.setattr(injector, "inject_text",
-                        lambda text, paste_fallback=False: None)
+                        lambda text, paste_fallback=False: True)
     a = _make_app(tmp_path, {"history_enabled": False})
     a._handle_transcription(_loud_audio())
     assert a.history.list() == []
@@ -87,7 +88,7 @@ def test_history_disabled_records_nothing(tmp_path, monkeypatch):
 
 def test_retained_audio_saved_on_capture(tmp_path, monkeypatch):
     monkeypatch.setattr(injector, "inject_text",
-                        lambda text, paste_fallback=False: None)
+                        lambda text, paste_fallback=False: True)
     a = _make_app(tmp_path, {"audio_retention_days": 7})
     a._handle_transcription(_loud_audio())
     rows = a.history.list()
@@ -97,7 +98,7 @@ def test_retained_audio_saved_on_capture(tmp_path, monkeypatch):
 
 def test_duration_recorded(tmp_path, monkeypatch):
     monkeypatch.setattr(injector, "inject_text",
-                        lambda text, paste_fallback=False: None)
+                        lambda text, paste_fallback=False: True)
     a = _make_app(tmp_path)
     a._handle_transcription(_loud_audio(seconds=2.0))
     row = a.history.list()[0]
@@ -158,6 +159,41 @@ def test_scratch_refuses_on_focus_change(tmp_path, monkeypatch):
     a._handle_transcription(_loud_audio())
     assert sent["backspaces"] == 0            # refused
     assert a.history.stats()["count"] == 1    # row kept
+    a.history.close()
+
+
+def test_transcription_refuses_to_inject_when_focus_changed(tmp_path, monkeypatch):
+    calls = []
+    hwnd = {"v": 99}
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: hwnd["v"]))
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: calls.append(text) or True)
+    a = _make_app(tmp_path)
+    a._target_hwnd = 42
+    a._handle_transcription(_loud_audio())
+    assert calls == []
+    assert a.history.stats()["count"] == 0
+    a.history.close()
+
+
+def test_transcription_records_target_window_from_recording_start(tmp_path, monkeypatch):
+    hwnd = {"v": 42}
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: hwnd["v"]))
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path)
+    a._target_hwnd = 42
+    a._handle_transcription(_loud_audio())
+    hwnd["v"] = 99
+    a.transcriber.transcribe = lambda audio: "scratch that"
+    sent = {"backspaces": 0}
+    monkeypatch.setattr(app_mod, "send_backspaces",
+                        lambda n: sent.__setitem__("backspaces", n))
+    a._handle_transcription(_loud_audio())
+    assert sent["backspaces"] == 0
+    assert a.history.stats()["count"] == 1
     a.history.close()
 
 

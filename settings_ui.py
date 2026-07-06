@@ -14,6 +14,8 @@ import config as config_mod
 import paths
 import recorder as recorder_mod
 from hotkeys import parse_chord
+import diagnostics
+import license as license_mod
 
 APP_NAME = paths.APP_NAME
 SETTINGS_MUTEX = "Global\\ROARSettings"
@@ -40,7 +42,8 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "input_device", "history_enabled", "audio_retention_days",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview",
                 "cleanup_enabled", "remove_discourse_fillers",
-                "milestones_enabled", "milestone_notifications"}
+                "milestones_enabled", "milestone_notifications",
+                "appearance", "format_mode"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -90,6 +93,7 @@ class SettingsAPI:
             "devices": recorder_mod.list_input_devices(),
             "models": MODEL_CHOICES,
             "version": paths.APP_VERSION,
+            "edition": license_mod.CORE,
             "config_path": self.config_path,
             "log_path": paths.log_path(),
             "languages": _language_options(),
@@ -118,6 +122,12 @@ class SettingsAPI:
                 return {"error": "retention must be a number"}
             if value not in RETENTION_CHOICES:
                 return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
+        if key == "appearance":
+            if value not in ("system", "light", "dark"):
+                return {"error": "appearance must be system, light, or dark"}
+        if key == "format_mode":
+            if value not in ("raw", "clean", "code"):
+                return {"error": "format mode must be raw, clean, or code"}
         if key in ("history_enabled", "auto_vocabulary",
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
@@ -129,6 +139,64 @@ class SettingsAPI:
                 self._history.purge_expired(value)
             except Exception:
                 pass
+        return {"ok": True}
+
+    # -- diagnostics / safe mode ------------------------------------------
+    def safe_diagnostics(self):
+        cfg = config_mod.load(self.config_path)
+        stats = self._history.stats()
+        data = {
+            "version": paths.APP_VERSION,
+            "edition": license_mod.CORE,
+            "license_status": "Core",
+            "model": cfg.get("model"),
+            "device": cfg.get("input_device"),
+            "language": cfg.get("language"),
+            "format_mode": cfg.get("format_mode", "clean"),
+            "overlay_enabled": cfg.get("overlay_enabled", True),
+            "streaming_preview": cfg.get("streaming_preview", True),
+            "last_record_duration": "not persisted",
+            "last_transcription_duration": "not persisted",
+            "last_injection_method": ("paste" if cfg.get("paste_fallback")
+                                      else "sendinput"),
+            "history_count": stats["count"],
+            "private_fields": "<redacted by design>",
+        }
+        return diagnostics.filter_safe(data)
+
+    def copy_safe_diagnostics(self):
+        return {"ok": True,
+                "text": diagnostics.format_safe_diagnostics(
+                    self.safe_diagnostics())}
+
+    def apply_safe_mode(self):
+        keys = ("overlay_enabled", "streaming_preview", "paste_fallback",
+                "model", "input_device")
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            previous = {k: cfg.get(k) for k in keys}
+            cfg.update({
+                "_safe_mode_previous": previous,
+                "overlay_enabled": False,
+                "streaming_preview": False,
+                "paste_fallback": True,
+                "model": "auto",
+                "input_device": None,
+            })
+            config_mod.save(cfg, self.config_path)
+        return {"ok": True}
+
+    def restore_safe_mode(self):
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            previous = cfg.get("_safe_mode_previous")
+            if not isinstance(previous, dict):
+                return {"error": "no Safe Mode snapshot to restore"}
+            for key, value in previous.items():
+                if key in cfg:
+                    cfg[key] = value
+            cfg["_safe_mode_previous"] = None
+            config_mod.save(cfg, self.config_path)
         return {"ok": True}
 
     # -- history / privacy / insights ------------------------------------
@@ -301,7 +369,7 @@ class SettingsAPI:
     def snippets_import(self):
         import json as _json
         import webview
-        from snippets import validate
+        from snippets import validate_pack
         if _WINDOW is None:
             return {"error": "no window"}
         path = _WINDOW.create_file_dialog(webview.OPEN_DIALOG)
@@ -315,26 +383,17 @@ class SettingsAPI:
                 raise ValueError("top level must be an object")
         except Exception as e:
             return {"error": f"not a snippet pack: {e}"}
-        added = renamed = 0
         with self._cfg_lock:
             cfg = config_mod.load(self.config_path)
             sn = dict(cfg.get("snippets", {}))
-            lower = {k.lower() for k in sn}
-            for name, text in incoming.items():
-                if not isinstance(name, str) or not isinstance(text, str):
-                    continue
-                target = name
-                if name.lower() in lower:
-                    target = f"{name}-2"
-                    if target.lower() in lower:
-                        continue
-                    renamed += 1
-                if validate(target, text, sn) is None:
-                    sn[target] = text
-                    lower.add(target.lower())
-                    added += 1
+            accepted, summary = validate_pack(incoming, sn)
+            sn.update(accepted)
             self._write(snippets=sn)
-        return {"ok": True, "added": added, "renamed": renamed}
+        summary["ok"] = True
+        return summary
+
+    def reset_milestones(self):
+        return {"ok": True, "removed": self._history.clear_unlocks()}
 
     # -- updates -----------------------------------------------------------
     def check_updates(self):

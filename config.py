@@ -28,8 +28,11 @@ DEFAULTS = {
     "snippet_keyword": "snippet",
     "cleanup_enabled": True,
     "remove_discourse_fillers": False,
+    "format_mode": "clean",
+    "appearance": "system",
     "milestones_enabled": True,
     "milestone_notifications": True,
+    "_safe_mode_previous": None,
 }
 
 
@@ -88,6 +91,14 @@ def load(path=None):
         elif key in ("cleanup_enabled", "remove_discourse_fillers",
                      "milestones_enabled", "milestone_notifications"):
             cfg[key] = bool(value)
+        elif key == "format_mode":
+            if value in ("raw", "clean", "code"):
+                cfg[key] = value
+        elif key == "appearance":
+            if value in ("system", "light", "dark"):
+                cfg[key] = value
+        elif key == "_safe_mode_previous":
+            cfg[key] = value if isinstance(value, dict) else None
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
             # (a plain string would otherwise be iterated char-by-char)

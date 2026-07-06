@@ -6,6 +6,7 @@ import time
 NAME_RE = re.compile(r"^[A-Za-z0-9-]{1,30}$")
 MAX_SNIPPETS = 100
 MAX_EXPANSION = 2000
+MAX_CLIPBOARD_CHARS = 10000
 
 
 def _default_clipboard():
@@ -21,8 +22,13 @@ def resolve_variables(text, clipboard_getter=None):
             clip = (clipboard_getter or _default_clipboard)() or ""
         except Exception:
             clip = ""
+        clip = str(clip)[:MAX_CLIPBOARD_CHARS]
         out = out.replace("{clipboard}", clip)
     return out
+
+
+def uses_clipboard(text):
+    return isinstance(text, str) and "{clipboard}" in text
 
 
 def expand(text, snippets, keyword="snippet", clipboard_getter=None):
@@ -53,3 +59,42 @@ def validate(name, expansion, existing):
     if len(existing) >= MAX_SNIPPETS and (name or "").lower() not in lower_existing:
         return f"limited to {MAX_SNIPPETS} snippets"
     return None
+
+
+def _collision_name(name, lower):
+    if name.lower() not in lower:
+        return name
+    for i in range(2, 100):
+        candidate = f"{name}-{i}"
+        if candidate.lower() not in lower:
+            return candidate
+    return None
+
+
+def validate_pack(incoming, existing):
+    accepted = {}
+    summary = {"added": 0, "renamed": 0, "skipped": 0, "clipboard": []}
+    if not isinstance(incoming, dict):
+        summary["skipped"] = 1
+        return accepted, summary
+    lower = {k.lower() for k in existing if isinstance(k, str)}
+    for name, text in incoming.items():
+        if not isinstance(name, str) or not isinstance(text, str):
+            summary["skipped"] += 1
+            continue
+        target = _collision_name(name, lower)
+        if target is None:
+            summary["skipped"] += 1
+            continue
+        if target != name:
+            summary["renamed"] += 1
+        err = validate(target, text, {**existing, **accepted})
+        if err:
+            summary["skipped"] += 1
+            continue
+        accepted[target] = text
+        lower.add(target.lower())
+        summary["added"] += 1
+        if uses_clipboard(text):
+            summary["clipboard"].append(target)
+    return accepted, summary

@@ -111,3 +111,31 @@ def test_paste_fallback_and_clipboard_restored():
 
 def test_inject_empty_returns_false():
     assert injector.inject_text("", paste_fallback=False) is False
+
+
+def test_paste_fallback_refuses_oversized_text(monkeypatch):
+    copied = []
+    sent = []
+    monkeypatch.setattr(injector.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(injector.keyboard, "send", lambda chord: sent.append(chord))
+    monkeypatch.setattr(pyperclip, "paste", lambda: "before")
+    monkeypatch.setattr(pyperclip, "copy", lambda text: copied.append(text))
+    assert injector._paste("x" * (injector.MAX_PASTE_CHARS + 1)) is False
+    assert copied == []
+    assert sent == []
+
+
+def test_paste_fallback_restores_after_copy_failure(monkeypatch):
+    copied = []
+    monkeypatch.setattr(injector.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(injector.keyboard, "send", lambda chord: None)
+    monkeypatch.setattr(pyperclip, "paste", lambda: "before")
+
+    def copy(text):
+        copied.append(text)
+        if text == "payload":
+            raise RuntimeError("clipboard locked")
+
+    monkeypatch.setattr(pyperclip, "copy", copy)
+    assert injector._paste("payload") is False
+    assert copied == ["payload", "before"]

@@ -47,6 +47,7 @@ def test_get_state_shape(tmp_path):
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
     assert s["version"] == "0.13.0"
+    assert s["edition"] == "Core"
 
 
 def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
@@ -264,6 +265,41 @@ def test_milestone_instant_keys(tmp_path):
     assert config.load(p)["milestones_enabled"] is False
     assert api.set_value("milestone_notifications", False)["ok"] is True
     assert config.load(p)["milestone_notifications"] is False
+
+
+def test_appearance_safe_mode_and_restore(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    assert api.set_value("appearance", "light")["ok"] is True
+    assert config.load(p)["appearance"] == "light"
+    assert "error" in api.set_value("appearance", "sepia")
+    r = api.apply_safe_mode()
+    assert r["ok"] is True
+    cfg = config.load(p)
+    assert cfg["overlay_enabled"] is False
+    assert cfg["streaming_preview"] is False
+    assert cfg["paste_fallback"] is True
+    assert isinstance(cfg["_safe_mode_previous"], dict)
+    assert api.restore_safe_mode()["ok"] is True
+    restored = config.load(p)
+    assert restored["overlay_enabled"] is True
+    assert restored["streaming_preview"] is True
+    assert restored["paste_fallback"] is False
+
+
+def test_safe_diagnostics_are_redacted(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("private transcript text", ts=1.0)
+    d = api.safe_diagnostics()
+    blob = "\n".join(f"{k}: {v}" for k, v in d.items())
+    assert "private transcript text" not in blob
+    assert d["version"] == "0.13.0"
+    assert d["edition"] == "Core"
+    assert d["history_count"] == 1
+    assert "<redacted" in api.copy_safe_diagnostics()["text"]
 
 
 def test_get_insights_includes_all_time_milestones(tmp_path, monkeypatch):
