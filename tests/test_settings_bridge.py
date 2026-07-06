@@ -294,3 +294,79 @@ def test_get_insights_includes_all_time_milestones(tmp_path, monkeypatch):
     d = api.get_insights()
     assert "milestones" in d
     assert 1000 in [u["threshold"] for u in d["milestones"]["unlocked"]]
+
+
+def test_diagnostics_report_is_safe(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("very private words", ts=1.0)
+    api.snippet_save("sig", "private signature")
+    rep = api.diagnostics_get()["report"]
+    assert "version:" in rep and "history_count: 1" in rep
+    assert "private" not in rep            # no transcripts, no snippets
+    import os
+    assert os.path.expanduser("~").lower() not in rep.lower()  # paths redacted
+
+
+def test_safe_mode_is_reversible(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    r = api.safe_mode()
+    assert r["ok"] is True
+    assert r["previous"] == {"overlay_enabled": True,
+                             "streaming_preview": True,
+                             "paste_fallback": False}
+    cfg = config.load(p)
+    assert cfg["overlay_enabled"] is False
+    assert cfg["streaming_preview"] is False
+    assert cfg["paste_fallback"] is True
+
+
+def test_appearance_instant_key_validated(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    assert api.set_value("appearance", "system")["ok"] is True
+    assert config.load(p)["appearance"] == "system"
+    assert "error" in api.set_value("appearance", "rainbow")
+
+
+def test_snippet_import_reports_clipboard_usage(tmp_path, monkeypatch):
+    import json as _json
+    import settings_ui as su
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    pack = tmp_path / "pack.json"
+    pack.write_text(_json.dumps({"clip": "paste: {clipboard}", "plain": "hi"}))
+
+    class StubWin:
+        def create_file_dialog(self, kind, **kw):
+            return str(pack)
+    monkeypatch.setattr(su, "_WINDOW", StubWin())
+    r = api.snippets_import()
+    assert r["ok"] is True and r["added"] == 2
+    assert r["clipboard_count"] == 1
+
+
+def test_reset_milestones_bridge(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record_unlock(1000, 1.0)
+    api._history.record_unlock(5000, 2.0)
+    r = api.reset_milestones()
+    assert r["ok"] is True and r["removed"] == 2
+    assert api._history.unlocks() == {}
+
+
+def test_history_clear_keeps_badges(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("word " * 1000, ts=1.0)
+    api._history.record_unlock(1000, 1.0)
+    api.history_clear()
+    assert api._history.total_words() == 0
+    assert api._history.unlocks() == {1000: 1.0}   # sticky by design

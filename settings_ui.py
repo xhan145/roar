@@ -42,7 +42,7 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview",
                 "cleanup_enabled", "remove_discourse_fillers",
                 "milestones_enabled", "milestone_notifications",
-                "context_aware"}
+                "context_aware", "appearance"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -120,6 +120,9 @@ class SettingsAPI:
                 return {"error": "retention must be a number"}
             if value not in RETENTION_CHOICES:
                 return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
+        if key == "appearance":
+            if value not in ("dark", "light", "system"):
+                return {"error": "appearance must be dark, light, or system"}
         if key in ("history_enabled", "auto_vocabulary",
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
@@ -347,7 +350,7 @@ class SettingsAPI:
                 raise ValueError("top level must be an object")
         except Exception as e:
             return {"error": f"not a snippet pack: {e}"}
-        added = renamed = 0
+        added = renamed = clipboard_count = 0
         with self._cfg_lock:
             cfg = config_mod.load(self.config_path)
             sn = dict(cfg.get("snippets", {}))
@@ -365,8 +368,11 @@ class SettingsAPI:
                     sn[target] = text
                     lower.add(target.lower())
                     added += 1
+                    if "{clipboard}" in text:
+                        clipboard_count += 1
             self._write(snippets=sn)
-        return {"ok": True, "added": added, "renamed": renamed}
+        return {"ok": True, "added": added, "renamed": renamed,
+                "clipboard_count": clipboard_count}
 
     # -- updates -----------------------------------------------------------
     def check_updates(self):
@@ -387,6 +393,51 @@ class SettingsAPI:
     def open_repo(self):
         os.startfile(REPO_URL)  # fixed URL only — never caller-supplied
         return {"ok": True}
+
+    def reset_milestones(self):
+        return {"ok": True, "removed": self._history.reset_milestones()}
+
+    def clear_log(self):
+        try:
+            open(paths.log_path(), "w", encoding="utf-8").close()
+            return {"ok": True}
+        except OSError as e:
+            return {"error": f"couldn't clear the log: {e}"}
+
+    # -- diagnostics / safe mode -------------------------------------------
+    def diagnostics_get(self):
+        import diagnostics
+        cfg = config_mod.load(self.config_path)
+        info = {
+            "version": paths.APP_VERSION,
+            "model": cfg.get("model"),
+            "language": cfg.get("language"),
+            "context_aware": cfg.get("context_aware"),
+            "appearance": cfg.get("appearance", "dark"),
+            "overlay_enabled": cfg.get("overlay_enabled"),
+            "streaming_preview": cfg.get("streaming_preview"),
+            "paste_fallback": cfg.get("paste_fallback"),
+            "cleanup_enabled": cfg.get("cleanup_enabled"),
+            "history_enabled": cfg.get("history_enabled"),
+            "audio_retention_days": cfg.get("audio_retention_days"),
+            "milestones_enabled": cfg.get("milestones_enabled"),
+            "double_tap_ms": cfg.get("double_tap_ms"),
+            "history_count": self._history.stats()["count"],
+            "config_path": self.config_path,
+            "log_path": paths.log_path(),
+        }
+        return {"report": diagnostics.format_report(info)}
+
+    def safe_mode(self):
+        """Conservative settings for troubleshooting. Reversible: returns the
+        previous values so the UI can tell the user exactly what changed."""
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            before = {k: cfg.get(k) for k in
+                      ("overlay_enabled", "streaming_preview", "paste_fallback")}
+            self._write(overlay_enabled=False, streaming_preview=False,
+                        paste_fallback=True)
+        return {"ok": True, "previous": before}
 
     def open_path(self, path):
         allowed = {self.config_path, paths.log_path()}
@@ -494,6 +545,15 @@ def run_settings(smoke=False):
                         "document.getElementById('ms-shelf') ? 1 : 0")
                     has_logo = window.evaluate_js(
                         "document.getElementById('a-logo') ? 1 : 0")
+                    has_diag = window.evaluate_js(
+                        "document.getElementById('b-diag-copy') ? 1 : 0")
+                    theme_ok = window.evaluate_js(
+                        "(function(){"
+                        "applyAppearance('light');"
+                        "var lt = getComputedStyle(document.body).color;"
+                        "applyAppearance('dark');"
+                        "var dk = getComputedStyle(document.body).color;"
+                        "return (lt === 'rgb(29, 26, 43)' && dk === 'rgb(237, 237, 239)') ? 1 : 0;})()")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
@@ -501,7 +561,9 @@ def run_settings(smoke=False):
                           f"cleanup={has_cleanup} discourse={has_discourse} "
                           f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
-                          f"ms={has_ms} logo={has_logo}", flush=True)
+                          f"ms={has_ms} logo={has_logo} diag={has_diag} "
+                          f"themeok={theme_ok}",
+                          flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()

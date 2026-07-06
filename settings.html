@@ -9,13 +9,41 @@
     --border: rgba(255,255,255,0.08);
     --text: #EDEDEF; --muted: #8A8F98; --disabled: #6A7080;
     --accent: #5E6AD2; --glow: rgba(94,106,210,.35);
-    --err: #F87171; --ok: #34D399;
+    --err: #F87171; --err-soft: #FCA5A5; --ok: #34D399;
+    --field: #0a0a0c; --track: #1A1D29; --bar: #7B85E2; --lav: #A78BFA;
+    --chip-earned-bg: #2A2547; --chip-earned-text: #C9BEF5;
+    --bg-grad: linear-gradient(180deg, #0a0a0f, #020203);
     --ease: cubic-bezier(0.16,1,0.3,1);
+  }
+  /* Light appearance: same lavender/navy identity on a warm-white ground.
+     Applied explicitly (data-theme=light) or via OS preference in system
+     mode (no data-theme attribute set). All assets are local — no network. */
+  html[data-theme="light"] {
+    --bg-deep: #F3F1FA; --side: rgba(29,26,43,0.04); --card: rgba(29,26,43,0.05);
+    --border: rgba(29,26,43,0.14);
+    --text: #1D1A2B; --muted: #5C5870; --disabled: #8D89A0;
+    --glow: rgba(94,106,210,.22);
+    --err: #B91C1C; --err-soft: #B91C1C; --ok: #047857;
+    --field: #FFFFFF; --track: #E4E0F0; --bar: #7B85E2; --lav: #8B5CF6;
+    --chip-earned-bg: #EDE8FB; --chip-earned-text: #4C3D8F;
+    --bg-grad: linear-gradient(180deg, #FBFAFE, #EFEDF7);
+  }
+  @media (prefers-color-scheme: light) {
+    html:not([data-theme]) {
+      --bg-deep: #F3F1FA; --side: rgba(29,26,43,0.04); --card: rgba(29,26,43,0.05);
+      --border: rgba(29,26,43,0.14);
+      --text: #1D1A2B; --muted: #5C5870; --disabled: #8D89A0;
+      --glow: rgba(94,106,210,.22);
+      --err: #B91C1C; --err-soft: #B91C1C; --ok: #047857;
+      --field: #FFFFFF; --track: #E4E0F0; --bar: #7B85E2; --lav: #8B5CF6;
+      --chip-earned-bg: #EDE8FB; --chip-earned-text: #4C3D8F;
+      --bg-grad: linear-gradient(180deg, #FBFAFE, #EFEDF7);
+    }
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    background: linear-gradient(180deg, #0a0a0f, #020203); color: var(--text);
+    background: var(--bg-grad); color: var(--text);
     font: 14px/1.55 "Segoe UI", system-ui, sans-serif;
     display: flex; overflow: hidden;
   }
@@ -44,7 +72,7 @@
   .nav:hover:not(:disabled) { color: var(--text); background: rgba(94,106,210,.10); }
   .nav[aria-current="true"] {
     background: rgba(94,106,210,.16); border-color: rgba(94,106,210,.45);
-    color: #fff; box-shadow: 0 0 14px var(--glow); border-radius: 10px;
+    color: var(--text); box-shadow: 0 0 14px var(--glow); border-radius: 10px;
   }
   .nav:disabled { color: var(--disabled); cursor: default; }
   .nav .soon { font-size: 10px; letter-spacing: .05em; opacity: .8; }
@@ -70,7 +98,7 @@
   /* ---- controls ---- */
   .toggle {
     width: 40px; height: 21px; border-radius: 11px; border: none;
-    background: #1A1D29; position: relative; cursor: pointer; flex: none;
+    background: var(--track); position: relative; cursor: pointer; flex: none;
   }
   .toggle::after {
     content: ""; position: absolute; left: 2px; top: 2px;
@@ -81,14 +109,14 @@
 
   .btn {
     background: rgba(94,106,210,.18); border: 1px solid rgba(94,106,210,.5);
-    color: #fff; border-radius: 8px; padding: 7px 16px; cursor: pointer;
+    color: var(--text); border-radius: 8px; padding: 7px 16px; cursor: pointer;
   }
   .btn:hover { background: rgba(94,106,210,.32); box-shadow: 0 0 10px var(--glow); }
   .btn:disabled { opacity: .45; cursor: default; box-shadow: none; }
-  .btn.primary { background: var(--accent); border-color: var(--accent); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   .chip {
-    display: inline-block; background: #0a0a0c; border: 1px solid var(--border);
+    display: inline-block; background: var(--field); border: 1px solid var(--border);
     border-radius: 6px; padding: 4px 10px; font-family: Consolas, monospace;
     font-size: 13px; min-width: 120px; text-align: center;
   }
@@ -96,7 +124,7 @@
 
   select, input[type="range"] { accent-color: var(--accent); }
   select {
-    background: #0a0a0c; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--field); border: 1px solid var(--border); border-radius: 8px;
     padding: 7px 10px; max-width: 320px; width: 100%;
   }
   input[type="range"] { width: 100%; }
@@ -106,8 +134,8 @@
 
   .locked { text-align: center; color: var(--muted); padding: 40px 20px; }
   .stat { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .chipword { background: #0a0a0c; border: 1px solid var(--border); border-radius: 14px; padding: 3px 12px; font-size: 12.5px; }
-  .wbar { height: 8px; background: #7B85E2; border-radius: 4px; }
+  .chipword { background: var(--field); border: 1px solid var(--border); border-radius: 14px; padding: 3px 12px; font-size: 12.5px; }
+  .wbar { height: 8px; background: var(--bar); border-radius: 4px; }
   .locked .icon { font-size: 30px; margin-bottom: 10px; }
   .pathlink { color: var(--accent); cursor: pointer; text-decoration: underline; word-break: break-all; }
   .kv { color: var(--muted); font-size: 12.5px; margin-bottom: 6px; }
@@ -133,6 +161,14 @@
   <main>
     <section id="general" class="active">
       <h1>General</h1>
+      <div class="row flex">
+        <div>Appearance<div class="hint">Dark, light, or follow Windows — applied instantly, stored locally</div></div>
+        <select id="s-appearance" aria-label="Appearance" style="max-width:180px;">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+          <option value="system">Match Windows</option>
+        </select>
+      </div>
       <div class="row flex">
         <div>Start ROAR with Windows<div class="hint">Adds a per-user registry entry — no admin needed</div></div>
         <button class="toggle" id="t-autostart" aria-pressed="false" aria-label="Start with Windows"></button>
@@ -203,32 +239,32 @@
         <div id="vocab-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;">
           <input id="vocab-input" type="text" maxlength="40" placeholder="Add a word or phrase and press Enter"
-                 style="flex:1;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="Add vocabulary word">
+                 style="flex:1;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="Add vocabulary word">
           <button class="btn" id="b-vocab-add">Add</button>
         </div>
         <div class="msg" id="m-vocab"></div>
-        <div class="row flex" style="margin-top:10px;background:#0a0a0c;">
+        <div class="row flex" style="margin-top:10px;background:var(--field);">
           <div>Include my signature words automatically<div class="hint">Pulled from your dictation history (see Insights)</div></div>
           <button class="toggle" id="t-autovocab" aria-pressed="true" aria-label="Auto vocabulary"></button>
         </div>
         <div class="hint" id="vocab-auto-words" style="margin-top:6px;"></div>
       </div>
       <div class="row" style="margin-top:14px;">
-        <div class="row flex" style="background:#0a0a0c;">
+        <div class="row flex" style="background:var(--field);">
           <div>Clean up speech<div class="hint">Removes "um", "uh", stutters, and repeated words</div></div>
           <button class="toggle" id="t-cleanup" aria-pressed="true" aria-label="Clean up speech"></button>
         </div>
-        <div class="row flex" style="background:#0a0a0c;margin-top:8px;">
+        <div class="row flex" style="background:var(--field);margin-top:8px;">
           <div>Remove filler phrases<div class="hint">Also strips "like", "you know", "I mean" when used as fillers — may occasionally remove a real word</div></div>
           <button class="toggle" id="t-discourse" aria-pressed="false" aria-label="Remove filler phrases"></button>
         </div>
-        <div class="row" style="background:#0a0a0c;margin-top:8px;">
+        <div class="row" style="background:var(--field);margin-top:8px;">
           <div>App profiles</div>
           <div class="hint" style="margin-bottom:8px;">Verbatim in code, casual in chat/social, formal in email and documents. Add an exe name or title:keyword override.</div>
           <div id="app-profile-list" style="margin-bottom:8px;"></div>
           <div style="display:flex;gap:8px;align-items:center;">
             <input id="app-profile-app" type="text" maxlength="80" placeholder="app.exe or title:keyword"
-                   style="flex:1;min-width:0;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="App profile target">
+                   style="flex:1;min-width:0;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="App profile target">
             <select id="app-profile-select" aria-label="App profile" style="width:130px;"></select>
             <button class="btn" id="b-app-profile-add">Add</button>
           </div>
@@ -251,16 +287,18 @@
             <div class="hint">Milestones</div>
             <div class="hint" id="ms-next"></div>
           </div>
-          <div style="background:#1A1D29;border-radius:6px;height:8px;margin:8px 0 4px;overflow:hidden;">
-            <div id="ms-bar" style="height:100%;width:0;background:#A78BFA;border-radius:6px;"></div>
+          <div style="background:var(--track);border-radius:6px;height:8px;margin:8px 0 4px;overflow:hidden;">
+            <div id="ms-bar" style="height:100%;width:0;background:var(--lav);border-radius:6px;"></div>
           </div>
           <div class="hint" id="ms-remaining"></div>
           <div id="ms-shelf" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
-          <div class="row flex" style="background:#0a0a0c;margin-top:10px;">
+          <div style="margin-top:10px;"><button class="btn" id="b-ms-reset">Reset milestones</button></div>
+          <div class="msg" id="m-ms"></div>
+          <div class="row flex" style="background:var(--field);margin-top:10px;">
             <div>Track word milestones<div class="hint">Private, on this device only</div></div>
             <button class="toggle" id="t-milestones" aria-pressed="true" aria-label="Track word milestones"></button>
           </div>
-          <div class="row flex" style="background:#0a0a0c;margin-top:8px;">
+          <div class="row flex" style="background:var(--field);margin-top:8px;">
             <div>Notify on unlock</div>
             <button class="toggle" id="t-ms-notify" aria-pressed="true" aria-label="Notify on milestone unlock"></button>
           </div>
@@ -305,18 +343,19 @@
         <div class="hint" style="margin-top:6px;">Off deletes audio the moment it's transcribed. Transcripts are always kept unless you turn off history.</div>
       </div>
       <div class="row"><div class="kv" id="privacy-stats">…</div></div>
-      <button class="btn" id="b-delete-all" style="border-color:#F87171;color:#FCA5A5;">Delete all history &amp; audio</button>
+      <button class="btn" id="b-delete-all" style="border-color:var(--err);color:var(--err-soft);">Delete all history &amp; audio</button>
       <div class="msg" id="m-privacy"></div>
     </section>
 
     <section id="history">
       <h1>History</h1>
       <input id="history-search" type="search" placeholder="Search dictations…"
-             style="width:100%;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:10px;color:var(--text);"
+             style="width:100%;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:10px;color:var(--text);"
              aria-label="Search dictations">
       <div id="history-list"></div>
       <div class="msg" id="m-history"></div>
       <button class="btn" id="b-clear-all" style="margin-top:6px;">Clear all history</button>
+      <div class="hint" style="margin-top:6px;">Deletes transcripts and audio. Earned milestone badges stay — reset them separately in Insights.</div>
     </section>
 
     <section id="snippets">
@@ -329,10 +368,10 @@
       <div class="row">
         <div style="margin-bottom:8px;">Add or edit a snippet</div>
         <input id="snip-name" type="text" maxlength="30" placeholder="Name — letters, digits, dashes (e.g. sig)"
-               style="width:100%;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;color:var(--text);"
+               style="width:100%;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;color:var(--text);"
                aria-label="Snippet name">
         <textarea id="snip-text" rows="4" maxlength="2000" placeholder="Expansion text…"
-               style="width:100%;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);resize:vertical;box-sizing:border-box;"
+               style="width:100%;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);resize:vertical;box-sizing:border-box;"
                aria-label="Snippet expansion"></textarea>
         <div style="margin-top:8px;display:flex;gap:8px;">
           <button class="btn" id="b-snip-save">Save snippet</button>
@@ -356,6 +395,18 @@
           <span class="msg" id="m-updates" style="margin-left:8px;"></span>
         </div>
         <div class="kv" id="a-credits" style="margin-top:10px;">Created, Coded, and Developed by Greg M and Ben Y</div>
+      </div>
+      <div class="row" id="diag-block" style="margin-top:14px;">
+        <div>Diagnostics</div>
+        <div class="hint" style="margin:4px 0 8px;">Operational facts only — never transcripts, clipboard, audio, snippets, vocabulary, or window titles. Paths are shortened.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="b-diag-copy">Copy safe diagnostics</button>
+          <button class="btn" id="b-safe-mode">Safe Mode</button>
+          <button class="btn" id="b-clear-log">Clear log</button>
+        </div>
+        <div class="hint" style="margin-top:6px;">Safe Mode turns off the overlay and streaming preview and switches to paste injection — three settings you can flip back any time.</div>
+        <div class="msg" id="m-diag"></div>
+        <pre id="diag-out" style="display:none;white-space:pre-wrap;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:11px;margin-top:8px;"></pre>
         <div class="kv" style="margin-top:10px;">100% local — audio and text never leave this machine. Checking for updates is the one exception, and only when you click it.</div>
       </div>
     </section>
@@ -408,6 +459,8 @@ const MODEL_CAPS = {
 async function init() {
   state = await api().get_state();
   const c = state.config;
+  applyAppearance(c.appearance || "dark");
+  $("s-appearance").value = c.appearance || "dark";
   setToggle($("t-autostart"), state.autostart);
   setToggle($("t-tones"), c.tones_enabled);
   setToggle($("t-paste"), c.paste_fallback);
@@ -527,7 +580,7 @@ async function renderInsights() {
       chip.className = "chipword";
       chip.textContent = name;
       if (!unlocked.has(t)) { chip.style.opacity = "0.4"; }
-      else { chip.style.background = "#2A2547"; chip.style.color = "#C9BEF5"; }
+      else { chip.style.background = "var(--chip-earned-bg)"; chip.style.color = "var(--chip-earned-text)"; }
       chip.title = t.toLocaleString() + " words";
       shelf.appendChild(chip);
     });
@@ -541,7 +594,7 @@ async function renderInsights() {
     const bar = document.createElement("div");
     bar.style.cssText = "width:100%;border-radius:3px;height:" +
       (a.words ? Math.max(6, Math.round(a.words / max * 64)) : 2) + "px;" +
-      (a.words ? "background:#7B85E2;" : "background:#1A1D29;");
+      (a.words ? "background:var(--bar);" : "background:var(--track);");
     const lbl = document.createElement("div");
     lbl.className = "hint"; lbl.style.fontSize = "10px";
     lbl.textContent = a.date.slice(8);
@@ -688,13 +741,21 @@ async function renderSnippets() {
   }
   names.forEach(name => {
     const card = document.createElement("div");
-    card.style.cssText = "display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:#0a0a0c;";
+    card.style.cssText = "display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;background:var(--field);";
     const body = document.createElement("div"); body.style.cssText = "flex:1;min-width:0;";
     const title = document.createElement("div");
     title.textContent = name; title.style.cssText = "font-weight:600;margin-bottom:2px;";
     const preview = document.createElement("div"); preview.className = "hint";
     preview.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
     preview.textContent = d.snippets[name];
+    if (d.snippets[name].indexOf("{clipboard}") !== -1) {
+      const flag = document.createElement("span");
+      flag.className = "chipword";
+      flag.textContent = "uses clipboard";
+      flag.title = "Expands your current clipboard (capped at 10,000 characters)";
+      flag.style.cssText = "font-size:10.5px;margin-left:8px;color:var(--lav);";
+      title.appendChild(flag);
+    }
     body.appendChild(title); body.appendChild(preview);
     const edit = document.createElement("button"); edit.className = "btn"; edit.textContent = "Edit";
     edit.onclick = () => { $("snip-name").value = name; $("snip-text").value = d.snippets[name]; $("snip-text").focus(); };
@@ -722,7 +783,9 @@ $("b-snip-import").addEventListener("click", async () => {
   if (r.error) { msg("m-snip", r.error, "err"); return; }
   if (r.cancelled) return;
   msg("m-snip", "Imported " + r.added + " snippet" + (r.added === 1 ? "" : "s") +
-      (r.renamed ? " (" + r.renamed + " renamed to avoid collisions)" : ""), "ok");
+      (r.renamed ? " (" + r.renamed + " renamed to avoid collisions)" : "") +
+      (r.clipboard_count ? " — note: " + r.clipboard_count + " use {clipboard} and will type your clipboard contents" : ""),
+      r.clipboard_count ? "" : "ok");
   renderSnippets();
 });
 
@@ -894,6 +957,58 @@ $("b-check-updates").addEventListener("click", async () => {
     el.className = "msg ok";
   }
 });
+
+/* ---- appearance ---- */
+function applyAppearance(mode) {
+  if (mode === "light" || mode === "dark") {
+    document.documentElement.setAttribute("data-theme", mode);
+  } else {
+    document.documentElement.removeAttribute("data-theme");  // system
+  }
+}
+$("s-appearance").addEventListener("change", async e => {
+  const mode = e.target.value;
+  const r = await api().set_value("appearance", mode);
+  if (r.ok) applyAppearance(mode);
+});
+
+/* ---- resets ---- */
+$("b-ms-reset").addEventListener("click", e => twoStep(e.target, async () => {
+  const r = await api().reset_milestones();
+  msg("m-ms", "Milestones reset (" + r.removed + " badge" + (r.removed === 1 ? "" : "s") + " forgotten)", "ok");
+  renderInsights();
+}));
+
+/* ---- diagnostics / safe mode ---- */
+$("b-diag-copy").addEventListener("click", async () => {
+  const r = await api().diagnostics_get();
+  const out = $("diag-out");
+  out.textContent = r.report;
+  out.style.display = "";
+  try {
+    await navigator.clipboard.writeText(r.report);
+    msg("m-diag", "Copied — safe to paste into a bug report", "ok");
+  } catch (e) {
+    msg("m-diag", "Shown below — select and copy", "ok");
+  }
+});
+$("b-clear-log").addEventListener("click", e => twoStep(e.target, async () => {
+  const r = await api().clear_log();
+  msg("m-diag", r.ok ? "Log cleared" : r.error, r.ok ? "ok" : "err");
+}));
+$("b-safe-mode").addEventListener("click", e => twoStep(e.target, async () => {
+  const r = await api().safe_mode();
+  if (!r.ok) return;
+  setToggle($("t-overlay"), false);
+  setToggle($("t-streamprev"), false);
+  setToggle($("t-paste"), true);
+  const p = r.previous;
+  msg("m-diag", "Safe Mode on: overlay off, preview off, paste injection on. " +
+      "Previously: overlay " + (p.overlay_enabled ? "on" : "off") +
+      ", preview " + (p.streaming_preview ? "on" : "off") +
+      ", paste " + (p.paste_fallback ? "on" : "off") +
+      " — flip the toggles back any time.", "");
+}));
 </script>
 </body>
 </html>

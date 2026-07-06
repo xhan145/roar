@@ -313,3 +313,78 @@ def test_context_aware_off_reverts_to_normal_user_settings(tmp_path, monkeypatch
     a._handle_transcription(_loud_audio())
     assert injected["text"] == "Um hello from the test"   # no profile applied
     a.history.close()
+
+
+def test_focus_change_blocks_injection(tmp_path, monkeypatch):
+    injected = {}
+    notes = []
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    hwnd = {"v": 42}
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: hwnd["v"]))
+    a = _make_app(tmp_path)
+    a.notify = lambda msg: notes.append(msg)
+    a._target_hwnd = 42            # captured at recording start
+    hwnd["v"] = 99                 # user clicked elsewhere before transcribe done
+    a._handle_transcription(_loud_audio())
+    assert injected == {}                          # nothing typed
+    assert a.history.list() == []                  # nothing recorded
+    assert any("did not type" in n for n in notes)
+    a.history.close()
+
+
+def test_focus_same_still_injects(tmp_path, monkeypatch):
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: 42))
+    a = _make_app(tmp_path)
+    a._target_hwnd = 42
+    a._handle_transcription(_loud_audio())
+    assert injected["text"] == "Hello from the test"
+    a.history.close()
+
+
+def test_profile_lookup_failure_is_safe(tmp_path, monkeypatch):
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: ""))       # lookup failed
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: ""))
+    a = _make_app(tmp_path, {"context_aware": True})
+    a._handle_transcription(_loud_audio())
+    assert injected["text"] == "Hello from the test"     # user defaults apply
+    a.history.close()
+
+
+def test_profiles_do_not_mutate_global_settings(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "code.exe"))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: ""))
+    a = _make_app(tmp_path, {"context_aware": True, "cleanup_enabled": True})
+    before = dict(a.cfg)
+    a._handle_transcription(_loud_audio())               # code profile applied
+    assert a.cfg == before                                # per-dictation only
+    a.history.close()
+
+
+def test_window_title_never_logged(tmp_path, monkeypatch):
+    logs = []
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "chrome.exe"))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: "SECRET BANKING TAB - WhatsApp"))
+    a = _make_app(tmp_path, {"context_aware": True})
+    a.log = lambda m: logs.append(m)
+    a._handle_transcription(_loud_audio())
+    assert all("SECRET" not in m and "BANKING" not in m for m in logs)
+    a.history.close()

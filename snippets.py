@@ -6,6 +6,8 @@ import time
 NAME_RE = re.compile(r"^[A-Za-z0-9-]{1,30}$")
 MAX_SNIPPETS = 100
 MAX_EXPANSION = 2000
+MAX_CLIP_CHARS = 10_000  # {clipboard} cap: a stray giant clipboard must not
+                         # explode into a runaway injection
 
 
 def _default_clipboard():
@@ -21,7 +23,7 @@ def resolve_variables(text, clipboard_getter=None):
             clip = (clipboard_getter or _default_clipboard)() or ""
         except Exception:
             clip = ""
-        out = out.replace("{clipboard}", clip)
+        out = out.replace("{clipboard}", clip[:MAX_CLIP_CHARS])
     return out
 
 

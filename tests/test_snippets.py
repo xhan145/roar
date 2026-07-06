@@ -66,3 +66,10 @@ def test_no_recursion_slash_form_in_expansion():
     assert out == "see /b"
     out = snippets.expand("/a", {"a": "chain /a", "b": "x"})
     assert out == "chain /a"
+
+
+def test_clipboard_variable_is_capped():
+    huge = "c" * (snippets.MAX_CLIP_CHARS + 500)
+    out = snippets.expand("snippet c", {"c": "[{clipboard}]"},
+                          clipboard_getter=lambda: huge)
+    assert len(out) == snippets.MAX_CLIP_CHARS + 2   # brackets + capped clip

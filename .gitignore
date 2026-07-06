@@ -13,3 +13,5 @@ history.db-wal
 history.db-shm
 audio/
 models-seed/
+backups/
+.obsidian/
