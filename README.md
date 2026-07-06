@@ -83,6 +83,36 @@ ROAR is not trying to be a giant writing suite. It is a small, sharp desktop too
 
 ## Current Status
 
+Current app version: `0.13.0` (`paths.APP_VERSION`).
+
+**Shipped**
+
+- Push-to-talk and toggle dictation.
+- Local `faster-whisper` transcription with CUDA detection and CPU fallback.
+- Windows tray app, settings window, overlay, and streaming preview.
+- Local history, optional audio retention, insights, private milestones, and history deletion.
+- Custom vocabulary, ROAR Snippets, deterministic cleanup, multilingual language selection, and scratch-that undo.
+- Manual, user-clicked update check in About.
+- Appearance setting (`system`, `light`, `dark`), Safe Diagnostics, and Safe Mode settings.
+
+**Experimental**
+
+- Bundled multilingual model seeds in release builds. Fresh source checkouts may need `scripts/fetch_models.py` before packaging.
+- Real-app text injection behavior varies by target app; clipboard fallback exists for apps that block typed input.
+- Speech cleanup heuristics are deterministic and local, but English filler removal can still be imperfect.
+
+**Planned**
+
+- Signed offline license validation and entitlement checks. Current source contains only safe primitives and docs; Core behavior is not paywalled.
+- App profile policy, if implemented later, should remain local and avoid storing full window titles by default.
+- Richer release smoke automation for installed builds.
+
+**Intentionally Not Included**
+
+- Cloud transcription, telemetry, accounts, subscriptions, sync, team features, marketplace features, and automatic network calls.
+- Local LLM rewriting or networked text rewriting.
+- Paywalls for basic dictation, privacy controls, history deletion, audio deletion, or local data controls.
+
 ROAR has evolved from its original name, **FlowLocal**, into a Windows-focused local dictation app.
 
 Implemented milestones include:
