@@ -6,7 +6,7 @@
 # tooling to build/7zsd on first run (no installed 7-Zip required).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=$(venv/Scripts/python.exe -c "import paths; print(paths.APP_VERSION)")
+VERSION=$(venv/Scripts/python.exe -c "import paths; print(paths.APP_VERSION)" | tr -d '\r')
 TOOLS=build/7zsd
 SFX=$TOOLS/7zSD.sfx
 SEVENZA=$TOOLS/7za.exe

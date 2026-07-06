@@ -3,7 +3,7 @@
 # Downloads WiX 3.14 portable binaries to build/wix on first run.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-VERSION=$(venv/Scripts/python.exe -c "import paths; print(paths.APP_VERSION)")
+VERSION=$(venv/Scripts/python.exe -c "import paths; print(paths.APP_VERSION)" | tr -d '\r')
 WIX=build/wix
 [ -d dist/ROAR ] || { echo "run PyInstaller first"; exit 1; }
 if [ ! -f "$WIX/heat.exe" ]; then
