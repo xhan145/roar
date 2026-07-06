@@ -10,6 +10,11 @@
 - Hardened snippet clipboard variables and snippet pack import validation.
 - Added raw/clean/code format-mode separation for deterministic local formatting.
 
+## 0.16.0
+
+- Context-aware app profiles.
+- Double-tap hands-free dictation.
+
 ## 0.13.0
 
 - Private offline word milestones.

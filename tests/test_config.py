@@ -87,6 +87,7 @@ def test_cleanup_defaults_present(tmp_path):
     cfg = config.load(str(tmp_path / "config.json"))
     assert cfg["cleanup_enabled"] is True
     assert cfg["remove_discourse_fillers"] is False
+    assert cfg["app_profiles"] == {}
 
 
 def test_cleanup_flags_coerced_to_bool(tmp_path):
@@ -106,3 +107,35 @@ def test_milestone_defaults_and_coercion(tmp_path):
     cfg = config.load(str(p))
     assert cfg["milestones_enabled"] is False
     assert cfg["milestone_notifications"] is True
+
+
+def test_double_tap_ms_default_and_clamp(tmp_path):
+    assert config.load(str(tmp_path / "d.json"))["double_tap_ms"] == 400
+    p = tmp_path / "d2.json"
+    p.write_text(json.dumps({"double_tap_ms": 50}))
+    assert config.load(str(p))["double_tap_ms"] == 200      # clamped up
+    p.write_text(json.dumps({"double_tap_ms": 9999}))
+    assert config.load(str(p))["double_tap_ms"] == 1000     # clamped down
+    p.write_text(json.dumps({"double_tap_ms": "x"}))
+    assert config.load(str(p))["double_tap_ms"] == 400      # non-numeric -> default
+
+
+def test_app_profiles_sanitized_on_load(tmp_path):
+    p = tmp_path / "profiles.json"
+    p.write_text(json.dumps({"app_profiles": "boom"}))
+    assert config.load(str(p))["app_profiles"] == {}
+
+    p.write_text(json.dumps({
+        "app_profiles": {
+            "CODE.EXE": "formal",
+            " title:Gmail ": "casual",
+            "bad.exe": "unknown",
+            "nonstr": 7,
+            "": "code",
+        }
+    }))
+    cfg = config.load(str(p))
+    assert cfg["app_profiles"] == {
+        "code.exe": "formal",
+        "title:gmail": "casual",
+    }

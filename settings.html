@@ -255,6 +255,18 @@
           <div>Remove filler phrases<div class="hint">Also strips "like", "you know", "I mean" when used as fillers — may occasionally remove a real word</div></div>
           <button class="toggle" id="t-discourse" aria-pressed="false" aria-label="Remove filler phrases"></button>
         </div>
+        <div class="row" style="background:#0a0a0c;margin-top:8px;">
+          <div>App profiles</div>
+          <div class="hint" style="margin-bottom:8px;">Verbatim in code, casual in chat/social, formal in email and documents. Add an exe name or title:keyword override.</div>
+          <div id="app-profile-list" style="margin-bottom:8px;"></div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="app-profile-app" type="text" maxlength="80" placeholder="app.exe or title:keyword"
+                   style="flex:1;min-width:0;background:#0a0a0c;border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="App profile target">
+            <select id="app-profile-select" aria-label="App profile" style="width:130px;"></select>
+            <button class="btn" id="b-app-profile-add">Add</button>
+          </div>
+          <div class="msg" id="m-app-profiles"></div>
+        </div>
       </div>
     </section>
 
@@ -507,6 +519,7 @@ async function init() {
   refreshStats();
   renderInsights();
   renderVocab();
+  renderAppProfiles();
   renderSnippets();
   renderDiagnostics();
 }
@@ -675,6 +688,59 @@ $("t-autovocab").addEventListener("click", async () => {
   const want = !isOn($("t-autovocab"));
   const r = await api().set_value("auto_vocabulary", want);
   if (r.ok) renderVocab(); else msg("m-vocab", r.error, "err");
+});
+
+/* ---- app profiles ---- */
+async function renderAppProfiles() {
+  const d = await api().app_profiles_get();
+  const select = $("app-profile-select");
+  select.replaceChildren();
+  d.profiles.forEach(p => {
+    const o = document.createElement("option");
+    o.value = p; o.textContent = p;
+    select.appendChild(o);
+  });
+
+  const list = $("app-profile-list");
+  list.replaceChildren();
+  const keys = Object.keys(d.map).sort((a, b) => a.localeCompare(b));
+  if (!keys.length) {
+    const e = document.createElement("div");
+    e.className = "hint";
+    e.textContent = "No custom overrides.";
+    list.appendChild(e);
+    return;
+  }
+  keys.forEach(app => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;padding:6px 0;";
+    const name = document.createElement("div");
+    name.textContent = app;
+    name.style.cssText = "flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:Consolas,monospace;";
+    const prof = document.createElement("div");
+    prof.textContent = d.map[app];
+    prof.className = "hint";
+    prof.style.cssText = "width:70px;text-align:right;";
+    const del = document.createElement("button");
+    del.className = "btn";
+    del.textContent = "x";
+    del.setAttribute("aria-label", "Remove app profile");
+    del.onclick = async () => { await api().app_profile_clear(app); renderAppProfiles(); };
+    row.appendChild(name); row.appendChild(prof); row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+$("b-app-profile-add").addEventListener("click", async () => {
+  const app = $("app-profile-app").value.trim();
+  const profile = $("app-profile-select").value;
+  const r = await api().app_profile_set(app, profile);
+  if (r.error) { msg("m-app-profiles", r.error, "err"); return; }
+  $("app-profile-app").value = "";
+  msg("m-app-profiles", "Saved", "ok");
+  renderAppProfiles();
+});
+$("app-profile-app").addEventListener("keydown", e => {
+  if (e.key === "Enter") $("b-app-profile-add").click();
 });
 
 /* ---- snippets ---- */

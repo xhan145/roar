@@ -45,7 +45,8 @@ def apply_replacements(text: str, replacements: dict) -> str:
 
 def process(text: str, replacements: dict, snippets=None,
             snippet_keyword: str = "snippet", cleanup: bool = False,
-            discourse_fillers: bool = False, mode: str = "clean") -> str:
+            discourse_fillers: bool = False, capitalize: bool = True,
+            mode: str = "clean") -> str:
     """Full pipeline: strip -> cleanup -> replacements -> capitalize -> snippets.
     Cleanup runs first so capitalization lands on the real first word and
     commands/snippets see already-cleaned text. Snippets run last so expansions
@@ -62,7 +63,7 @@ def process(text: str, replacements: dict, snippets=None,
         text = apply_replacements(text, CODE_SYMBOLS)
     elif mode == "clean":
         text = apply_replacements(text, replacements)
-    if mode != "code":
+    if capitalize and mode != "code":
         for i, ch in enumerate(text):
             if ch.isalpha():
                 if ch.islower():

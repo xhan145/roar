@@ -201,3 +201,60 @@ def test_migration_v2_db_gains_badge_unlocks(tmp_path):
     h.record_unlock(1000, 5.0)
     assert h.unlocks() == {1000: 5.0}
     h.close()
+
+
+def test_record_checkpoints_wal_into_main_db(tmp_path):
+    # durability: after each record the WAL is folded into the main file, so a
+    # force-kill (which can lose the -wal sidecar) never strands a dictation
+    from history import History
+    p = tmp_path / "h.db"
+    h = History(db_path=str(p), audio_dir=str(tmp_path / "a"))
+    h.record("durable row", ts=1.0)
+    wal = tmp_path / "h.db-wal"
+    assert (not wal.exists()) or wal.stat().st_size == 0
+    h.close()
+
+
+def test_close_truncates_wal_and_data_survives(tmp_path):
+    from history import History
+    p = tmp_path / "h.db"
+    h = History(db_path=str(p), audio_dir=str(tmp_path / "a"))
+    h.record("row a", ts=1.0)     # 2 words
+    h.record("row b two", ts=2.0)  # 3 words
+    h.close()
+    wal = tmp_path / "h.db-wal"
+    assert (not wal.exists()) or wal.stat().st_size == 0
+    h2 = History(db_path=str(p), audio_dir=str(tmp_path / "a"))
+    assert h2.total_words() == 5
+    h2.close()
+
+
+def test_backup_creates_valid_snapshot(tmp_path):
+    import glob
+    import sqlite3
+    from history import History
+    h = History(db_path=str(tmp_path / "h.db"), audio_dir=str(tmp_path / "a"))
+    h.record("hello world today", ts=1.0)   # 3 words
+    h._backup()
+    snaps = glob.glob(str(tmp_path / "backups" / "history-*.db"))
+    assert snaps
+    c = sqlite3.connect(snaps[-1])
+    assert c.execute("select count(*) from dictations").fetchone()[0] == 1
+    c.close()
+    h.close()
+
+
+def test_backup_prunes_to_keep_limit(tmp_path):
+    import glob
+    import os
+    import history as history_mod
+    h = history_mod.History(db_path=str(tmp_path / "h.db"),
+                            audio_dir=str(tmp_path / "a"))
+    bdir = str(tmp_path / "backups")
+    os.makedirs(bdir, exist_ok=True)
+    for i in range(10):                       # seed old snapshots
+        open(os.path.join(bdir, f"history-old{i}.db"), "w").close()
+    h._backup()
+    snaps = glob.glob(os.path.join(bdir, "history-*.db"))
+    assert len(snaps) == history_mod.BACKUP_KEEP
+    h.close()

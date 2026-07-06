@@ -85,3 +85,8 @@ def test_clean_mode_does_not_turn_symbol_words_into_punctuation():
     out = commands.process("please type colon here", {},
                            cleanup=True, mode="clean")
     assert out == "Please type colon here"
+
+
+def test_capitalize_flag_disables_first_letter_upcase():
+    assert commands.process("hello world", {}, capitalize=False) == "hello world"
+    assert commands.process("hello world", {}) == "Hello world"  # default on

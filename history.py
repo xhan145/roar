@@ -1,4 +1,5 @@
 """Local dictation history: SQLite rows + optional retained audio WAVs."""
+import glob
 import os
 import threading
 import time
@@ -7,6 +8,8 @@ import wave
 import numpy as np
 
 import paths
+
+BACKUP_KEEP = 5
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS dictations (
@@ -47,6 +50,7 @@ class History:
         self._audio_dir = audio_dir  # None => resolve paths.audio_dir() lazily
         self._lock = threading.Lock()
         self._conn = self._open()
+        self._backup()  # rolling launch-time snapshot (insurance)
 
     def _open(self):
         parent = os.path.dirname(self.db_path)
@@ -128,7 +132,42 @@ class History:
                 self._delete_audio(path)
                 print(f"ROAR: could not save audio for {rid}: {e}",
                       flush=True)
+        self._checkpoint()  # fold this dictation into the main DB immediately
         return rid
+
+    def _backup(self):
+        """Snapshot the DB to backups/ via the SQLite online-backup API (safe
+        on a live DB), keeping the newest BACKUP_KEEP. Pure insurance — any
+        failure is swallowed and never affects the app."""
+        try:
+            bdir = os.path.join(os.path.dirname(self.db_path) or ".", "backups")
+            os.makedirs(bdir, exist_ok=True)
+            dest = os.path.join(
+                bdir, "history-" + time.strftime("%Y%m%d-%H%M%S") + ".db")
+            with self._lock:
+                snap = self._sqlite.connect(dest)
+                try:
+                    self._conn.backup(snap)
+                finally:
+                    snap.close()
+            snaps = sorted(glob.glob(os.path.join(bdir, "history-*.db")),
+                           key=os.path.getmtime)
+            for old in snaps[:-BACKUP_KEEP]:
+                try:
+                    os.remove(old)
+                except OSError:
+                    pass
+        except Exception:
+            pass
+
+    def _checkpoint(self):
+        """Fold committed WAL frames into the main DB file so a force-kill
+        (which can lose the -wal sidecar) never strands a committed row."""
+        with self._lock:
+            try:
+                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            except self._sqlite.Error:
+                pass  # busy under a concurrent reader — frames still land later
 
     def _row(self, rid):
         with self._lock:
@@ -251,5 +290,6 @@ class History:
         return len(rows)
 
     def close(self):
+        self._checkpoint()
         with self._lock:
             self._conn.close()

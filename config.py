@@ -3,6 +3,7 @@ import copy
 import json
 import os
 
+import context
 import paths
 
 PATH = paths.config_path()
@@ -33,6 +34,9 @@ DEFAULTS = {
     "milestones_enabled": True,
     "milestone_notifications": True,
     "_safe_mode_previous": None,
+    "double_tap_ms": 400,
+    "context_aware": True,
+    "app_profiles": {},
 }
 
 
@@ -85,11 +89,21 @@ def load(path=None):
             if isinstance(value, dict):
                 cfg["snippets"] = {k: v for k, v in value.items()
                                    if isinstance(k, str) and isinstance(v, str)}
+        elif key == "app_profiles":
+            if isinstance(value, dict):
+                cfg["app_profiles"] = {
+                    k.strip().lower(): v.strip().lower()
+                    for k, v in value.items()
+                    if (isinstance(k, str) and isinstance(v, str)
+                        and k.strip()
+                        and v.strip().lower() in context.PROFILE_NAMES)
+                }
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()
         elif key in ("cleanup_enabled", "remove_discourse_fillers",
-                     "milestones_enabled", "milestone_notifications"):
+                     "milestones_enabled", "milestone_notifications",
+                     "context_aware"):
             cfg[key] = bool(value)
         elif key == "format_mode":
             if value in ("raw", "clean", "code"):
@@ -99,6 +113,11 @@ def load(path=None):
                 cfg[key] = value
         elif key == "_safe_mode_previous":
             cfg[key] = value if isinstance(value, dict) else None
+        elif key == "double_tap_ms":
+            try:
+                cfg[key] = min(1000, max(200, int(value)))
+            except (TypeError, ValueError):
+                pass  # keep default 400
         elif key == "custom_vocabulary":
             # hand-edited configs: only a list of non-empty strings survives
             # (a plain string would otherwise be iterated char-by-char)

@@ -46,7 +46,7 @@ def test_get_state_shape(tmp_path):
     s = api.get_state()
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
-    assert s["version"] == "0.13.0"
+    assert s["version"] == "0.16.0"
     assert s["edition"] == "Core"
 
 
@@ -200,6 +200,25 @@ def test_snippet_crud(tmp_path):
     assert api.snippets_get()["snippets"] == {}
 
 
+def test_app_profiles_crud(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    state = api.app_profiles_get()
+    assert state["map"] == {}
+    assert state["profiles"] == ["code", "casual", "formal", "chat"]
+
+    assert api.app_profile_set(" Notepad.EXE ", "casual")["ok"] is True
+    assert config.load(p)["app_profiles"] == {"notepad.exe": "casual"}
+    assert api.app_profile_set("title:Gmail", "formal")["ok"] is True
+    assert api.app_profiles_get()["map"] == {
+        "notepad.exe": "casual",
+        "title:gmail": "formal",
+    }
+    assert "error" in api.app_profile_set("x.exe", "bogus")
+    assert api.app_profile_clear("NOTEPAD.exe")["ok"] is True
+    assert api.app_profiles_get()["map"] == {"title:gmail": "formal"}
+
+
 def test_snippet_pack_round_trip(tmp_path, monkeypatch):
     import settings_ui as su
     api = SettingsAPI(config_path=str(tmp_path / "config.json"))
@@ -296,7 +315,7 @@ def test_safe_diagnostics_are_redacted(tmp_path, monkeypatch):
     d = api.safe_diagnostics()
     blob = "\n".join(f"{k}: {v}" for k, v in d.items())
     assert "private transcript text" not in blob
-    assert d["version"] == "0.13.0"
+    assert d["version"] == "0.16.0"
     assert d["edition"] == "Core"
     assert d["history_count"] == 1
     assert "<redacted" in api.copy_safe_diagnostics()["text"]

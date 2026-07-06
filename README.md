@@ -27,6 +27,10 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
   - Hold hotkey, speak, release to type.
   - Default workflow is fast and low-friction.
 
+- **Hands-free dictation**
+  - Double-tap the hotkey to lock recording on — no holding for long passages.
+  - Single tap to stop and type. Tune the double-tap window with `double_tap_ms`.
+
 - **100% local transcription**
   - Powered by `faster-whisper`.
   - No remote API required.
@@ -83,7 +87,7 @@ ROAR is not trying to be a giant writing suite. It is a small, sharp desktop too
 
 ## Current Status
 
-Current app version: `0.13.0` (`paths.APP_VERSION`).
+Current app version: `0.16.0` (`paths.APP_VERSION`).
 
 **Shipped**
 
@@ -131,6 +135,10 @@ Implemented milestones include:
 - `v0.11.1` slim white + lavender capsule pill (simplified dictation overlay)
 - `v0.12.0` "scratch that" spoken undo, manual update check, credits
 - `v0.13.0` private offline word milestones + lavender ROAR branding
+- `v0.14.0` hands-free dictation — double-tap the hotkey to lock recording on
+- `v0.15.0` context-aware formatting — verbatim in code editors, terser in chat
+- `v0.15.1` history WAL-durability + rolling local DB backups (insurance)
+- `v0.16.0` expanded app profiles - code stays verbatim, chat/social stays casual, email/docs become formal
 
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
@@ -171,6 +179,20 @@ default because that heuristic can occasionally clip a real word.
 
 The filler lists are English; the stutter/repeat and false-start collapse are
 language-agnostic and help every language.
+
+## App profiles
+
+When context-aware formatting is enabled, ROAR picks a local formatting profile
+from the focused app. Code editors and terminals use `code` (verbatim casing and
+no cleanup), chat/social apps use `casual` (lowercase texting style, raw
+`um/uh` cleanup, discourse fillers preserved), and email/document apps use
+`formal` (capitalized, cleaned, polished). Browser tabs are recognized by window
+title for apps like WhatsApp Web, Facebook, Gmail, GitHub, and Google Docs.
+
+Settings -> Transcription -> **App profiles** lets you override any app by exe
+basename, such as `notepad.exe`, or any browser title keyword with
+`title:gmail`. Valid profile names are `code`, `casual`, `formal`, and the
+legacy alias `chat`.
 
 ## Milestones
 
@@ -228,4 +250,3 @@ Expansions can include variables, resolved at the moment of dictation:
 Snippets live in `config.json` and can be shared as **packs** — plain JSON
 files exported/imported from the Snippets tab. Imports never overwrite: a
 colliding name is added with a `-2` suffix instead.
-
