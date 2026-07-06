@@ -230,6 +230,16 @@
         <select id="s-language" aria-label="Dictation language"></select>
         <div class="hint" style="margin-top:6px;">Auto-detect identifies the language each time you dictate. Switching away from English may download a multilingual model (~1.6 GB) on Apply. ".en" models are English-only.</div>
       </div>
+      <div class="row">
+        <div style="margin-bottom:8px;">Formatting mode</div>
+        <select id="s-format" aria-label="Formatting mode">
+          <option value="clean">Clean — cleanup + your replacements (default)</option>
+          <option value="raw">Raw — exactly what you said, minimally altered</option>
+          <option value="code">Code — spoken symbols ("colon", "open paren") become symbols</option>
+        </select>
+        <div class="hint" style="margin-top:6px;">Code mode skips prose cleanup and auto-capitalization; symbol words only convert here, never in Clean or Raw.</div>
+        <div class="msg" id="m-format"></div>
+      </div>
       <div class="row" id="model-list"></div>
       <button class="btn primary" id="b-apply-model" disabled>Apply</button>
       <div class="msg" id="m-model"></div>
@@ -459,8 +469,9 @@ const MODEL_CAPS = {
 async function init() {
   state = await api().get_state();
   const c = state.config;
-  applyAppearance(c.appearance || "dark");
-  $("s-appearance").value = c.appearance || "dark";
+  applyAppearance(c.appearance || "system");
+  $("s-appearance").value = c.appearance || "system";
+  $("s-format").value = c.format_mode || "clean";
   setToggle($("t-autostart"), state.autostart);
   setToggle($("t-tones"), c.tones_enabled);
   setToggle($("t-paste"), c.paste_fallback);
@@ -956,6 +967,12 @@ $("b-check-updates").addEventListener("click", async () => {
     el.textContent = "You're up to date (v" + r.current + ")";
     el.className = "msg ok";
   }
+});
+
+/* ---- formatting mode ---- */
+$("s-format").addEventListener("change", async e => {
+  const r = await api().set_value("format_mode", e.target.value);
+  msg("m-format", r.ok ? "Saved" : r.error, r.ok ? "ok" : "err");
 });
 
 /* ---- appearance ---- */

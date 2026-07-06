@@ -179,6 +179,13 @@ def test_badge_unlocks_sticky(tmp_path):
     h.close()
 
 
+def test_clear_unlocks_resets_milestones(hist):
+    hist.record_unlock(1000, 111.0)
+    hist.record_unlock(5000, 222.0)
+    assert hist.clear_unlocks() == 2
+    assert hist.unlocks() == {}
+
+
 def test_migration_v2_db_gains_badge_unlocks(tmp_path):
     import sqlite3
     import history as history_mod

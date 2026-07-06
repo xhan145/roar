@@ -11,6 +11,7 @@ import os
 # caller can't accidentally leak a new field through diagnostics
 SAFE_KEYS = frozenset({
     "version", "edition", "model", "device", "language", "context_aware",
+    "format_mode",
     "appearance", "overlay_enabled", "streaming_preview", "paste_fallback",
     "cleanup_enabled", "history_enabled", "history_count",
     "audio_retention_days", "milestones_enabled", "double_tap_ms",

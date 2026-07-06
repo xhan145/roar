@@ -47,6 +47,7 @@ def test_get_state_shape(tmp_path):
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
     assert s["version"] == "0.16.0"
+    assert s["edition"] == "Core"
 
 
 def test_retention_validation_and_immediate_purge(tmp_path, monkeypatch):
@@ -283,6 +284,8 @@ def test_milestone_instant_keys(tmp_path):
     assert config.load(p)["milestones_enabled"] is False
     assert api.set_value("milestone_notifications", False)["ok"] is True
     assert config.load(p)["milestone_notifications"] is False
+
+
 
 
 def test_get_insights_includes_all_time_milestones(tmp_path, monkeypatch):

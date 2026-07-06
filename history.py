@@ -253,6 +253,14 @@ class History:
                 "SELECT threshold, unlocked_ts FROM badge_unlocks").fetchall()
         return {r["threshold"]: r["unlocked_ts"] for r in rows}
 
+    def clear_unlocks(self):
+        with self._lock:
+            n = self._conn.execute(
+                "SELECT COUNT(*) FROM badge_unlocks").fetchone()[0]
+            self._conn.execute("DELETE FROM badge_unlocks")
+            self._conn.commit()
+        return n
+
     def stats(self):
         with self._lock:
             count = self._conn.execute(

@@ -4,6 +4,28 @@ import re
 import cleanup as cleanup_mod
 import snippets as snippets_mod
 
+CODE_SYMBOLS = {
+    "new line": "\n",
+    "tab": "\t",
+    "colon": ": ",
+    "semicolon": "; ",
+    "comma": ", ",
+    "period": ". ",
+    "dot": ".",
+    "slash": "/",
+    "backslash": "\\",
+    "open paren": "(",
+    "close paren": ")",
+    "open bracket": "[",
+    "close bracket": "]",
+    "open brace": "{",
+    "close brace": "}",
+    "equals": "=",
+    "plus": "+",
+    "minus": "-",
+    "underscore": "_",
+}
+
 
 def apply_replacements(text: str, replacements: dict) -> str:
     """Replace spoken phrases (case-insensitive, word-bounded), absorbing
@@ -23,7 +45,8 @@ def apply_replacements(text: str, replacements: dict) -> str:
 
 def process(text: str, replacements: dict, snippets=None,
             snippet_keyword: str = "snippet", cleanup: bool = False,
-            discourse_fillers: bool = False, capitalize: bool = True) -> str:
+            discourse_fillers: bool = False, capitalize: bool = True,
+            mode: str = "clean") -> str:
     """Full pipeline: strip -> cleanup -> replacements -> capitalize -> snippets.
     Cleanup runs first so capitalization lands on the real first word and
     commands/snippets see already-cleaned text. Snippets run last so expansions
@@ -31,12 +54,16 @@ def process(text: str, replacements: dict, snippets=None,
     text = text.strip()
     if not text:
         return ""
-    if cleanup:
+    mode = mode if mode in {"raw", "clean", "code"} else "clean"
+    if cleanup and mode == "clean":
         text = cleanup_mod.clean(text, discourse=discourse_fillers)
         if not text:
             return ""
-    text = apply_replacements(text, replacements)
-    if capitalize:
+    if mode == "code":
+        text = apply_replacements(text, CODE_SYMBOLS)
+    elif mode == "clean":
+        text = apply_replacements(text, replacements)
+    if capitalize and mode != "code":
         for i, ch in enumerate(text):
             if ch.isalpha():
                 if ch.islower():

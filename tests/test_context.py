@@ -3,7 +3,8 @@ import context
 
 def test_builtin_profiles_resolve():
     code = context.profile_for("Code.exe")          # case-insensitive
-    assert code == {"capitalize": False, "cleanup": False}
+    assert code == {"capitalize": False, "cleanup": False,
+                    "format_mode": "code"}
     assert context.profile_for("powershell.exe") == code
     assert context.profile_for("cursor.exe") == code
 
@@ -54,7 +55,7 @@ def test_user_map_overrides_builtins():
 
 def test_browser_title_routing_is_browser_scoped():
     casual = {"capitalize": False, "cleanup": True, "discourse_fillers": False}
-    code = {"capitalize": False, "cleanup": False}
+    code = {"capitalize": False, "cleanup": False, "format_mode": "code"}
     assert context.profile_for("chrome.exe", "WhatsApp - chat") == casual
     assert context.profile_for("chrome.exe", "GitHub - repo") == code
     assert context.profile_for("notepad.exe", "WhatsApp notes") == {}

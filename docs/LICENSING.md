@@ -38,5 +38,7 @@ the installer), sample/dev licenses are rejected by key mismatch, and
 ## What exists in the repo today
 
 - `entitlements.py` — pure feature policy (tested).
-- No `license.py`, no keys, no gates, no edition UI. The app behaves as
+- `license.py` — pure edition/document primitives (always Core today; no
+  crypto, no keys, no network).
+- No gates, no edition UI. The app behaves as
   Supporter-with-everything because nothing checks entitlements yet.

@@ -29,10 +29,11 @@ DEFAULTS = {
     "snippet_keyword": "snippet",
     "cleanup_enabled": True,
     "remove_discourse_fillers": False,
+    "format_mode": "clean",
+    "appearance": "system",
     "milestones_enabled": True,
     "milestone_notifications": True,
     "double_tap_ms": 400,
-    "appearance": "dark",  # dark | light | system
     "context_aware": True,
     "app_profiles": {},
 }
@@ -103,8 +104,11 @@ def load(path=None):
                      "milestones_enabled", "milestone_notifications",
                      "context_aware"):
             cfg[key] = bool(value)
+        elif key == "format_mode":
+            if value in ("raw", "clean", "code"):
+                cfg[key] = value
         elif key == "appearance":
-            if value in ("dark", "light", "system"):
+            if value in ("system", "light", "dark"):
                 cfg[key] = value
         elif key == "double_tap_ms":
             try:

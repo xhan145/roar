@@ -8,7 +8,7 @@ window title. This module must stay lightweight: no Windows APIs, no ML imports.
 # user's own settings)
 _CASUAL = {"capitalize": False, "cleanup": True, "discourse_fillers": False}
 _PROFILES = {
-    "code": {"capitalize": False, "cleanup": False},
+    "code": {"capitalize": False, "cleanup": False, "format_mode": "code"},
     "casual": _CASUAL,
     "formal": {"capitalize": True, "cleanup": True, "discourse_fillers": True},
     "chat": _CASUAL,  # legacy alias for existing config/tests

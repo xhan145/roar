@@ -42,7 +42,7 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview",
                 "cleanup_enabled", "remove_discourse_fillers",
                 "milestones_enabled", "milestone_notifications",
-                "context_aware", "appearance"}
+                "context_aware", "appearance", "format_mode"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -64,6 +64,12 @@ def _version_tuple(v):
 def normalize_combo(keys) -> str:
     canon = {_SIDE.get(k, k) for k in keys}
     return "+".join(sorted(canon, key=lambda k: (_ORDER.get(k, 9), k)))
+
+
+def _license_edition():
+    """Licensing is not enforced; everyone is Core today (see docs/LICENSING.md)."""
+    import license as license_mod
+    return license_mod.CORE
 
 
 class SettingsAPI:
@@ -96,6 +102,7 @@ class SettingsAPI:
             "log_path": paths.log_path(),
             "languages": _language_options(),
             "logo_path": paths.resource_path("assets/roar-logo-purple-256.png"),
+            "edition": _license_edition(),
         }
 
     def _write(self, **changes):
@@ -123,6 +130,9 @@ class SettingsAPI:
         if key == "appearance":
             if value not in ("dark", "light", "system"):
                 return {"error": "appearance must be dark, light, or system"}
+        if key == "format_mode":
+            if value not in ("raw", "clean", "code"):
+                return {"error": "format mode must be raw, clean, or code"}
         if key in ("history_enabled", "auto_vocabulary",
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
@@ -408,8 +418,10 @@ class SettingsAPI:
     def diagnostics_get(self):
         import diagnostics
         cfg = config_mod.load(self.config_path)
+        import license as license_mod
         info = {
             "version": paths.APP_VERSION,
+            "edition": license_mod.CORE,
             "model": cfg.get("model"),
             "language": cfg.get("language"),
             "context_aware": cfg.get("context_aware"),
@@ -422,6 +434,7 @@ class SettingsAPI:
             "audio_retention_days": cfg.get("audio_retention_days"),
             "milestones_enabled": cfg.get("milestones_enabled"),
             "double_tap_ms": cfg.get("double_tap_ms"),
+            "format_mode": cfg.get("format_mode", "clean"),
             "history_count": self._history.stats()["count"],
             "config_path": self.config_path,
             "log_path": paths.log_path(),
@@ -547,6 +560,8 @@ def run_settings(smoke=False):
                         "document.getElementById('a-logo') ? 1 : 0")
                     has_diag = window.evaluate_js(
                         "document.getElementById('b-diag-copy') ? 1 : 0")
+                    has_fmt = window.evaluate_js(
+                        "document.getElementById('s-format') ? 1 : 0")
                     theme_ok = window.evaluate_js(
                         "(function(){"
                         "applyAppearance('light');"
@@ -562,7 +577,7 @@ def run_settings(smoke=False):
                           f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
                           f"ms={has_ms} logo={has_logo} diag={has_diag} "
-                          f"themeok={theme_ok}",
+                          f"fmt={has_fmt} themeok={theme_ok}",
                           flush=True)
                 finally:
                     window.destroy()

@@ -342,7 +342,8 @@ class ROARApp:
             discourse_fillers=prof.get(
                 "discourse_fillers",
                 self.cfg.get("remove_discourse_fillers", False)),
-            capitalize=prof.get("capitalize", True))
+            capitalize=prof.get("capitalize", True),
+            mode=self.cfg.get("format_mode", "clean"))
         if not text:
             self.log("empty transcript — nothing injected")
             return

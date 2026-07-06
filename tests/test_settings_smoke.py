@@ -21,7 +21,9 @@ def test_settings_smoke():
     assert "profiles=1" in out
     assert "updates=1" in out and "credits=1" in out
     assert "ms=1" in out and "logo=1" in out
+    assert "diag=1" in out
     assert "ROAR: settings closed" in out
     assert proc.returncode == 0
     assert "diag=1" in out
     assert "themeok=1" in out
+    assert "fmt=1" in out

@@ -142,9 +142,9 @@ def test_app_profiles_sanitized_on_load(tmp_path):
 
 
 def test_appearance_default_and_sanitize(tmp_path):
-    assert config.load(str(tmp_path / "a1.json"))["appearance"] == "dark"
+    assert config.load(str(tmp_path / "a1.json"))["appearance"] == "system"
     p = tmp_path / "a2.json"
     p.write_text(json.dumps({"appearance": "light"}))
     assert config.load(str(p))["appearance"] == "light"
     p.write_text(json.dumps({"appearance": "neon"}))
-    assert config.load(str(p))["appearance"] == "dark"   # unknown -> default
+    assert config.load(str(p))["appearance"] == "system"   # unknown -> default
