@@ -236,6 +236,17 @@ class History:
                 " VALUES (?, ?)", (int(threshold), float(ts)))
             self._conn.commit()
 
+    def reset_milestones(self):
+        """Forget earned badges (explicit user action — unlike clearing
+        history, which deliberately leaves them sticky)."""
+        with self._lock:
+            n = self._conn.execute(
+                "SELECT COUNT(*) FROM badge_unlocks").fetchone()[0]
+            self._conn.execute("DELETE FROM badge_unlocks")
+            self._conn.commit()
+        self._checkpoint()
+        return n
+
     def unlocks(self):
         with self._lock:
             rows = self._conn.execute(

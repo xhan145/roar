@@ -346,3 +346,27 @@ def test_snippet_import_reports_clipboard_usage(tmp_path, monkeypatch):
     r = api.snippets_import()
     assert r["ok"] is True and r["added"] == 2
     assert r["clipboard_count"] == 1
+
+
+def test_reset_milestones_bridge(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record_unlock(1000, 1.0)
+    api._history.record_unlock(5000, 2.0)
+    r = api.reset_milestones()
+    assert r["ok"] is True and r["removed"] == 2
+    assert api._history.unlocks() == {}
+
+
+def test_history_clear_keeps_badges(tmp_path, monkeypatch):
+    import paths
+    monkeypatch.setattr(paths, "history_db_path", lambda: str(tmp_path / "h.db"))
+    monkeypatch.setattr(paths, "audio_dir", lambda: str(tmp_path / "a"))
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    api._history.record("word " * 1000, ts=1.0)
+    api._history.record_unlock(1000, 1.0)
+    api.history_clear()
+    assert api._history.total_words() == 0
+    assert api._history.unlocks() == {1000: 1.0}   # sticky by design

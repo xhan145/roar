@@ -292,6 +292,8 @@
           </div>
           <div class="hint" id="ms-remaining"></div>
           <div id="ms-shelf" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+          <div style="margin-top:10px;"><button class="btn" id="b-ms-reset">Reset milestones</button></div>
+          <div class="msg" id="m-ms"></div>
           <div class="row flex" style="background:var(--field);margin-top:10px;">
             <div>Track word milestones<div class="hint">Private, on this device only</div></div>
             <button class="toggle" id="t-milestones" aria-pressed="true" aria-label="Track word milestones"></button>
@@ -353,6 +355,7 @@
       <div id="history-list"></div>
       <div class="msg" id="m-history"></div>
       <button class="btn" id="b-clear-all" style="margin-top:6px;">Clear all history</button>
+      <div class="hint" style="margin-top:6px;">Deletes transcripts and audio. Earned milestone badges stay — reset them separately in Insights.</div>
     </section>
 
     <section id="snippets">
@@ -399,6 +402,7 @@
         <div style="display:flex;gap:8px;">
           <button class="btn" id="b-diag-copy">Copy safe diagnostics</button>
           <button class="btn" id="b-safe-mode">Safe Mode</button>
+          <button class="btn" id="b-clear-log">Clear log</button>
         </div>
         <div class="hint" style="margin-top:6px;">Safe Mode turns off the overlay and streaming preview and switches to paste injection — three settings you can flip back any time.</div>
         <div class="msg" id="m-diag"></div>
@@ -968,6 +972,13 @@ $("s-appearance").addEventListener("change", async e => {
   if (r.ok) applyAppearance(mode);
 });
 
+/* ---- resets ---- */
+$("b-ms-reset").addEventListener("click", e => twoStep(e.target, async () => {
+  const r = await api().reset_milestones();
+  msg("m-ms", "Milestones reset (" + r.removed + " badge" + (r.removed === 1 ? "" : "s") + " forgotten)", "ok");
+  renderInsights();
+}));
+
 /* ---- diagnostics / safe mode ---- */
 $("b-diag-copy").addEventListener("click", async () => {
   const r = await api().diagnostics_get();
@@ -981,6 +992,10 @@ $("b-diag-copy").addEventListener("click", async () => {
     msg("m-diag", "Shown below — select and copy", "ok");
   }
 });
+$("b-clear-log").addEventListener("click", e => twoStep(e.target, async () => {
+  const r = await api().clear_log();
+  msg("m-diag", r.ok ? "Log cleared" : r.error, r.ok ? "ok" : "err");
+}));
 $("b-safe-mode").addEventListener("click", e => twoStep(e.target, async () => {
   const r = await api().safe_mode();
   if (!r.ok) return;

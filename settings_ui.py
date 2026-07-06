@@ -394,6 +394,16 @@ class SettingsAPI:
         os.startfile(REPO_URL)  # fixed URL only — never caller-supplied
         return {"ok": True}
 
+    def reset_milestones(self):
+        return {"ok": True, "removed": self._history.reset_milestones()}
+
+    def clear_log(self):
+        try:
+            open(paths.log_path(), "w", encoding="utf-8").close()
+            return {"ok": True}
+        except OSError as e:
+            return {"error": f"couldn't clear the log: {e}"}
+
     # -- diagnostics / safe mode -------------------------------------------
     def diagnostics_get(self):
         import diagnostics
