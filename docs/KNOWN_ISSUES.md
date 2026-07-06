@@ -4,6 +4,10 @@
   autocomplete in code editors, autocorrect) can make "scratch that" counts
   imprecise. Emoji/astral undo is best-effort — backspace granularity for
   surrogate pairs is app-dependent.
+- **Desktop-bound test flakes**: `test_sendinput_types_into_focused_window`
+  types into a real focused tkinter Entry and can flake if another window
+  (e.g. a closing webview from the settings smoke test) steals focus mid-run.
+  Rerun; it passes in isolation.
 - **Smoke-test flake when ROAR is running**: `test_smoke.py` and
   `test_settings_smoke.py` report "already running" if a ROAR instance holds
   the singleton/settings mutex. Kill ROAR.exe (and its msedgewebview2
