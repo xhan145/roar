@@ -107,6 +107,7 @@ class ROARApp:
             double_tap_s=cfg.get("double_tap_ms", 400) / 1000)
         self._gesture_lock = threading.Lock()
         self._defer_timer = None
+        self._target_hwnd = None  # window the current dictation is aimed at
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
                                        models_dir=paths.models_dir(), log=self.log)
         self.model_ready = threading.Event()
@@ -218,6 +219,9 @@ class ROARApp:
             if self.state != self.IDLE:
                 return
             self.session_mode = mode
+            # the dictation targets the window focused when speech STARTS —
+            # if focus moves before transcription lands, we refuse to type
+            self._target_hwnd = self._foreground_hwnd()
             recorder_mod.play_tone("start", self.cfg["tones_enabled"])
             try:
                 self.recorder.start()
@@ -344,6 +348,14 @@ class ROARApp:
             return
         self.last_transcript = text
         hwnd = self._foreground_hwnd()
+        target = getattr(self, "_target_hwnd", None)
+        if target is not None and hwnd != target:
+            # text landing in the wrong app is the one unforgivable failure —
+            # refuse rather than type into whatever got focus meanwhile
+            recorder_mod.play_tone("error", self.cfg["tones_enabled"])
+            self.notify("Focus changed — ROAR did not type.")
+            self.log("focus changed between recording and injection — skipped")
+            return
         injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
         self.log(f"injected {len(text)} chars")
         rid = record_history(self.history, self.cfg, text,

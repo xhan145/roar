@@ -111,3 +111,10 @@ def test_paste_fallback_and_clipboard_restored():
 
 def test_inject_empty_returns_false():
     assert injector.inject_text("", paste_fallback=False) is False
+
+
+def test_paste_and_type_are_bounded():
+    # backstop: never fire a runaway injection into the focused app
+    huge = "x" * (injector.MAX_PASTE + 1)
+    assert injector.inject_text(huge) is False
+    assert injector.inject_text(huge, paste_fallback=True) is False

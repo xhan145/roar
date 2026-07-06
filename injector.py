@@ -3,6 +3,11 @@ import time
 
 import keyboard
 
+# Backstop: never fire a runaway injection into the focused app. Real
+# dictations are a few hundred chars; snippets are capped at 2000 and the
+# {clipboard} variable at 10k, so anything near this is a bug upstream.
+MAX_PASTE = 100_000
+
 
 def prepare(text):
     """Final injectable string (trailing space added), or None when empty.
@@ -17,6 +22,10 @@ def prepare(text):
 def inject_text(text, paste_fallback=False) -> bool:
     out = prepare(text)
     if out is None:
+        return False
+    if len(out) > MAX_PASTE:
+        print(f"ROAR: injection refused — {len(out)} chars exceeds the "
+              f"{MAX_PASTE} safety bound", flush=True)
         return False
     if paste_fallback:
         return _paste(out)
