@@ -110,6 +110,30 @@ Implemented milestones include:
 - `v0.15.1` history WAL-durability + rolling local DB backups (insurance)
 - `v0.16.0` expanded app profiles - code stays verbatim, chat/social stays casual, email/docs become formal
 
+### Project status at a glance
+
+**Shipped** (in the current build): push-to-talk + double-tap hands-free
+dictation, streaming preview, multilingual (bundled models), history + privacy
+controls with WAL durability and rolling local backups, insights + private
+milestones, custom vocabulary, snippets (+packs, variables), speech cleanup,
+"scratch that" undo, app profiles (exe + browser-title based), capsule overlay,
+click-only update check, single-file installer.
+
+**Experimental**: browser-title profile routing (keyword heuristics — report
+misfires), emoji/astral undo (best-effort; backspace granularity is
+app-dependent).
+
+**Planned**: voice command mode (fixed local commands), predictive dictation
+(needs a local model — undecided), settings import/export.
+
+**Intentionally not included**: cloud transcription, telemetry/analytics,
+accounts, subscriptions, auto-updating, background network calls, local LLM
+rewriting, spoken-symbol substitution ("colon" → ":") outside snippets, storing
+window titles.
+
+Note: `v0.16.0` is the current source version; installers for it are produced
+by the release scripts below — the newest *published* tag may trail this.
+
 Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
 external cabinets — keep them next to the msi). `scripts/build_setup.sh` then
