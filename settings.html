@@ -10,6 +10,7 @@
     --text: #EDEDEF; --muted: #8A8F98; --disabled: #6A7080;
     --accent: #5E6AD2; --glow: rgba(94,106,210,.35);
     --err: #F87171; --ok: #34D399;
+    --control: #0a0a0c; --bar: #1A1D29;
     --ease: cubic-bezier(0.16,1,0.3,1);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -18,6 +19,13 @@
     background: linear-gradient(180deg, #0a0a0f, #020203); color: var(--text);
     font: 14px/1.55 "Segoe UI", system-ui, sans-serif;
     display: flex; overflow: hidden;
+  }
+  body[data-theme="light"] {
+    --bg-deep: #F7F7FC; --side: #FFFFFF; --card: #FFFFFF;
+    --border: #DADDEB; --text: #171923; --muted: #586070; --disabled: #8B92A3;
+    --accent: #5E6AD2; --glow: rgba(94,106,210,.16);
+    --control: #F1F2F8; --bar: #E7E9F3;
+    background: linear-gradient(180deg, #FFFFFF, #F3F4FB);
   }
   button, input, select { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -88,7 +96,7 @@
   .btn.primary { background: var(--accent); border-color: var(--accent); }
 
   .chip {
-    display: inline-block; background: #0a0a0c; border: 1px solid var(--border);
+    display: inline-block; background: var(--control); border: 1px solid var(--border);
     border-radius: 6px; padding: 4px 10px; font-family: Consolas, monospace;
     font-size: 13px; min-width: 120px; text-align: center;
   }
@@ -96,9 +104,16 @@
 
   select, input[type="range"] { accent-color: var(--accent); }
   select {
-    background: #0a0a0c; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--control); border: 1px solid var(--border); border-radius: 8px;
     padding: 7px 10px; max-width: 320px; width: 100%;
   }
+  input, textarea { background: var(--control) !important; border-color: var(--border) !important; color: var(--text) !important; }
+  .segmented { display:flex; gap:4px; background:var(--control); border:1px solid var(--border); border-radius:8px; padding:3px; }
+  .segmented button { min-width:70px; min-height:34px; background:transparent; border:0; border-radius:6px; color:var(--muted); cursor:pointer; }
+  .segmented button[aria-pressed="true"] { background:var(--accent); color:#fff; box-shadow:0 0 8px var(--glow); }
+  .badge { display:inline-block; border:1px solid rgba(248,113,113,.55); color:#FCA5A5; border-radius:12px; padding:2px 8px; font-size:11px; margin-left:6px; }
+  body[data-theme="light"] .badge { color:#B42318; border-color:#F1A29A; background:#FFF1F0; }
+  pre.diag { white-space:pre-wrap; word-break:break-word; background:var(--control); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:120px; max-height:260px; overflow:auto; }
   input[type="range"] { width: 100%; }
   .radio { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; cursor: pointer; }
   .radio input { margin-top: 4px; accent-color: var(--accent); }
@@ -127,6 +142,7 @@
     <button class="nav" data-s="privacy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>Privacy</button>
     <button class="nav" data-s="history"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>History</button>
     <button class="nav" data-s="snippets"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.1 7.9L20 20M8.1 16.1L20 4"/></svg>Snippets</button>
+    <button class="nav" data-s="diagnostics"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 19h16M6 16V5h12v11"/><path d="M9 9h6M9 12h4"/></svg>Diagnostics</button>
     <button class="nav" data-s="about"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg>About</button>
   </aside>
 
@@ -140,6 +156,14 @@
       <div class="row flex">
         <div>Audio feedback tones<div class="hint">Short beeps on record start / stop / error</div></div>
         <button class="toggle" id="t-tones" aria-pressed="true" aria-label="Audio feedback tones"></button>
+      </div>
+      <div class="row flex">
+        <div>Appearance<div class="hint">Follow Windows, or pin ROAR to light or dark</div></div>
+        <div class="segmented" role="group" aria-label="Appearance">
+          <button data-theme-choice="system" aria-pressed="true">System</button>
+          <button data-theme-choice="light" aria-pressed="false">Light</button>
+          <button data-theme-choice="dark" aria-pressed="false">Dark</button>
+        </div>
       </div>
       <div class="row flex">
         <div>Show the dictation pill<div class="hint">Floating waveform indicator while you record</div></div>
@@ -197,6 +221,15 @@
       <div class="row" id="model-list"></div>
       <button class="btn primary" id="b-apply-model" disabled>Apply</button>
       <div class="msg" id="m-model"></div>
+      <div class="row" style="margin-top:14px;">
+        <div style="margin-bottom:8px;">Format mode</div>
+        <select id="s-format" aria-label="Format mode">
+          <option value="clean">Clean prose</option>
+          <option value="raw">Raw transcript</option>
+          <option value="code">Code symbols</option>
+        </select>
+        <div class="hint" style="margin-top:6px;">Code symbols are local and explicit; prose modes leave words like "colon" as words.</div>
+      </div>
       <div class="row" style="margin-top:14px;">
         <div>Vocabulary</div>
         <div class="hint" style="margin-bottom:8px;">Words ROAR should recognize more reliably — names, jargon, brands, multi-word phrases</div>
@@ -331,6 +364,22 @@
       </div>
     </section>
 
+    <section id="diagnostics">
+      <h1>Diagnostics</h1>
+      <div class="row">
+        <div style="margin-bottom:8px;">Safe diagnostics</div>
+        <pre class="diag" id="diag-output"></pre>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn" id="b-copy-diag">Copy safe diagnostics</button>
+          <button class="btn" id="b-safe-mode">Safe Mode</button>
+          <button class="btn" id="b-restore-safe">Restore settings</button>
+          <button class="btn" id="b-reset-ms" style="border-color:#F87171;color:#FCA5A5;">Reset milestones</button>
+        </div>
+        <div class="hint" style="margin-top:8px;">Diagnostics exclude transcript text, clipboard contents, audio, snippets, vocabulary, full window titles, and license secrets.</div>
+        <div class="msg" id="m-diag"></div>
+      </div>
+    </section>
+
     <section id="about">
       <img id="a-logo" src="assets/roar-logo-purple-256.png" alt="ROAR"
            style="width:96px;height:96px;display:block;margin:0 0 8px;">
@@ -365,6 +414,7 @@ document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click
   $(b.dataset.s).classList.add("active");
   if (b.dataset.s === "insights") renderInsights();
   if (b.dataset.s === "snippets") renderSnippets();
+  if (b.dataset.s === "diagnostics") renderDiagnostics();
 }));
 
 /* ---- helpers ---- */
@@ -375,6 +425,17 @@ function msg(id, text, cls) {
 }
 function setToggle(el, on) { el.setAttribute("aria-pressed", on ? "true" : "false"); }
 function isOn(el) { return el.getAttribute("aria-pressed") === "true"; }
+function setPressed(selector, value, attr) {
+  document.querySelectorAll(selector).forEach(el =>
+    el.setAttribute("aria-pressed", el.getAttribute(attr) === value ? "true" : "false"));
+}
+function applyTheme(mode) {
+  const effective = mode === "system"
+    ? (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+    : mode;
+  document.body.dataset.theme = effective;
+  setPressed("[data-theme-choice]", mode, "data-theme-choice");
+}
 
 /* sensitivity slider <-> threshold, log scale 0.001..0.02 */
 const LG_MIN = Math.log10(0.001), LG_MAX = Math.log10(0.02);
@@ -399,6 +460,7 @@ async function init() {
   setToggle($("t-autostart"), state.autostart);
   setToggle($("t-tones"), c.tones_enabled);
   setToggle($("t-paste"), c.paste_fallback);
+  applyTheme(c.appearance || "system");
   $("c-ptt").textContent = c.hotkey_ptt;
   $("c-toggle").textContent = c.hotkey_toggle;
   $("r-sens").value = thresholdToSlider(c.silence_rms_threshold);
@@ -439,12 +501,14 @@ async function init() {
   setToggle($("t-cleanup"), c.cleanup_enabled);
   setToggle($("t-discourse"), c.remove_discourse_fillers);
   setToggle($("t-history"), c.history_enabled);
+  $("s-format").value = c.format_mode || "clean";
   $("s-retention").value = String(c.audio_retention_days);
   renderHistory();
   refreshStats();
   renderInsights();
   renderVocab();
   renderSnippets();
+  renderDiagnostics();
 }
 window.addEventListener("pywebviewready", init);
 
@@ -488,6 +552,10 @@ async function refreshStats() {
   const s = await api().privacy_stats();
   $("privacy-stats").textContent =
     s.count + " dictations · " + s.audio_count + " audio clips · " + s.audio_mb + " MB";
+}
+async function renderDiagnostics() {
+  const d = await api().copy_safe_diagnostics();
+  $("diag-output").textContent = d.text || "";
 }
 async function renderInsights() {
   const d = await api().get_insights();
@@ -626,6 +694,12 @@ async function renderSnippets() {
     const body = document.createElement("div"); body.style.cssText = "flex:1;min-width:0;";
     const title = document.createElement("div");
     title.textContent = name; title.style.cssText = "font-weight:600;margin-bottom:2px;";
+    if (d.snippets[name].includes("{clipboard}")) {
+      const badge = document.createElement("span");
+      badge.className = "badge"; badge.textContent = "clipboard";
+      badge.title = "This snippet reads the clipboard only when you explicitly use it.";
+      title.appendChild(badge);
+    }
     const preview = document.createElement("div"); preview.className = "hint";
     preview.style.cssText = "white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
     preview.textContent = d.snippets[name];
@@ -656,7 +730,9 @@ $("b-snip-import").addEventListener("click", async () => {
   if (r.error) { msg("m-snip", r.error, "err"); return; }
   if (r.cancelled) return;
   msg("m-snip", "Imported " + r.added + " snippet" + (r.added === 1 ? "" : "s") +
-      (r.renamed ? " (" + r.renamed + " renamed to avoid collisions)" : ""), "ok");
+      (r.renamed ? " (" + r.renamed + " renamed to avoid collisions)" : "") +
+      (r.skipped ? " · " + r.skipped + " skipped" : "") +
+      (r.clipboard && r.clipboard.length ? " · clipboard: " + r.clipboard.join(", ") : ""), "ok");
   renderSnippets();
 });
 
@@ -706,6 +782,17 @@ $("t-tones").addEventListener("click", async () => {
   const r = await api().set_value("tones_enabled", want);
   if (r.ok) setToggle($("t-tones"), want); else msg("m-general", r.error, "err");
 });
+document.querySelectorAll("[data-theme-choice]").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const mode = btn.dataset.themeChoice;
+    const r = await api().set_value("appearance", mode);
+    if (r.ok) {
+      state.config.appearance = mode;
+      applyTheme(mode);
+      msg("m-general", "Appearance saved", "ok");
+    } else msg("m-general", r.error, "err");
+  });
+});
 $("t-overlay").addEventListener("click", async () => {
   const want = !isOn($("t-overlay"));
   const r = await api().set_value("overlay_enabled", want);
@@ -736,11 +823,55 @@ $("t-discourse").addEventListener("click", async () => {
   const r = await api().set_value("remove_discourse_fillers", want);
   if (r.ok) setToggle($("t-discourse"), want); else msg("m-vocab", r.error, "err");
 });
+$("s-format").addEventListener("change", async e => {
+  const r = await api().set_value("format_mode", e.target.value);
+  if (r.ok) {
+    state.config.format_mode = e.target.value;
+    msg("m-model", "Format mode saved", "ok");
+  } else msg("m-model", r.error, "err");
+});
 $("t-paste").addEventListener("click", async () => {
   const want = !isOn($("t-paste"));
   const r = await api().set_value("paste_fallback", want);
   if (r.ok) setToggle($("t-paste"), want); else msg("m-voice", r.error, "err");
 });
+
+/* ---- diagnostics ---- */
+$("b-copy-diag").addEventListener("click", async () => {
+  const r = await api().copy_safe_diagnostics();
+  $("diag-output").textContent = r.text || "";
+  try { await navigator.clipboard.writeText(r.text || ""); } catch (e) {}
+  msg("m-diag", "Safe diagnostics copied", "ok");
+});
+$("b-safe-mode").addEventListener("click", async () => {
+  const r = await api().apply_safe_mode();
+  if (r.error) { msg("m-diag", r.error, "err"); return; }
+  state = await api().get_state();
+  const c = state.config;
+  setToggle($("t-overlay"), c.overlay_enabled);
+  setToggle($("t-streamprev"), c.streaming_preview);
+  setToggle($("t-paste"), c.paste_fallback);
+  renderDiagnostics();
+  msg("m-diag", "Safe Mode applied", "ok");
+});
+$("b-restore-safe").addEventListener("click", async () => {
+  const r = await api().restore_safe_mode();
+  if (r.error) { msg("m-diag", r.error, "err"); return; }
+  state = await api().get_state();
+  const c = state.config;
+  setToggle($("t-overlay"), c.overlay_enabled);
+  setToggle($("t-streamprev"), c.streaming_preview);
+  setToggle($("t-paste"), c.paste_fallback);
+  renderDiagnostics();
+  msg("m-diag", "Settings restored", "ok");
+});
+$("b-reset-ms").addEventListener("click", e =>
+  twoStep(e.target, async () => {
+    const r = await api().reset_milestones();
+    await renderInsights();
+    await renderDiagnostics();
+    msg("m-diag", "Milestones reset: " + r.removed, "ok");
+  }));
 $("s-device").addEventListener("change", async e => {
   const r = await api().set_value("input_device", JSON.parse(e.target.value));
   msg("m-voice", r.ok ? "Microphone switched" : r.error, r.ok ? "ok" : "err");

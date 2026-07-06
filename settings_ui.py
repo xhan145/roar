@@ -519,13 +519,28 @@ def run_settings(smoke=False):
                         "document.getElementById('ms-shelf') ? 1 : 0")
                     has_logo = window.evaluate_js(
                         "document.getElementById('a-logo') ? 1 : 0")
+                    has_diag = window.evaluate_js(
+                        "document.getElementById('diag-output') ? 1 : 0")
+                    diag_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"diagnostics\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('diagnostics').classList.contains('active')?1:0;})()")
+                    has_safe = window.evaluate_js(
+                        "document.getElementById('b-safe-mode') ? 1 : 0")
+                    has_appearance = window.evaluate_js(
+                        "document.querySelectorAll('[data-theme-choice]').length")
+                    has_format = window.evaluate_js(
+                        "document.getElementById('s-format') ? 1 : 0")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
                           f"snip={has_snip} snipnav={snip_nav} "
                           f"cleanup={has_cleanup} discourse={has_discourse} "
                           f"updates={has_updates} credits={has_credits} "
-                          f"ms={has_ms} logo={has_logo}", flush=True)
+                          f"ms={has_ms} logo={has_logo} diag={has_diag} "
+                          f"diagnav={diag_nav} safe={has_safe} "
+                          f"appearance={has_appearance} format={has_format}",
+                          flush=True)
                 finally:
                     window.destroy()
             threading.Thread(target=probe_and_close, daemon=True).start()

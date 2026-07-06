@@ -11,7 +11,7 @@ def test_settings_smoke():
         cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     out, _ = proc.communicate(timeout=120)
     assert "ROAR: settings window ready" in out
-    assert "navs=9" in out and "priv=1" in out and "privnav=1" in out
+    assert "navs=10" in out and "priv=1" in out and "privnav=1" in out
     assert "insnav=1" in out
     assert "vocab=1" in out
     assert "ovl=1" in out
@@ -20,5 +20,7 @@ def test_settings_smoke():
     assert "cleanup=1" in out and "discourse=1" in out
     assert "updates=1" in out and "credits=1" in out
     assert "ms=1" in out and "logo=1" in out
+    assert "diag=1" in out and "diagnav=1" in out and "safe=1" in out
+    assert "appearance=3" in out and "format=1" in out
     assert "ROAR: settings closed" in out
     assert proc.returncode == 0
