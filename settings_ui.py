@@ -350,7 +350,7 @@ class SettingsAPI:
                 raise ValueError("top level must be an object")
         except Exception as e:
             return {"error": f"not a snippet pack: {e}"}
-        added = renamed = 0
+        added = renamed = clipboard_count = 0
         with self._cfg_lock:
             cfg = config_mod.load(self.config_path)
             sn = dict(cfg.get("snippets", {}))
@@ -368,8 +368,11 @@ class SettingsAPI:
                     sn[target] = text
                     lower.add(target.lower())
                     added += 1
+                    if "{clipboard}" in text:
+                        clipboard_count += 1
             self._write(snippets=sn)
-        return {"ok": True, "added": added, "renamed": renamed}
+        return {"ok": True, "added": added, "renamed": renamed,
+                "clipboard_count": clipboard_count}
 
     # -- updates -----------------------------------------------------------
     def check_updates(self):

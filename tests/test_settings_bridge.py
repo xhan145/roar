@@ -330,3 +330,19 @@ def test_appearance_instant_key_validated(tmp_path):
     assert api.set_value("appearance", "system")["ok"] is True
     assert config.load(p)["appearance"] == "system"
     assert "error" in api.set_value("appearance", "rainbow")
+
+
+def test_snippet_import_reports_clipboard_usage(tmp_path, monkeypatch):
+    import json as _json
+    import settings_ui as su
+    api = SettingsAPI(config_path=str(tmp_path / "config.json"))
+    pack = tmp_path / "pack.json"
+    pack.write_text(_json.dumps({"clip": "paste: {clipboard}", "plain": "hi"}))
+
+    class StubWin:
+        def create_file_dialog(self, kind, **kw):
+            return str(pack)
+    monkeypatch.setattr(su, "_WINDOW", StubWin())
+    r = api.snippets_import()
+    assert r["ok"] is True and r["added"] == 2
+    assert r["clipboard_count"] == 1
