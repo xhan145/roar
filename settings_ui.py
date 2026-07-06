@@ -11,6 +11,7 @@ import urllib.request
 
 import autostart
 import config as config_mod
+import context
 import paths
 import recorder as recorder_mod
 from hotkeys import parse_chord
@@ -256,6 +257,35 @@ class SettingsAPI:
             self._write(custom_vocabulary=custom)
         return {"ok": True, "custom": custom}
 
+    # -- app profiles -------------------------------------------------------
+    def app_profiles_get(self):
+        cfg = config_mod.load(self.config_path)
+        return {"profiles": list(context.PROFILE_NAMES),
+                "map": cfg.get("app_profiles", {})}
+
+    def app_profile_set(self, app, profile):
+        app = str(app or "").strip().lower()
+        profile = str(profile or "").strip().lower()
+        if not app:
+            return {"error": "app is required"}
+        if profile not in context.PROFILE_NAMES:
+            return {"error": f"unknown profile {profile}"}
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            app_profiles = dict(cfg.get("app_profiles", {}))
+            app_profiles[app] = profile
+            self._write(app_profiles=app_profiles)
+        return {"ok": True}
+
+    def app_profile_clear(self, app):
+        target = str(app or "").strip().lower()
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            app_profiles = {k: v for k, v in cfg.get("app_profiles", {}).items()
+                            if str(k).lower() != target}
+            self._write(app_profiles=app_profiles)
+        return {"ok": True}
+
     # -- snippets ----------------------------------------------------------
     def snippets_get(self):
         cfg = config_mod.load(self.config_path)
@@ -454,6 +484,8 @@ def run_settings(smoke=False):
                         "document.getElementById('t-cleanup') ? 1 : 0")
                     has_discourse = window.evaluate_js(
                         "document.getElementById('t-discourse') ? 1 : 0")
+                    has_profiles = window.evaluate_js(
+                        "document.getElementById('app-profile-list') ? 1 : 0")
                     has_updates = window.evaluate_js(
                         "document.getElementById('b-check-updates') ? 1 : 0")
                     has_credits = window.evaluate_js(
@@ -467,6 +499,7 @@ def run_settings(smoke=False):
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
                           f"snip={has_snip} snipnav={snip_nav} "
                           f"cleanup={has_cleanup} discourse={has_discourse} "
+                          f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
                           f"ms={has_ms} logo={has_logo}", flush=True)
                 finally:

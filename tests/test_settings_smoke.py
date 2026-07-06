@@ -18,6 +18,7 @@ def test_settings_smoke():
     assert "lang=1" in out
     assert "snip=1" in out and "snipnav=1" in out
     assert "cleanup=1" in out and "discourse=1" in out
+    assert "profiles=1" in out
     assert "updates=1" in out and "credits=1" in out
     assert "ms=1" in out and "logo=1" in out
     assert "ROAR: settings closed" in out

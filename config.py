@@ -3,6 +3,7 @@ import copy
 import json
 import os
 
+import context
 import paths
 
 PATH = paths.config_path()
@@ -32,6 +33,7 @@ DEFAULTS = {
     "milestone_notifications": True,
     "double_tap_ms": 400,
     "context_aware": True,
+    "app_profiles": {},
 }
 
 
@@ -84,6 +86,15 @@ def load(path=None):
             if isinstance(value, dict):
                 cfg["snippets"] = {k: v for k, v in value.items()
                                    if isinstance(k, str) and isinstance(v, str)}
+        elif key == "app_profiles":
+            if isinstance(value, dict):
+                cfg["app_profiles"] = {
+                    k.strip().lower(): v.strip().lower()
+                    for k, v in value.items()
+                    if (isinstance(k, str) and isinstance(v, str)
+                        and k.strip()
+                        and v.strip().lower() in context.PROFILE_NAMES)
+                }
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()

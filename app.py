@@ -325,7 +325,10 @@ class ROARApp:
         if editing.is_scratch(raw):
             self._scratch()
             return
-        prof = (context.profile_for(self._foreground_exe())
+        prof = (context.profile_for(
+                    self._foreground_exe(),
+                    self._foreground_title(),
+                    self.cfg.get("app_profiles"))
                 if self.cfg.get("context_aware", True) else {})
         text = commands.process(
             raw, self.cfg["replacements"],
@@ -388,6 +391,30 @@ class ROARApp:
                 return _os.path.basename(buf.value).lower()
             finally:
                 k32.CloseHandle(h)
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _foreground_title():
+        """Window title of the focused window, or '' on failure."""
+        try:
+            import ctypes.wintypes as wintypes
+            u32 = ctypes.windll.user32
+            u32.GetForegroundWindow.restype = wintypes.HWND
+            u32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+            u32.GetWindowTextLengthW.restype = ctypes.c_int
+            u32.GetWindowTextW.argtypes = [
+                wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+            u32.GetWindowTextW.restype = ctypes.c_int
+            hwnd = u32.GetForegroundWindow()
+            if not hwnd:
+                return ""
+            length = u32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return ""
+            buf = ctypes.create_unicode_buffer(length + 1)
+            u32.GetWindowTextW(hwnd, buf, length + 1)
+            return buf.value
         except Exception:
             return ""
 

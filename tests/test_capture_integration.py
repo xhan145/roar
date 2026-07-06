@@ -255,25 +255,61 @@ def test_hold_is_still_ptt(tmp_path, monkeypatch):
     a.history.close()
 
 
+def test_context_aware_casual_app_keeps_texting_style(tmp_path, monkeypatch):
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "discord.exe"))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: "Discord"))
+    a = _make_app(tmp_path, {"context_aware": True})
+    a.transcriber.transcribe = lambda audio: "like, um hello from the test"
+    a._handle_transcription(_loud_audio())
+    assert injected["text"] == "like, hello from the test"  # lowercase, keeps "like"
+    a.history.close()
+
+
+def test_context_aware_formal_app_polishes(tmp_path, monkeypatch):
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "outlook.exe"))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: "Inbox - Outlook"))
+    a = _make_app(tmp_path, {"context_aware": True})
+    a.transcriber.transcribe = lambda audio: "you know, um hello from the test"
+    a._handle_transcription(_loud_audio())
+    assert injected["text"] == "Hello from the test"
+    a.history.close()
+
+
 def test_context_aware_code_editor_is_verbatim(tmp_path, monkeypatch):
     injected = {}
     monkeypatch.setattr(injector, "inject_text",
                         lambda text, paste_fallback=False: injected.update(text=text))
     monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
                         staticmethod(lambda: "code.exe"))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: "Visual Studio Code"))
     a = _make_app(tmp_path, {"context_aware": True})
-    a._handle_transcription(_loud_audio())        # transcriber -> "hello from the test"
-    assert injected["text"] == "hello from the test"   # not capitalized
+    a.transcriber.transcribe = lambda audio: "um hello from the test"
+    a._handle_transcription(_loud_audio())
+    assert injected["text"] == "um hello from the test"
     a.history.close()
 
 
-def test_context_aware_off_reverts_to_normal(tmp_path, monkeypatch):
+def test_context_aware_off_reverts_to_normal_user_settings(tmp_path, monkeypatch):
     injected = {}
     monkeypatch.setattr(injector, "inject_text",
                         lambda text, paste_fallback=False: injected.update(text=text))
     monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
                         staticmethod(lambda: "code.exe"))
-    a = _make_app(tmp_path, {"context_aware": False})
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: "Visual Studio Code"))
+    a = _make_app(tmp_path, {"context_aware": False, "cleanup_enabled": False})
+    a.transcriber.transcribe = lambda audio: "um hello from the test"
     a._handle_transcription(_loud_audio())
-    assert injected["text"] == "Hello from the test"   # capitalized as normal
+    assert injected["text"] == "Um hello from the test"   # no profile applied
     a.history.close()
