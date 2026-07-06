@@ -139,3 +139,12 @@ def test_app_profiles_sanitized_on_load(tmp_path):
         "code.exe": "formal",
         "title:gmail": "casual",
     }
+
+
+def test_appearance_default_and_sanitize(tmp_path):
+    assert config.load(str(tmp_path / "a1.json"))["appearance"] == "dark"
+    p = tmp_path / "a2.json"
+    p.write_text(json.dumps({"appearance": "light"}))
+    assert config.load(str(p))["appearance"] == "light"
+    p.write_text(json.dumps({"appearance": "neon"}))
+    assert config.load(str(p))["appearance"] == "dark"   # unknown -> default

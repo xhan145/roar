@@ -42,7 +42,7 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview",
                 "cleanup_enabled", "remove_discourse_fillers",
                 "milestones_enabled", "milestone_notifications",
-                "context_aware"}
+                "context_aware", "appearance"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -120,6 +120,9 @@ class SettingsAPI:
                 return {"error": "retention must be a number"}
             if value not in RETENTION_CHOICES:
                 return {"error": "retention must be one of 0, 1, 7, 30, 90 days"}
+        if key == "appearance":
+            if value not in ("dark", "light", "system"):
+                return {"error": "appearance must be dark, light, or system"}
         if key in ("history_enabled", "auto_vocabulary",
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
@@ -531,6 +534,13 @@ def run_settings(smoke=False):
                         "document.getElementById('a-logo') ? 1 : 0")
                     has_diag = window.evaluate_js(
                         "document.getElementById('b-diag-copy') ? 1 : 0")
+                    theme_ok = window.evaluate_js(
+                        "(function(){"
+                        "applyAppearance('light');"
+                        "var lt = getComputedStyle(document.body).color;"
+                        "applyAppearance('dark');"
+                        "var dk = getComputedStyle(document.body).color;"
+                        "return (lt === 'rgb(29, 26, 43)' && dk === 'rgb(237, 237, 239)') ? 1 : 0;})()")
                     print(f"ROAR: settings probe navs={navs} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
@@ -538,7 +548,8 @@ def run_settings(smoke=False):
                           f"cleanup={has_cleanup} discourse={has_discourse} "
                           f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
-                          f"ms={has_ms} logo={has_logo} diag={has_diag}",
+                          f"ms={has_ms} logo={has_logo} diag={has_diag} "
+                          f"themeok={theme_ok}",
                           flush=True)
                 finally:
                     window.destroy()

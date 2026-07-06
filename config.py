@@ -32,6 +32,7 @@ DEFAULTS = {
     "milestones_enabled": True,
     "milestone_notifications": True,
     "double_tap_ms": 400,
+    "appearance": "dark",  # dark | light | system
     "context_aware": True,
     "app_profiles": {},
 }
@@ -102,6 +103,9 @@ def load(path=None):
                      "milestones_enabled", "milestone_notifications",
                      "context_aware"):
             cfg[key] = bool(value)
+        elif key == "appearance":
+            if value in ("dark", "light", "system"):
+                cfg[key] = value
         elif key == "double_tap_ms":
             try:
                 cfg[key] = min(1000, max(200, int(value)))

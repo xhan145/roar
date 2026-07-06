@@ -24,3 +24,4 @@ def test_settings_smoke():
     assert "ROAR: settings closed" in out
     assert proc.returncode == 0
     assert "diag=1" in out
+    assert "themeok=1" in out

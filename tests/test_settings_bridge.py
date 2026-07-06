@@ -322,3 +322,11 @@ def test_safe_mode_is_reversible(tmp_path):
     assert cfg["overlay_enabled"] is False
     assert cfg["streaming_preview"] is False
     assert cfg["paste_fallback"] is True
+
+
+def test_appearance_instant_key_validated(tmp_path):
+    p = str(tmp_path / "config.json")
+    api = SettingsAPI(config_path=p)
+    assert api.set_value("appearance", "system")["ok"] is True
+    assert config.load(p)["appearance"] == "system"
+    assert "error" in api.set_value("appearance", "rainbow")
