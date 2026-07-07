@@ -166,3 +166,8 @@ class Transcriber:
                 self.load()
                 return self._run(audio)
             raise
+
+
+# The shipping backend. CPU int8 is folded in as the always-on fallback attempt
+# inside load(), so there is no separate CpuWhisperBackend. See backends/.
+FasterWhisperBackend = Transcriber

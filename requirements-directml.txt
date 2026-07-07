@@ -1,0 +1,13 @@
+# EXPERIMENTAL — NOT installed by default and NOT part of the CPU or CUDA build.
+#
+# DirectML (AMD / Intel / NVIDIA Windows GPU) acceleration is a documented SPIKE
+# only (see backends/onnx_directml_spike.py). Do NOT add these to
+# requirements.txt: `onnxruntime-directml` shares the import name `onnxruntime`
+# with the plain CPU build that faster-whisper's VAD uses (they are mutually
+# exclusive — installing one corrupts the other), it is Windows-only, and it has
+# no verified cp314 wheels. Installing it would risk breaking CPU-only installs.
+#
+# A real DirectML backend would ALSO need a Whisper ONNX model (~1 GB) plus a
+# decode loop (e.g. via optimum/transformers), none of which ship with ROAR.
+
+onnxruntime-directml
