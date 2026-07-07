@@ -201,20 +201,24 @@
   @keyframes roarPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
   @keyframes roarPulseRec { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
   @keyframes roarWave { from { opacity: .35; } 50% { opacity: .7; } to { opacity: .35; } }
+  .homesub {
+    display: block; width: 100%; text-align: left; background: var(--card);
+    border: 1px solid var(--border); border-radius: 10px; padding: 11px 15px;
+    color: var(--text); cursor: pointer; margin-top: 8px; font-size: 13.5px;
+  }
+  .homesub:hover { background: rgba(94,106,210,.12); box-shadow: 0 0 12px var(--glow); }
 </style>
 </head>
 <body>
   <aside>
     <div class="brand"><span class="dot"></span> ROAR</div>
     <button class="nav" data-s="home" aria-current="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</button>
-    <button class="nav" data-s="general"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>General</button>
-    <button class="nav" data-s="hotkeys"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h.01M15 11h.01M7 14h10"/></svg>Hotkeys</button>
-    <button class="nav" data-s="voice"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Voice &amp; Mic</button>
-    <button class="nav" data-s="transcription"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 6h16M4 12h16M4 18h9"/></svg>Transcription</button>
+    <button class="nav" data-s="profiles"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>Profiles</button>
     <button class="nav" data-s="insights"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>Insights</button>
-    <button class="nav" data-s="privacy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg>Privacy</button>
     <button class="nav" data-s="history"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>History</button>
-    <button class="nav" data-s="snippets"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.1 7.9L20 20M8.1 16.1L20 4"/></svg>Snippets</button>
+    <button class="nav" data-s="dictionary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M5 4h13v16H7a2 2 0 0 1-2-2z"/><path d="M8 8h7M8 12h7"/></svg>Dictionary</button>
+    <button class="nav" data-s="hotkeys"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h.01M15 11h.01M7 14h10"/></svg>Hotkeys</button>
+    <button class="nav" data-s="settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Settings</button>
     <button class="nav" data-s="about"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg>About</button>
   </aside>
 
@@ -264,7 +268,7 @@
           <div class="home-card">
             <div class="home-card-t">Quick actions</div>
             <div class="home-actions">
-              <button class="btn" data-goto="general" type="button">Open settings</button>
+              <button class="btn" data-goto="settings" type="button">Open settings</button>
               <button class="btn" data-goto="history" type="button">View history</button>
               <button class="btn" data-goto="hotkeys" type="button">Change hotkeys</button>
             </div>
@@ -276,7 +280,7 @@
             <div class="home-sum-row"><span>Injection</span><span id="home-inject">—</span></div>
             <div class="home-sum-row"><span>Paste fallback</span><span id="home-paste">—</span></div>
             <div class="home-sum-row"><span>Auto-start</span><span id="home-autostart">—</span></div>
-            <button class="btn" data-goto="general" type="button" style="margin-top:10px;width:100%;">View all settings</button>
+            <button class="btn" data-goto="settings" type="button" style="margin-top:10px;width:100%;">View all settings</button>
           </div>
         </div>
       </div>
@@ -374,6 +378,20 @@
       <button class="btn primary" id="b-apply-model" disabled>Apply</button>
       <div class="msg" id="m-model"></div>
       <div class="row" style="margin-top:14px;">
+        <div class="row flex" style="background:var(--field);">
+          <div>Clean up speech<div class="hint">Removes "um", "uh", stutters, and repeated words</div></div>
+          <button class="toggle" id="t-cleanup" aria-pressed="true" aria-label="Clean up speech"></button>
+        </div>
+        <div class="row flex" style="background:var(--field);margin-top:8px;">
+          <div>Remove filler phrases<div class="hint">Also strips "like", "you know", "I mean" when used as fillers — may occasionally remove a real word</div></div>
+          <button class="toggle" id="t-discourse" aria-pressed="false" aria-label="Remove filler phrases"></button>
+        </div>
+      </div>
+    </section>
+
+    <section id="dictionary">
+      <h1>Dictionary</h1>
+      <div class="row" style="margin-top:0;">
         <div>Vocabulary</div>
         <div class="hint" style="margin-bottom:8px;">Words ROAR should recognize more reliably — names, jargon, brands, multi-word phrases</div>
         <div id="vocab-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
@@ -389,28 +407,32 @@
         </div>
         <div class="hint" id="vocab-auto-words" style="margin-top:6px;"></div>
       </div>
-      <div class="row" style="margin-top:14px;">
-        <div class="row flex" style="background:var(--field);">
-          <div>Clean up speech<div class="hint">Removes "um", "uh", stutters, and repeated words</div></div>
-          <button class="toggle" id="t-cleanup" aria-pressed="true" aria-label="Clean up speech"></button>
+    </section>
+
+    <section id="profiles">
+      <h1>Profiles</h1>
+      <div class="row" style="margin-top:0;">
+        <div>App profiles</div>
+        <div class="hint" style="margin-bottom:8px;">Verbatim in code, casual in chat/social, formal in email and documents. Add an exe name or title:keyword override.</div>
+        <div id="app-profile-list" style="margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="app-profile-app" type="text" maxlength="80" placeholder="app.exe or title:keyword"
+                 style="flex:1;min-width:0;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="App profile target">
+          <select id="app-profile-select" aria-label="App profile" style="width:130px;"></select>
+          <button class="btn" id="b-app-profile-add">Add</button>
         </div>
-        <div class="row flex" style="background:var(--field);margin-top:8px;">
-          <div>Remove filler phrases<div class="hint">Also strips "like", "you know", "I mean" when used as fillers — may occasionally remove a real word</div></div>
-          <button class="toggle" id="t-discourse" aria-pressed="false" aria-label="Remove filler phrases"></button>
-        </div>
-        <div class="row" style="background:var(--field);margin-top:8px;">
-          <div>App profiles</div>
-          <div class="hint" style="margin-bottom:8px;">Verbatim in code, casual in chat/social, formal in email and documents. Add an exe name or title:keyword override.</div>
-          <div id="app-profile-list" style="margin-bottom:8px;"></div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="app-profile-app" type="text" maxlength="80" placeholder="app.exe or title:keyword"
-                   style="flex:1;min-width:0;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="App profile target">
-            <select id="app-profile-select" aria-label="App profile" style="width:130px;"></select>
-            <button class="btn" id="b-app-profile-add">Add</button>
-          </div>
-          <div class="msg" id="m-app-profiles"></div>
-        </div>
+        <div class="msg" id="m-app-profiles"></div>
       </div>
+    </section>
+
+    <section id="settings">
+      <h1>Settings</h1>
+      <div class="row"><div class="hint" style="margin:0;">Local, private settings — grouped. Everything opens right here in this window.</div></div>
+      <button class="homesub" data-section="general" style="margin-top:4px;">General</button>
+      <button class="homesub" data-section="voice">Voice &amp; Mic</button>
+      <button class="homesub" data-section="transcription">Transcription</button>
+      <button class="homesub" data-section="privacy">Privacy &amp; History controls</button>
+      <button class="homesub" data-section="snippets">Snippets</button>
     </section>
 
     <section id="insights">
@@ -560,15 +582,24 @@ let state = null;
 let pending = { ptt: null, toggle: null, model: null };
 
 /* ---- navigation ---- */
+function showSection(id) {
+  const sec = $(id);
+  if (!sec) return;
+  document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
+  sec.classList.add("active");
+  if (id === "insights") renderInsights();
+  if (id === "snippets") renderSnippets();
+  if (id === "home") startHomePolling(); else stopHomePolling();
+}
 document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click", () => {
   if (b.disabled) return;
   document.querySelectorAll(".nav").forEach(n => n.setAttribute("aria-current", "false"));
   b.setAttribute("aria-current", "true");
-  document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
-  $(b.dataset.s).classList.add("active");
-  if (b.dataset.s === "insights") renderInsights();
-  if (b.dataset.s === "snippets") renderSnippets();
-  if (b.dataset.s === "home") startHomePolling(); else stopHomePolling();
+  showSection(b.dataset.s);
+}));
+/* Settings-overview links open a grouped sub-section in the same window. */
+document.querySelectorAll("[data-section]").forEach(b => b.addEventListener("click", () => {
+  showSection(b.dataset.section);
 }));
 
 /* ---- Home dashboard ---- */

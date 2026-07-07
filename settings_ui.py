@@ -677,9 +677,13 @@ def run_settings(smoke=False):
                     has_lang = window.evaluate_js(
                         "document.getElementById('s-language') ? 1 : 0")
                     # tabs must be REACHABLE, not merely present in the DOM
+                    # Privacy now lives under the Settings overview (still fully
+                    # reachable, never gated) — reach it via Settings.
                     priv_nav = window.evaluate_js(
-                        "(function(){var b=document.querySelector('.nav[data-s=\"privacy\"]');"
-                        "if(!b||b.disabled)return 0; b.click();"
+                        "(function(){var s=document.querySelector('.nav[data-s=\"settings\"]');"
+                        "if(!s)return 0; s.click();"
+                        "var b=document.querySelector('#settings [data-section=\"privacy\"]');"
+                        "if(!b)return 0; b.click();"
                         "return document.getElementById('privacy').classList.contains('active')?1:0;})()")
                     ins_nav = window.evaluate_js(
                         "(function(){var b=document.querySelector('.nav[data-s=\"insights\"]');"
@@ -690,9 +694,23 @@ def run_settings(smoke=False):
                     has_snip = window.evaluate_js(
                         "document.getElementById('snip-name') ? 1 : 0")
                     snip_nav = window.evaluate_js(
-                        "(function(){var b=document.querySelector('.nav[data-s=\"snippets\"]');"
-                        "if(!b||b.disabled)return 0; b.click();"
+                        "(function(){var s=document.querySelector('.nav[data-s=\"settings\"]');"
+                        "if(!s)return 0; s.click();"
+                        "var b=document.querySelector('#settings [data-section=\"snippets\"]');"
+                        "if(!b)return 0; b.click();"
                         "return document.getElementById('snippets').classList.contains('active')?1:0;})()")
+                    prof_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"profiles\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('profiles').classList.contains('active')?1:0;})()")
+                    dict_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"dictionary\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('dictionary').classList.contains('active')?1:0;})()")
+                    set_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"settings\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('settings').classList.contains('active')?1:0;})()")
                     has_cleanup = window.evaluate_js(
                         "document.getElementById('t-cleanup') ? 1 : 0")
                     has_discourse = window.evaluate_js(
@@ -719,6 +737,7 @@ def run_settings(smoke=False):
                         "var dk = getComputedStyle(document.body).color;"
                         "return (lt === 'rgb(29, 26, 43)' && dk === 'rgb(237, 237, 239)') ? 1 : 0;})()")
                     print(f"ROAR: settings probe navs={navs} home={home_nav} version={ver} "
+                          f"prof={prof_nav} dict={dict_nav} setnav={set_nav} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
                           f"snip={has_snip} snipnav={snip_nav} "
