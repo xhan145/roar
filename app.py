@@ -311,11 +311,7 @@ class ROARApp:
             import numpy as np
             self.transcriber.transcribe(np.zeros(8000, dtype=np.float32))
             self.log(f"model loaded: {self.transcriber.description()}")
-            status_mod.write_status(
-                device=("CUDA (GPU)" if self.transcriber.device == "cuda" else "CPU"),
-                backend=self.transcriber.backend,
-                compute_type=self.transcriber.compute_type,
-                fallback_reason=self._accel_fallback_reason())
+            self._write_accel_status()
             self._rebuild_hotwords()
         except Exception as e:
             self.notify(f"Model load failed: {e}. Check your internet connection "
@@ -333,6 +329,7 @@ class ROARApp:
                     self.transcriber.requested = payload  # "auto" re-runs the policy
                     self.transcriber.language = self.cfg["language"]
                     self.transcriber.load()
+                    self._write_accel_status()  # refresh accel facts + fallback_reason
                     self.notify(f"Model ready: {self.transcriber.description()}")
                 elif kind == "transcribe":
                     self._handle_transcription(payload)
@@ -348,15 +345,25 @@ class ROARApp:
 
     def _accel_fallback_reason(self):
         """Honest one-liner for diagnostics when the engine is NOT on the accel
-        the user asked for. Empty string when there's nothing to report."""
+        the user asked for. Empty string when there's nothing to report.
+        getattr-defensive so a stub transcriber (tests) never crashes it."""
         t = self.transcriber
-        if (t.device == "cpu" and t.cuda_detected
+        if (getattr(t, "device", None) == "cpu" and getattr(t, "cuda_detected", False)
                 and self.cfg.get("acceleration_mode", "auto") in ("auto", "gpu")):
             return "GPU present but the model loaded on CPU (see log)."
         if (self.cfg.get("backend") == "onnx_directml"
-                and t.backend != "onnx_directml"):
+                and getattr(t, "backend", None) != "onnx_directml"):
             return "AMD/DirectML acceleration unavailable (experimental) — using CUDA/CPU."
         return ""
+
+    def _write_accel_status(self):
+        """Push the CURRENT engine acceleration facts to status.json (called
+        after load + reload so diagnostics never show a stale fallback reason)."""
+        status_mod.write_status(
+            device=("CUDA (GPU)" if getattr(self.transcriber, "device", None) == "cuda" else "CPU"),
+            backend=getattr(self.transcriber, "backend", None),
+            compute_type=getattr(self.transcriber, "compute_type", None),
+            fallback_reason=self._accel_fallback_reason())
 
     def _handle_transcription(self, audio):
         if not recorder_mod.passes_gate(audio, self.cfg["silence_rms_threshold"],
@@ -409,7 +416,8 @@ class ROARApp:
             last_latency_seconds=round(tr_ms / 1000, 2),
             device=("CUDA (GPU)" if getattr(self.transcriber, "device", None) == "cuda" else "CPU"),
             compute_type=getattr(self.transcriber, "compute_type", None),
-            backend=getattr(self.transcriber, "backend", None))
+            backend=getattr(self.transcriber, "backend", None),
+            fallback_reason=self._accel_fallback_reason())
         rid = record_history(self.history, self.cfg, text,
                              model=self.transcriber.active_model, audio=audio,
                              duration_s=len(audio) / recorder_mod.SAMPLE_RATE)

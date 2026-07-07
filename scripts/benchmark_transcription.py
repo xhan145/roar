@@ -66,7 +66,7 @@ def candidates(accel):
 def bench_leg(force_device, compute, audio, iters, models_dir):
     t = tr.Transcriber(model_name="auto", models_dir=models_dir, force_device=force_device,
                        accel={"compute_type": compute, "performance_preset": "balanced"})
-    t.load()  # local cache / bundled seed only (never downloads mid-benchmark)
+    t.load()  # HF offline is enforced in main(); an uncached model raises -> "skip"
     text = t.transcribe(audio)          # warm-up (pays one-time autotune)
     times = []
     for _ in range(iters):
@@ -77,6 +77,10 @@ def bench_leg(force_device, compute, audio, iters, models_dir):
 
 
 def main():
+    # ENFORCE the offline guarantee: an uncached model must raise ("skip"),
+    # never download mid-benchmark. (Respects an explicit override if you set it.)
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
     ap = argparse.ArgumentParser()
     ap.add_argument("--wav", help="16-bit PCM WAV; synthesized if omitted")
     ap.add_argument("--iters", type=int, default=5)

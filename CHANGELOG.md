@@ -3,6 +3,24 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## v0.20.0 — unreleased (source)
+- GPU/perf hardening: automatic NVIDIA CUDA fast path made config-driven —
+  `hardware_accel.py` detection + device/compute selection with a safe fallback
+  ladder; Fast/Balanced/Accurate presets (precision + beam only, never the
+  model, so no preset ever downloads); Acceleration + Compute-type controls in
+  Settings; always keeps the CPU int8 fallback attempt.
+- Real release-to-text latency instrumentation (record/transcription/injection
+  ms) surfaced in Diagnostics + the Home dashboard (the old "latency" was
+  mislabeled audio length). Model stays warm (unchanged; never per-dictation).
+- `scripts/benchmark_transcription.py` (offline). Measured RTX 4060: CPU int8
+  2079 ms vs CUDA float16 288 ms / int8_float16 259 ms (~8× faster; Fast ~10%
+  under Balanced).
+- Backend seam (`backends/`) + honest experimental DirectML spike: AMD/DirectML
+  is **unavailable** (no false claim) and falls back cleanly to CUDA/CPU with a
+  diagnostics reason. `requirements-directml.txt` is opt-in only.
+- CPU-only installs unchanged; no network added to the transcription path; no
+  transcript ever written to logs/status/diagnostics (allowlists enforce it).
+
 ## v0.19.0 — unreleased (source)
 - Reconciled the Home dashboard (v0.18.0) and the commercial scaffold (v0.17.0)
   onto one `main`. Both were developed in parallel off v0.16.0; this is their
