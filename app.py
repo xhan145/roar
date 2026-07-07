@@ -407,9 +407,9 @@ class ROARApp:
             last_transcription_duration_ms=round(tr_ms),
             last_injection_duration_ms=round(inj_ms),
             last_latency_seconds=round(tr_ms / 1000, 2),
-            device=("CUDA (GPU)" if self.transcriber.device == "cuda" else "CPU"),
-            compute_type=self.transcriber.compute_type,
-            backend=self.transcriber.backend)
+            device=("CUDA (GPU)" if getattr(self.transcriber, "device", None) == "cuda" else "CPU"),
+            compute_type=getattr(self.transcriber, "compute_type", None),
+            backend=getattr(self.transcriber, "backend", None))
         rid = record_history(self.history, self.cfg, text,
                              model=self.transcriber.active_model, audio=audio,
                              duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
