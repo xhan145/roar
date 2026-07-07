@@ -3,6 +3,11 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## v0.19.0 — unreleased (source)
+- Reconciled the Home dashboard (v0.18.0) and the commercial scaffold (v0.17.0)
+  onto one `main`. Both were developed in parallel off v0.16.0; this is their
+  union. No behavior change beyond that; runtime feature gates stay OFF.
+
 ## v0.18.0 — unreleased (source)
 - ROAR Home dashboard (P1): the Settings window opens to a polished Home view
   ("Talk. Type. Locally.") showing real local state — live dictation status,
@@ -21,6 +26,21 @@ exists are marked unreleased.
   via a local `command.json` (fixed command names only), behind the
   `dashboard_controls` config flag (OFF by default). When off, the buttons show
   hotkey guidance.
+
+## v0.17.0 — unreleased (source)
+- Commercial scaffold: reconciled licensing into one canonical, offline-signed
+  model (`commercial_config.py`, `entitlements.py`, `license.py`) with real
+  Ed25519 verification behind a `SignatureVerifier` interface, verify-before-trust,
+  fail-closed to Core, and dev-license rejection in production builds.
+- Full diagnostics redaction (`redact_diagnostics`), a calm **display-only**
+  license card in Settings, dev-only license generate/verify scripts, and a
+  pure upgrade-prompt copy helper (not wired to gate anything).
+- Commercial docs: monetization, pricing, FAQ, founder readiness, support,
+  refund policy, privacy promise, checkout setup, readiness checklist; README
+  pricing block; LICENSING updated to the real implementation.
+- **Runtime feature gates remain OFF** — the feature matrix is policy only;
+  privacy controls and history/audio deletion stay free, and nothing users have
+  today is removed.
 
 ## v0.16.0 — unreleased (source)
 - Expanded app profiles: `code` (verbatim), `casual` (texting style, keeps

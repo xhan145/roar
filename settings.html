@@ -559,6 +559,11 @@
         </div>
         <div class="kv" id="a-credits" style="margin-top:10px;">Created, Coded, and Developed by Greg M and Ben Y</div>
       </div>
+      <div class="row" id="license-block" style="margin-top:14px;">
+        <div>License</div>
+        <div class="kv" style="margin-top:4px;">Edition <b id="a-edition" style="color:var(--text)">Core</b> · <span id="a-license-status">Not activated</span> · validated locally / offline</div>
+        <div class="hint" style="margin-top:6px;">ROAR validates your license locally. No account is required. Your dictation data stays on this machine.</div>
+      </div>
       <div class="row" id="diag-block" style="margin-top:14px;">
         <div>Diagnostics</div>
         <div class="hint" style="margin:4px 0 8px;">Operational facts only — never transcripts, clipboard, audio, snippets, vocabulary, or window titles. Paths are shortened.</div>
@@ -752,6 +757,7 @@ async function init() {
     ls.appendChild(o);
   });
   $("a-version").textContent = state.version;
+  if (state.edition) $("a-edition").textContent = state.edition;
   $("a-config").textContent = state.config_path;
   $("a-log").textContent = state.log_path;
   setToggle($("t-overlay"), c.overlay_enabled);
