@@ -207,6 +207,31 @@
     color: var(--text); cursor: pointer; margin-top: 8px; font-size: 13.5px;
   }
   .homesub:hover { background: rgba(94,106,210,.12); box-shadow: 0 0 12px var(--glow); }
+
+  /* ---- responsive: reflow the dashboard + shrink the shell as the window
+     narrows. No horizontal scroll at any width; a compact icon rail keeps the
+     menu usable when very narrow. ---- */
+  @media (max-width: 780px) {
+    .home-cols { flex-direction: column; }
+    .home-col-main, .home-col-side { flex: 1 1 auto; width: 100%; }
+    .home-title { font-size: 22px; }
+  }
+  @media (max-width: 620px) {
+    aside { width: 156px; padding: 12px 6px; }
+    main { padding: 18px 16px; }
+    section { max-width: none; }
+    .home-metrics { flex-wrap: wrap; gap: 10px 22px; }
+    .home-hero { padding: 20px 16px 24px; }
+  }
+  @media (max-width: 500px) {
+    aside { width: 58px; padding: 14px 4px; align-items: center; }
+    .brand { justify-content: center; padding: 0 0 16px; font-size: 0; }
+    .nav { text-align: center; padding: 10px 0; font-size: 0; }
+    .nav svg { margin-right: 0 !important; }
+    main { padding: 14px 12px; }
+    .home-mic { width: 92px; height: 92px; }
+    .home-statusbar { font-size: 11px; }
+  }
 </style>
 </head>
 <body>
