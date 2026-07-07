@@ -5,9 +5,9 @@ import commercial_config as cc
 
 
 def test_prices_are_the_agreed_one_time_amounts():
-    assert cc.PRO_PRICE_USD == 19
-    assert cc.DEVELOPER_PRICE_USD == 29
-    assert cc.SUPPORTER_PRICE_USD == 49
+    assert cc.PRO_PRICE_USD == 29
+    assert cc.DEVELOPER_PRICE_USD == 49
+    assert cc.SUPPORTER_PRICE_USD == 99
 
 
 def test_defaults():

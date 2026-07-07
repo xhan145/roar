@@ -20,16 +20,15 @@ small, reviewable steps.
 | ROAR Developer Pack | **$49 one-time** | Code-aware voice layer |
 | Supporter License | **$99 one-time** | Everything in Developer, supports development |
 
-> **Code sync (Day 1 task):** `commercial_config.py` still holds the earlier
-> scaffold prices ($19/$29/$49). This docs pass sets the finalized pricing above;
-> bumping the three `*_PRICE_USD` constants + `tests/test_commercial_config.py` to
-> 29/49/99 is the first implementation step (kept out of this docs-only pass so no
-> runtime behavior changes).
+> **Code sync — DONE:** `commercial_config.py` `*_PRICE_USD` constants and
+> `tests/test_commercial_config.py` are now at 29/49/99, matching the docs. The
+> derived surfaces (`settings_ui.license_info`, `upgrade_prompts`) update
+> automatically. Gates remain OFF — no behavior change beyond displayed prices.
 
 ## Day-by-day
 
 **Day 1 — Pricing + entity kickoff.**
-- Bump `commercial_config.py` prices to 29/49/99 and update `test_commercial_config.py`.
+- ~~Bump `commercial_config.py` prices to 29/49/99 and update `test_commercial_config.py`.~~ **DONE.**
 - Start entity/IP work per [docs/FOUNDER_COMPANY_READINESS.md](docs/FOUNDER_COMPANY_READINESS.md)
   (entity choice, founder agreement, IP assignment, company-owned repo/domain/payment).
 

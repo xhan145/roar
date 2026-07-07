@@ -14,9 +14,9 @@ DEFAULT_EDITION = "core"
 CURRENT_MAJOR_VERSION = 1
 
 # One-time prices, USD. Buy once, use forever; no subscription.
-PRO_PRICE_USD = 19
-DEVELOPER_PRICE_USD = 29
-SUPPORTER_PRICE_USD = 49
+PRO_PRICE_USD = 29
+DEVELOPER_PRICE_USD = 49
+SUPPORTER_PRICE_USD = 99
 
 PURCHASE_URL_PRO = "https://example.com/roar/pro"                # TODO before launch
 PURCHASE_URL_DEVELOPER = "https://example.com/roar/developer"    # TODO before launch
