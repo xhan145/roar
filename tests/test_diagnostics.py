@@ -34,3 +34,26 @@ def test_collect_tolerates_garbage():
 def test_format_report_sorted_lines():
     rep = diagnostics.format_report({"version": "1", "model": "m"})
     assert rep.splitlines() == ["model: m", "version: 1"]
+
+
+def test_redact_diagnostics_keeps_safe_drops_sensitive():
+    raw = {
+        "version": "0.17.0", "edition": "core",
+        "license_status": "Not activated",
+        "last_transcription_duration_ms": 320,
+        "transcript": "SECRET SPEECH", "audio_path": r"C:\Users\me\rec.wav",
+        "clipboard": "PASSWORD", "signature": "base64sigAAA==",
+        "email": "me@example.com", "window_title": "banking - Chrome",
+    }
+    out = diagnostics.redact_diagnostics(raw)
+    assert out["version"] == "0.17.0"
+    assert out["edition"] == "core"
+    assert out["license_status"] == "Not activated"
+    assert out["last_transcription_duration_ms"] == 320
+    blob = str(out)
+    for leaked in ("SECRET", "PASSWORD", "base64sigAAA", "me@example.com",
+                   "banking", "rec.wav"):
+        assert leaked not in blob
+    for dropped in ("transcript", "audio_path", "clipboard", "signature",
+                    "email", "window_title"):
+        assert dropped not in out

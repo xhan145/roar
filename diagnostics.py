@@ -10,16 +10,20 @@ import os
 # keys that may appear in output — anything else is dropped, so a future
 # caller can't accidentally leak a new field through diagnostics
 SAFE_KEYS = frozenset({
-    "version", "edition", "model", "device", "language", "context_aware",
-    "format_mode",
-    "appearance", "overlay_enabled", "streaming_preview", "paste_fallback",
+    "version", "edition", "license_status", "model", "device", "language",
+    "context_aware", "format_mode",
+    "appearance", "overlay_enabled", "streaming_preview",
+    "streaming_preview_enabled", "paste_fallback",
     "cleanup_enabled", "history_enabled", "history_count",
     "audio_retention_days", "milestones_enabled", "double_tap_ms",
     "last_injection_method", "config_path", "log_path",
+    "last_record_duration_ms", "last_transcription_duration_ms",
+    "last_injection_duration_ms",
 })
 
 _FORBIDDEN_SUBSTRINGS = ("transcript", "clipboard", "snippet", "vocab",
-                         "license_key", "secret", "title")
+                         "license_key", "secret", "title", "signature",
+                         "private", "email", "audio", "password")
 
 
 def redact_path(path):
@@ -46,6 +50,13 @@ def collect(info):
             value = redact_path(value)
         out[key] = value
     return out
+
+
+def redact_diagnostics(data):
+    """Public name for the safe-diagnostics filter: allowlist only, paths
+    redacted, and never transcript/audio/clipboard/window-title/signature/
+    key/email content. Same behavior as `collect`."""
+    return collect(data)
 
 
 def format_report(info):
