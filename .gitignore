@@ -11,6 +11,8 @@ config.json
 history.db
 history.db-wal
 history.db-shm
+status.json
+command.json
 audio/
 models-seed/
 backups/

@@ -3,7 +3,7 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
-## v0.16.0 — unreleased (source)
+## v0.18.0 — unreleased (source)
 - ROAR Home dashboard (P1): the Settings window opens to a polished Home view
   ("Talk. Type. Locally.") showing real local state — live dictation status,
   session/last-transcription/active-profile cards, settings summary, and a
@@ -21,6 +21,8 @@ exists are marked unreleased.
   via a local `command.json` (fixed command names only), behind the
   `dashboard_controls` config flag (OFF by default). When off, the buttons show
   hotkey guidance.
+
+## v0.16.0 — unreleased (source)
 - Expanded app profiles: `code` (verbatim), `casual` (texting style, keeps
   slang), `formal` (polished) with a large built-in app map (VS/JetBrains/
   terminals; WhatsApp/Discord/Ableton/Spotify; Outlook/Word), Ableton prefix

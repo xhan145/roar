@@ -1,7 +1,7 @@
 # ROAR
 
 <!-- ROAR-VERSION -->
-**Version:** v0.16.0
+**Version:** v0.18.0
 <!-- /ROAR-VERSION -->
 
 
@@ -92,7 +92,7 @@ ROAR is not trying to be a giant writing suite. It is a small, sharp desktop too
 
 ## Current Status
 
-Current app version: `0.16.0` (`paths.APP_VERSION`).
+Current app version: `0.18.0` (`paths.APP_VERSION`).
 
 **Shipped**
 
@@ -144,6 +144,7 @@ Implemented milestones include:
 - `v0.15.0` context-aware formatting — verbatim in code editors, terser in chat
 - `v0.15.1` history WAL-durability + rolling local DB backups (insurance)
 - `v0.16.0` expanded app profiles - code stays verbatim, chat/social stays casual, email/docs become formal
+- `v0.18.0` ROAR Home dashboard - Settings opens to a live local-state cockpit; 8-item sidebar (Home/Profiles/Insights/History/Dictionary/Hotkeys/Settings/About); optional remote controls behind a flag
 
 ### Project status at a glance
 
@@ -166,7 +167,7 @@ accounts, subscriptions, auto-updating, background network calls, local LLM
 rewriting, storing window titles. (Spoken-symbol substitution exists ONLY in
 the opt-in Code formatting mode — never in Clean or Raw.)
 
-Note: `v0.16.0` is the current source version; installers for it are produced
+Note: `v0.18.0` is the current source version; installers for it are produced
 by the release scripts below — the newest *published* tag may trail this.
 
 **Version parity:** `scripts/roar_versions.py` is the single source of truth check — it reads each ROAR component's canonical version, syncs the README version badge + version-asserting tests, and writes `VERSIONS.md`. A pre-commit hook runs `--check` so docs/tests can't drift. Run `python scripts/roar_versions.py --fix` after any version bump.
