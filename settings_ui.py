@@ -176,19 +176,15 @@ class SettingsAPI:
                 out["active_profile_description"] = "Same formatting in every app."
         except Exception:
             pass
-        # Compute device — cheap CUDA probe, no model load.
-        try:
-            import ctranslate2
-            out["current_device"] = ("CUDA (GPU)"
-                                     if ctranslate2.get_cuda_device_count() > 0 else "CPU")
-        except Exception:
-            out["current_device"] = NA
-        # Live status file (tray -> here).
+        # Live status file (tray -> here). Compute device comes from here too —
+        # the settings process must NOT import the ML/CUDA stack to probe it.
         started = 0
         try:
             st = status_mod.read_status()
             if st:
                 out["dictation_state"] = st.get("state", "idle")
+                if st.get("device"):
+                    out["current_device"] = st["device"]
                 if st.get("last_injection_status"):
                     out["last_injection_status"] = st["last_injection_status"]
                 started = st.get("session_started_at") or 0
@@ -660,6 +656,11 @@ def run_settings(smoke=False):
                             if attempt == 2:
                                 raise
                             _time.sleep(1.5)
+                    # Home is the default view and must be reachable/active.
+                    home_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"home\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('home').classList.contains('active')?1:0;})()")
                     # version is populated by init() AFTER pywebviewready —
                     # poll until it's actually there instead of racing it
                     ver = ""
@@ -717,7 +718,7 @@ def run_settings(smoke=False):
                         "applyAppearance('dark');"
                         "var dk = getComputedStyle(document.body).color;"
                         "return (lt === 'rgb(29, 26, 43)' && dk === 'rgb(237, 237, 239)') ? 1 : 0;})()")
-                    print(f"ROAR: settings probe navs={navs} version={ver} "
+                    print(f"ROAR: settings probe navs={navs} home={home_nav} version={ver} "
                           f"priv={has_priv} privnav={priv_nav} insnav={ins_nav} "
                           f"vocab={has_vocab} ovl={has_ovl} lang={has_lang} "
                           f"snip={has_snip} snipnav={snip_nav} "

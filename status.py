@@ -16,7 +16,7 @@ import paths
 ALLOWED = frozenset({
     "state", "session_started_at", "session_word_count",
     "last_latency_seconds", "last_injection_status", "last_profile",
-    "updated_at",
+    "device", "updated_at",
 })
 
 

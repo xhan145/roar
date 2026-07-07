@@ -294,6 +294,8 @@ class ROARApp:
             import numpy as np
             self.transcriber.transcribe(np.zeros(8000, dtype=np.float32))
             self.log(f"model loaded: {self.transcriber.description()}")
+            status_mod.write_status(
+                device=("CUDA (GPU)" if self.transcriber.device == "cuda" else "CPU"))
             self._rebuild_hotwords()
         except Exception as e:
             self.notify(f"Model load failed: {e}. Check your internet connection "

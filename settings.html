@@ -14,6 +14,11 @@
     --chip-earned-bg: #2A2547; --chip-earned-text: #C9BEF5;
     --bg-grad: linear-gradient(180deg, #0a0a0f, #020203);
     --ease: cubic-bezier(0.16,1,0.3,1);
+    /* Home dashboard tokens — structure reuses the theme (flips light/dark),
+       plus a blue/orange/green accent set for the mic + status. */
+    --roar-bg: var(--bg-deep); --roar-panel: var(--side); --roar-card: var(--card);
+    --roar-border: var(--border); --roar-text: var(--text); --roar-muted: var(--muted);
+    --roar-blue: #5B8DEF; --roar-orange: #F5A623; --roar-green: #34D399;
   }
   /* Light appearance: same lavender/navy identity on a warm-white ground.
      Applied explicitly (data-theme=light) or via OS preference in system
@@ -142,12 +147,67 @@
   @media (prefers-reduced-motion: no-preference) {
     .toggle, .toggle::after, .btn { transition: all .2s var(--ease); }
   }
+
+  /* ---- Home dashboard ---- */
+  #home { max-width: 860px; }
+  .home-hero {
+    position: relative; background: var(--roar-card); border: 1px solid var(--roar-border);
+    border-radius: 20px; padding: 26px 24px 30px; overflow: hidden; text-align: center;
+  }
+  .home-title { font-size: 26px; font-weight: 800; letter-spacing: 0; text-transform: none; margin: 0 0 4px; }
+  .home-title b { color: var(--roar-blue); font-weight: 800; }
+  .home-sub { color: var(--roar-muted); font-size: 13.5px; margin-bottom: 6px; }
+  .home-wave { position: absolute; left: 0; right: 0; top: 120px; width: 100%; height: 90px; opacity: .5; pointer-events: none; }
+  .home-wave path { fill: none; stroke: var(--roar-blue); stroke-width: 2; }
+  .home-mic-wrap { position: relative; margin-top: 18px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .home-mic {
+    position: relative; width: 108px; height: 108px; border-radius: 50%; border: none; cursor: pointer;
+    background: radial-gradient(circle at 50% 42%, #7AA5F5, var(--roar-blue) 70%);
+    box-shadow: 0 0 0 6px rgba(91,141,239,.18), 0 0 34px 6px rgba(245,166,35,.38);
+    display: grid; place-items: center; color: #fff;
+  }
+  .home-mic.rec { box-shadow: 0 0 0 6px rgba(245,166,35,.30), 0 0 44px 10px rgba(245,166,35,.55); }
+  .home-mic svg { width: 40px; height: 40px; }
+  .home-state { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+  .home-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--roar-green); box-shadow: 0 0 8px var(--roar-green); }
+  .home-dot.rec { background: var(--roar-orange); box-shadow: 0 0 8px var(--roar-orange); }
+  .home-dot.err { background: var(--err); box-shadow: none; }
+  .home-hotkey { color: var(--roar-muted); font-size: 12.5px; }
+  .home-hotkey b { color: var(--roar-text); font-family: Consolas, monospace; }
+  .home-cols { display: flex; gap: 12px; margin-top: 14px; align-items: flex-start; }
+  .home-col-main { flex: 1 1 60%; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .home-col-side { flex: 1 1 40%; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .home-card { background: var(--roar-card); border: 1px solid var(--roar-border); border-radius: 16px; padding: 14px 16px; }
+  .home-card-t { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--roar-muted); margin-bottom: 10px; }
+  .home-metrics { display: flex; gap: 22px; }
+  .home-metrics .kv { margin: 0; }
+  .home-last { font-size: 13px; line-height: 1.5; word-break: break-word; }
+  .home-sum-row { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12.5px; }
+  .home-sum-row span:first-child { color: var(--roar-muted); }
+  .home-sum-row span:last-child { color: var(--roar-text); text-align: right; }
+  .home-actions { display: flex; flex-direction: column; gap: 8px; }
+  .home-actions .btn { text-align: left; }
+  .home-statusbar {
+    display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 14px;
+    padding: 10px 14px; background: var(--roar-panel); border: 1px solid var(--roar-border);
+    border-radius: 12px; color: var(--roar-muted); font-size: 12px;
+  }
+  .home-statusbar b { color: var(--roar-text); font-weight: 600; }
+  @media (prefers-reduced-motion: no-preference) {
+    .home-mic { animation: roarPulse 2.6s ease-in-out infinite; }
+    .home-mic.rec { animation: roarPulseRec 1.1s ease-in-out infinite; }
+    .home-wave.live path { animation: roarWave 1.4s linear infinite; }
+  }
+  @keyframes roarPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+  @keyframes roarPulseRec { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @keyframes roarWave { from { opacity: .35; } 50% { opacity: .7; } to { opacity: .35; } }
 </style>
 </head>
 <body>
   <aside>
     <div class="brand"><span class="dot"></span> ROAR</div>
-    <button class="nav" data-s="general" aria-current="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>General</button>
+    <button class="nav" data-s="home" aria-current="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</button>
+    <button class="nav" data-s="general"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h13"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>General</button>
     <button class="nav" data-s="hotkeys"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h.01M15 11h.01M7 14h10"/></svg>Hotkeys</button>
     <button class="nav" data-s="voice"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>Voice &amp; Mic</button>
     <button class="nav" data-s="transcription"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 6h16M4 12h16M4 18h9"/></svg>Transcription</button>
@@ -159,7 +219,77 @@
   </aside>
 
   <main>
-    <section id="general" class="active">
+    <section id="home" class="active">
+      <div class="home-hero">
+        <div class="home-head">
+          <h1 class="home-title">Talk. Type. <b>Locally.</b></h1>
+          <p class="home-sub">Press, speak, and watch your ideas appear.</p>
+        </div>
+        <svg class="home-wave" id="home-wave" viewBox="0 0 800 90" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0,45 C100,10 160,80 260,45 C360,10 420,80 520,45 C620,10 680,80 800,45"/>
+        </svg>
+        <div class="home-mic-wrap">
+          <button class="home-mic" id="home-mic" type="button" aria-label="Dictation status indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          </button>
+          <div class="home-state"><span class="home-dot" id="home-dot"></span> <span id="home-state-label">Ready</span></div>
+          <div class="home-hotkey">Push-to-talk: <b id="home-hk">—</b></div>
+          <button class="btn primary" id="home-start" type="button">Start dictation</button>
+          <div class="kv" id="home-start-note" style="min-height:1em;"></div>
+        </div>
+      </div>
+
+      <div class="home-cols">
+        <div class="home-col-main">
+          <div class="home-card">
+            <div class="home-card-t">Session</div>
+            <div class="home-metrics">
+              <div><div class="stat" id="home-dur">0:00</div><div class="kv">Duration</div></div>
+              <div><div class="stat" id="home-words">0</div><div class="kv">Words</div></div>
+              <div><div class="stat" id="home-latency">—</div><div class="kv">Latency</div></div>
+            </div>
+          </div>
+          <div class="home-card">
+            <div class="home-card-t">Last transcription</div>
+            <div class="home-last" id="home-last">Nothing yet — press your hotkey to dictate.</div>
+            <div class="kv" id="home-last-meta" style="margin-top:8px;"></div>
+          </div>
+          <div class="home-card">
+            <div class="home-card-t">Active profile</div>
+            <div class="stat" id="home-profile" style="font-size:16px;">—</div>
+            <div class="kv" id="home-profile-desc" style="margin-top:4px;"></div>
+          </div>
+        </div>
+        <div class="home-col-side">
+          <div class="home-card">
+            <div class="home-card-t">Quick actions</div>
+            <div class="home-actions">
+              <button class="btn" data-goto="general" type="button">Open settings</button>
+              <button class="btn" data-goto="history" type="button">View history</button>
+              <button class="btn" data-goto="hotkeys" type="button">Change hotkeys</button>
+            </div>
+          </div>
+          <div class="home-card">
+            <div class="home-card-t">Settings summary</div>
+            <div class="home-sum-row"><span>Microphone</span><span id="home-mic-name">—</span></div>
+            <div class="home-sum-row"><span>Model</span><span id="home-model">—</span></div>
+            <div class="home-sum-row"><span>Injection</span><span id="home-inject">—</span></div>
+            <div class="home-sum-row"><span>Paste fallback</span><span id="home-paste">—</span></div>
+            <div class="home-sum-row"><span>Auto-start</span><span id="home-autostart">—</span></div>
+            <button class="btn" data-goto="general" type="button" style="margin-top:10px;width:100%;">View all settings</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-statusbar">
+        <span>Model <b id="home-sb-model">—</b></span>
+        <span>Device <b id="home-sb-device">—</b></span>
+        <span>Paste fallback <b id="home-sb-paste">—</b></span>
+        <span style="margin-left:auto;color:var(--roar-blue);">● local &amp; offline</span>
+      </div>
+    </section>
+
+    <section id="general">
       <h1>General</h1>
       <div class="row flex">
         <div>Appearance<div class="hint">Dark, light, or follow Windows — applied instantly, stored locally</div></div>
@@ -438,7 +568,74 @@ document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click
   $(b.dataset.s).classList.add("active");
   if (b.dataset.s === "insights") renderInsights();
   if (b.dataset.s === "snippets") renderSnippets();
+  if (b.dataset.s === "home") startHomePolling(); else stopHomePolling();
 }));
+
+/* ---- Home dashboard ---- */
+let homeTimer = null;
+const STATE_LABELS = {
+  idle: ["Ready", ""], loading: ["Starting…", ""],
+  recording: ["Listening…", "rec"], transcribing: ["Transcribing…", "rec"],
+};
+function fmtDur(s) {
+  s = Math.max(0, Math.floor(s || 0));
+  const m = Math.floor(s / 60), ss = String(s % 60).padStart(2, "0");
+  return m + ":" + ss;
+}
+function homeMicName() {
+  try {
+    const dev = (state && state.devices) || [];
+    const cur = state && state.config ? String(state.config.input_device) : "";
+    const hit = dev.find(d => String(d[0]) === cur);
+    return hit ? hit[1] : (dev.length ? dev[0][1] : "Not available");
+  } catch (e) { return "Not available"; }
+}
+async function renderHome() {
+  let h;
+  try { h = await api().get_home_state(); } catch (e) { return; }
+  if (!h) return;
+  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  const map = STATE_LABELS[h.dictation_state] || ["Ready", ""];
+  set("home-state-label", map[0]);
+  const dot = $("home-dot"); if (dot) dot.className = "home-dot " + map[1];
+  const mic = $("home-mic"); if (mic) mic.className = "home-mic " + map[1];
+  const wave = $("home-wave"); if (wave) wave.classList.toggle("live", map[1] === "rec");
+  set("home-hk", (h.hotkeys && h.hotkeys.push_to_talk) || (state && state.config && state.config.hotkey_ptt) || "—");
+  set("home-dur", fmtDur(h.session_duration_seconds));
+  set("home-words", h.session_word_count || 0);
+  set("home-latency", h.last_latency_seconds != null ? h.last_latency_seconds + "s" : "—");
+  const last = $("home-last");
+  if (last) last.textContent = h.last_transcription_preview || "Nothing yet — press your hotkey to dictate.";
+  const meta = [];
+  if (h.last_transcription_word_count) meta.push(h.last_transcription_word_count + " words");
+  if (h.last_injection_status && h.last_injection_status !== "Not available") meta.push(h.last_injection_status);
+  if (h.last_transcription_timestamp) { try { meta.push(relTime(h.last_transcription_timestamp)); } catch (e) {} }
+  set("home-last-meta", meta.join(" · "));
+  set("home-profile", h.active_profile || "—");
+  set("home-profile-desc", h.active_profile_description || "");
+  set("home-mic-name", homeMicName());
+  set("home-model", h.current_model || "—");
+  set("home-inject", h.injection_method || "—");
+  set("home-paste", h.paste_fallback_enabled ? "On" : "Off");
+  set("home-autostart", h.autostart_enabled ? "On" : "Off");
+  set("home-sb-model", h.current_model || "—");
+  set("home-sb-device", h.current_device || "—");
+  set("home-sb-paste", h.paste_fallback_enabled ? "On" : "Off");
+}
+function startHomePolling() { renderHome(); if (!homeTimer) homeTimer = setInterval(renderHome, 750); }
+function stopHomePolling() { if (homeTimer) { clearInterval(homeTimer); homeTimer = null; } }
+document.querySelectorAll("#home [data-goto]").forEach(b => b.addEventListener("click", () => {
+  const t = document.querySelector('.nav[data-s="' + b.dataset.goto + '"]');
+  if (t) t.click();
+}));
+(function () {
+  const s = $("home-start");
+  if (s) s.addEventListener("click", () => {
+    const hk = (state && state.config && state.config.hotkey_ptt) || "your hotkey";
+    const n = $("home-start-note");
+    if (n) n.textContent = "Dictate into any app: hold " + hk + " and speak.";
+  });
+})();
 
 /* ---- helpers ---- */
 const api = () => window.pywebview.api;
@@ -522,6 +719,7 @@ async function init() {
   renderVocab();
   renderAppProfiles();
   renderSnippets();
+  startHomePolling();
 }
 window.addEventListener("pywebviewready", init);
 
