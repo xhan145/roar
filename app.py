@@ -22,6 +22,7 @@ import history as history_mod
 import injector
 import paths
 import recorder as recorder_mod
+import status as status_mod
 import tray_icons
 from hotkeys import MODIFIER_ALIASES, parse_chord
 from transcriber import Transcriber
@@ -139,6 +140,9 @@ class ROARApp:
             self.icon.update_menu()
         except Exception:
             pass
+        # Best-effort live status for the Home dashboard (separate process).
+        # Operational only — no transcript. Never affects dictation.
+        status_mod.write_status(state=state)
 
     # -- hotkeys ----------------------------------------------------------
     def _matches(self, key_name, chord_key):
@@ -359,6 +363,7 @@ class ROARApp:
             return
         injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
         self.log(f"injected {len(text)} chars")
+        status_mod.write_status(last_injection_status="injected")
         rid = record_history(self.history, self.cfg, text,
                              model=self.transcriber.active_model, audio=audio,
                              duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
@@ -624,6 +629,9 @@ class ROARApp:
             threading.Thread(target=stop_after_load, daemon=True).start()
 
     def run(self):
+        # Seed the Home-dashboard status file for this run (session start).
+        status_mod.write_status(state=self.state, session_started_at=time.time(),
+                                session_word_count=0)
         import overlay as overlay_mod
         self.overlay = overlay_mod.Overlay()
         self.overlay.start()
