@@ -4,7 +4,7 @@ The shipped app currently behaves as "everything on". This matrix pins what
 COULD be gated if paid editions ever ship (`entitlements.py` + tests), and —
 more importantly — what never can be.
 
-Prices are one-time: **Core free · Pro $19 · Developer Pack $29 · Supporter $49.**
+Prices are one-time: **Core free · Pro $29 · Developer Pack $49 · Supporter $99.**
 No subscription, no account, no cloud transcription, no telemetry.
 
 | Feature | Core (free) | Pro | Developer | Supporter |

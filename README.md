@@ -82,9 +82,9 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
 ## Pricing
 
 ROAR Core is free.
-ROAR Pro is $19 once.
-ROAR Developer Pack is $29 once.
-Supporter License is $49 once.
+ROAR Pro is $29 once.
+ROAR Developer Pack is $49 once.
+Supporter License is $99 once.
 
 No subscription.
 No account required.

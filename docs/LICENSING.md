@@ -1,5 +1,8 @@
 # ROAR licensing & entitlement architecture (offline verification built; gates OFF)
 
+> Full design: **[LICENSE_ARCHITECTURE.md](LICENSE_ARCHITECTURE.md)**. This page
+> is the short policy summary.
+
 Offline license verification is implemented (real Ed25519), but **nothing in the
 shipped app is gated** — the edition is displayed, not enforced. `entitlements.py`
 holds the pure policy so that if paid editions ever ship, the rules below are
