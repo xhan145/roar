@@ -72,6 +72,20 @@ def _license_edition():
     return license_mod.CORE
 
 
+def _epoch(ts):
+    """Best-effort convert a history ts_utc (epoch number or ISO string) to
+    epoch seconds; None if unparseable."""
+    if ts is None:
+        return None
+    if isinstance(ts, (int, float)):
+        return float(ts)
+    try:
+        from datetime import datetime
+        return datetime.fromisoformat(str(ts)).timestamp()
+    except Exception:
+        return None
+
+
 class SettingsAPI:
     def __init__(self, config_path=None):
         self.config_path = config_path or config_mod.PATH
@@ -104,6 +118,140 @@ class SettingsAPI:
             "logo_path": paths.resource_path("assets/roar-logo-purple-256.png"),
             "edition": _license_edition(),
         }
+
+    def get_home_state(self):
+        """Safe composite of real local state for the Home dashboard. Every
+        field is individually guarded; missing/corrupt sources degrade to safe
+        defaults. Never raises. Never exposes transcript beyond the History
+        preview, clipboard, audio paths, window titles, or secrets."""
+        import time as _time
+        import status as status_mod
+        NA = "Not available"
+        out = {
+            "app_version": paths.APP_VERSION, "is_running": False,
+            "dictation_state": "idle", "active_profile": NA,
+            "active_profile_description": "", "current_model": NA,
+            "current_device": NA, "injection_method": NA,
+            "paste_fallback_enabled": False, "autostart_enabled": False,
+            "session_duration_seconds": 0, "session_word_count": 0,
+            "last_latency_seconds": None, "last_transcription_preview": "",
+            "last_transcription_word_count": 0, "last_transcription_timestamp": None,
+            "last_injection_status": NA, "hotkeys": {},
+            "diagnostics_safe_summary": {}, "words_today": 0,
+            "words_this_week": 0, "milestone": {},
+        }
+        try:
+            cfg = config_mod.load(self.config_path)
+        except Exception:
+            cfg = {}
+        try:
+            out["current_model"] = cfg.get("model") or NA
+        except Exception:
+            pass
+        try:
+            pf = bool(cfg.get("paste_fallback", False))
+            out["paste_fallback_enabled"] = pf
+            out["injection_method"] = "Clipboard paste" if pf else "Direct (SendInput)"
+        except Exception:
+            pass
+        try:
+            out["autostart_enabled"] = autostart.get(APP_NAME) is not None
+        except Exception:
+            pass
+        try:
+            out["hotkeys"] = {"push_to_talk": cfg.get("hotkey_ptt"),
+                              "toggle": cfg.get("hotkey_toggle")}
+        except Exception:
+            pass
+        # Active-profile POLICY (the live foreground profile is resolved in the
+        # tray; here we report the configured policy — never a window title).
+        try:
+            if cfg.get("context_aware", True):
+                out["active_profile"] = "Auto (context-aware)"
+                out["active_profile_description"] = (
+                    "Adapts per app: verbatim in code editors, casual in chat, "
+                    "formal in docs.")
+            else:
+                out["active_profile"] = str(cfg.get("format_mode", "clean")).capitalize()
+                out["active_profile_description"] = "Same formatting in every app."
+        except Exception:
+            pass
+        # Compute device — cheap CUDA probe, no model load.
+        try:
+            import ctranslate2
+            out["current_device"] = ("CUDA (GPU)"
+                                     if ctranslate2.get_cuda_device_count() > 0 else "CPU")
+        except Exception:
+            out["current_device"] = NA
+        # Live status file (tray -> here).
+        started = 0
+        try:
+            st = status_mod.read_status()
+            if st:
+                out["dictation_state"] = st.get("state", "idle")
+                if st.get("last_injection_status"):
+                    out["last_injection_status"] = st["last_injection_status"]
+                started = st.get("session_started_at") or 0
+                if started:
+                    out["session_duration_seconds"] = max(0, int(_time.time() - started))
+                upd = st.get("updated_at")
+                out["is_running"] = bool(upd and (_time.time() - upd) < 15)
+        except Exception:
+            pass
+        # History-derived: last transcription + word tallies.
+        try:
+            rows = self._history.list(limit=5000)
+        except Exception:
+            rows = []
+        try:
+            if rows:
+                r0 = rows[0]
+                prev = (r0.get("text") or "")[:160]
+                out["last_transcription_preview"] = prev
+                out["last_transcription_word_count"] = r0.get("word_count") or len(prev.split())
+                out["last_transcription_timestamp"] = r0.get("ts_utc")
+                if out["last_injection_status"] == NA:
+                    out["last_injection_status"] = "Injected"
+                if r0.get("duration_s") is not None:
+                    out["last_latency_seconds"] = round(float(r0["duration_s"]), 2)
+        except Exception:
+            pass
+        try:
+            now = _time.time()
+            start_today = now - (now % 86400)
+            start_week = now - 7 * 86400
+            wt = ww = ws = 0
+            for r in rows:
+                ts = _epoch(r.get("ts_utc"))
+                if ts is None:
+                    continue
+                wc = r.get("word_count") or 0
+                if ts >= start_today:
+                    wt += wc
+                if ts >= start_week:
+                    ww += wc
+                if started and ts >= started:
+                    ws += wc
+            out["words_today"], out["words_this_week"] = wt, ww
+            out["session_word_count"] = ws
+        except Exception:
+            pass
+        try:
+            import milestones
+            out["milestone"] = milestones.progress(
+                self._history.total_words(), self._history.unlocks())
+        except Exception:
+            pass
+        try:
+            import diagnostics
+            out["diagnostics_safe_summary"] = diagnostics.collect({
+                "version": paths.APP_VERSION, "model": cfg.get("model"),
+                "language": cfg.get("language"),
+                "history_enabled": cfg.get("history_enabled"),
+            })
+        except Exception:
+            pass
+        return out
 
     def _write(self, **changes):
         with self._cfg_lock:
