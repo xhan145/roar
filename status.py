@@ -17,6 +17,9 @@ ALLOWED = frozenset({
     "state", "session_started_at", "session_word_count",
     "last_latency_seconds", "last_injection_status", "last_profile",
     "device", "updated_at",
+    # performance / acceleration (operational facts only — never transcripts)
+    "last_record_duration_ms", "last_transcription_duration_ms",
+    "last_injection_duration_ms", "backend", "compute_type", "fallback_reason",
 })
 
 

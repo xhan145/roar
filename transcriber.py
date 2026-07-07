@@ -79,6 +79,7 @@ class Transcriber:
         self.device = None
         self.compute_type = None
         self.backend = "ct2"
+        self.cuda_detected = False      # was a CUDA device present at last load?
         self.beam_size = 1              # overwritten from the preset at load()
         self.last_infer_ms = 0.0        # real decode time of the last utterance
         self.hotwords = None  # merged vocabulary string; set by the app
@@ -94,6 +95,7 @@ class Transcriber:
         import hardware_accel
         name = model_name or self.requested
         accel = hardware_accel.detect_acceleration()
+        self.cuda_detected = bool(accel.get("cuda"))
         self.beam_size = hardware_accel.beam_size_for(self.accel_cfg)
         # force_device (smoke test / CUDA self-heal) overrides the config choice
         device = self.force_device or hardware_accel.choose_device(self.accel_cfg, accel)

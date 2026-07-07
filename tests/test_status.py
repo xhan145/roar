@@ -38,3 +38,25 @@ def test_write_merges_and_is_atomic(tmp_path):
 def test_write_never_raises_on_bad_path():
     # a path whose parent dir does not exist -> False, no exception
     assert status.write_status("/no/such/dir/status.json", state="idle") is False
+
+
+def test_perf_keys_are_allowlisted():
+    for k in ("last_record_duration_ms", "last_transcription_duration_ms",
+              "last_injection_duration_ms", "backend", "compute_type",
+              "fallback_reason"):
+        assert k in status.ALLOWED
+
+
+def test_perf_durations_persist_but_transcript_never_does(tmp_path):
+    p = str(tmp_path / "status.json")
+    status.write_status(p, last_transcription_duration_ms=1200,
+                        last_injection_duration_ms=8, backend="ct2",
+                        compute_type="float16",
+                        transcript="SECRET SPEECH", text="SECRET",
+                        raw="SECRET RAW")
+    data = status.read_status(p)
+    assert data["last_transcription_duration_ms"] == 1200
+    assert data["backend"] == "ct2" and data["compute_type"] == "float16"
+    for leaked in ("transcript", "text", "raw"):
+        assert leaked not in data
+    assert "SECRET" not in json.dumps(data)

@@ -306,7 +306,10 @@ class ROARApp:
             self.transcriber.transcribe(np.zeros(8000, dtype=np.float32))
             self.log(f"model loaded: {self.transcriber.description()}")
             status_mod.write_status(
-                device=("CUDA (GPU)" if self.transcriber.device == "cuda" else "CPU"))
+                device=("CUDA (GPU)" if self.transcriber.device == "cuda" else "CPU"),
+                backend=self.transcriber.backend,
+                compute_type=self.transcriber.compute_type,
+                fallback_reason=self._accel_fallback_reason())
             self._rebuild_hotwords()
         except Exception as e:
             self.notify(f"Model load failed: {e}. Check your internet connection "
@@ -337,12 +340,26 @@ class ROARApp:
             if kind != "partial":  # partials must not reset RECORDING to IDLE
                 self._set_state(self.IDLE)
 
+    def _accel_fallback_reason(self):
+        """Honest one-liner for diagnostics when the engine is NOT on the accel
+        the user asked for. Empty string when there's nothing to report."""
+        t = self.transcriber
+        if (t.device == "cpu" and t.cuda_detected
+                and self.cfg.get("acceleration_mode", "auto") in ("auto", "gpu")):
+            return "GPU present but the model loaded on CPU (see log)."
+        if (self.cfg.get("backend") == "onnx_directml"
+                and t.backend != "onnx_directml"):
+            return "AMD/DirectML acceleration unavailable (experimental) — using CUDA/CPU."
+        return ""
+
     def _handle_transcription(self, audio):
         if not recorder_mod.passes_gate(audio, self.cfg["silence_rms_threshold"],
                                         self.cfg["min_duration_s"]):
             self.log("recording gated (silence/too short) — nothing injected")
             return
+        _t0 = time.perf_counter()
         raw = self.transcriber.transcribe(audio)
+        tr_ms = (time.perf_counter() - _t0) * 1000.0
         if editing.is_scratch(raw):
             self._scratch()
             return
@@ -374,9 +391,19 @@ class ROARApp:
             self.notify("Focus changed — ROAR did not type.")
             self.log("focus changed between recording and injection — skipped")
             return
+        _t1 = time.perf_counter()
         injector.inject_text(text, paste_fallback=self.cfg["paste_fallback"])
+        inj_ms = (time.perf_counter() - _t1) * 1000.0
         self.log(f"injected {len(text)} chars")
-        status_mod.write_status(last_injection_status="injected")
+        status_mod.write_status(
+            last_injection_status="injected",
+            last_record_duration_ms=round(len(audio) / recorder_mod.SAMPLE_RATE * 1000),
+            last_transcription_duration_ms=round(tr_ms),
+            last_injection_duration_ms=round(inj_ms),
+            last_latency_seconds=round(tr_ms / 1000, 2),
+            device=("CUDA (GPU)" if self.transcriber.device == "cuda" else "CPU"),
+            compute_type=self.transcriber.compute_type,
+            backend=self.transcriber.backend)
         rid = record_history(self.history, self.cfg, text,
                              model=self.transcriber.active_model, audio=audio,
                              duration_s=len(audio) / recorder_mod.SAMPLE_RATE)
