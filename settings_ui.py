@@ -67,9 +67,10 @@ def normalize_combo(keys) -> str:
 
 
 def _license_edition():
-    """Licensing is not enforced; everyone is Core today (see docs/LICENSING.md)."""
+    """Display label for the current edition. Licensing is NOT enforced — the
+    edition is shown, never used to gate a feature (see docs/LICENSING.md)."""
     import license as license_mod
-    return license_mod.CORE
+    return license_mod.get_current_edition().title()
 
 
 class SettingsAPI:
@@ -103,6 +104,27 @@ class SettingsAPI:
             "languages": _language_options(),
             "logo_path": paths.resource_path("assets/roar-logo-purple-256.png"),
             "edition": _license_edition(),
+        }
+
+    def license_info(self):
+        """Display-only license status. Gates are OFF — this never blocks any
+        feature; it just reports the edition and where validation happens."""
+        import license as license_mod
+        import commercial_config as cc
+        import upgrade_prompts
+        edition = license_mod.get_current_edition()   # "core" today
+        return {
+            "edition": edition.title(),
+            "status": ("Activated locally" if edition != license_mod.CORE
+                       else "Not activated"),
+            "validation": "Local/offline",
+            "prices": {"pro": cc.PRO_PRICE_USD,
+                       "developer": cc.DEVELOPER_PRICE_USD,
+                       "supporter": cc.SUPPORTER_PRICE_USD},
+            "purchase_urls": {"pro": cc.PURCHASE_URL_PRO,
+                              "developer": cc.PURCHASE_URL_DEVELOPER,
+                              "supporter": cc.PURCHASE_URL_SUPPORTER},
+            "upgrades": upgrade_prompts.all_copy(),
         }
 
     def _write(self, **changes):
