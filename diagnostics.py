@@ -21,9 +21,12 @@ SAFE_KEYS = frozenset({
     "last_injection_duration_ms",
 })
 
-_FORBIDDEN_SUBSTRINGS = ("transcript", "clipboard", "snippet", "vocab",
-                         "license_key", "secret", "title", "signature",
-                         "private", "email", "audio", "password")
+# Belt-and-braces on the ALLOWLISTED set only. Substrings must not collide with
+# legitimate safe keys, so no "transcript" (vs last_transcription_duration_ms)
+# or "audio" (vs audio_retention_days) — the allowlist already drops those keys.
+_FORBIDDEN_SUBSTRINGS = ("clipboard", "snippet", "vocab", "license_key",
+                         "secret", "title", "signature", "private", "email",
+                         "password")
 
 
 def redact_path(path):
