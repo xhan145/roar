@@ -4,6 +4,15 @@ All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
 ## v0.16.0 — unreleased (source)
+- ROAR Home dashboard (P1): the Settings window opens to a polished Home view
+  ("Talk. Type. Locally.") showing real local state — live dictation status,
+  session/last-transcription/active-profile cards, settings summary, and a
+  status bar — via a one-way `status.json` the tray writes (operational facts
+  only, never transcript/clipboard/audio/window titles). Added as the default
+  first sidebar item; all existing sections stay reachable. Live status polls
+  only while Home is visible; reduced-motion freezes the mic/waveform. No new
+  network, deps, or external assets. (Sidebar re-map to the full 8-item IA and
+  optional command IPC are deferred follow-up phases.)
 - Expanded app profiles: `code` (verbatim), `casual` (texting style, keeps
   slang), `formal` (polished) with a large built-in app map (VS/JetBrains/
   terminals; WhatsApp/Discord/Ableton/Spotify; Outlook/Word), Ableton prefix
