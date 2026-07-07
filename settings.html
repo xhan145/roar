@@ -400,6 +400,29 @@
         <div class="hint" style="margin-top:6px;">Code mode skips prose cleanup and auto-capitalization; symbol words only convert here, never in Clean or Raw.</div>
         <div class="msg" id="m-format"></div>
       </div>
+      <div class="row">
+        <div style="margin-bottom:8px;">Performance</div>
+        <select id="s-preset" aria-label="Performance preset" style="max-width:280px;">
+          <option value="fast">Fast — lowest latency</option>
+          <option value="balanced">Balanced — default</option>
+          <option value="accurate">Accurate — best quality</option>
+        </select>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <select id="s-accel" aria-label="Acceleration" style="max-width:200px;">
+            <option value="auto">Acceleration: Auto</option>
+            <option value="gpu">GPU (NVIDIA CUDA)</option>
+            <option value="cpu">CPU</option>
+          </select>
+          <select id="s-compute" aria-label="Compute type" style="max-width:200px;">
+            <option value="auto">Compute: Auto</option>
+            <option value="float16">float16</option>
+            <option value="int8_float16">int8_float16</option>
+            <option value="int8">int8</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top:6px;">Auto chooses the fastest working local backend on this machine. If GPU acceleration fails, ROAR falls back to CPU. DirectML (AMD) is experimental and currently unavailable.</div>
+        <div class="msg" id="m-perf"></div>
+      </div>
       <div class="row" id="model-list"></div>
       <button class="btn primary" id="b-apply-model" disabled>Apply</button>
       <div class="msg" id="m-model"></div>
@@ -748,6 +771,9 @@ async function init() {
   applyAppearance(c.appearance || "system");
   $("s-appearance").value = c.appearance || "system";
   $("s-format").value = c.format_mode || "clean";
+  $("s-preset").value = c.performance_preset || "balanced";
+  $("s-accel").value = c.acceleration_mode || "auto";
+  $("s-compute").value = c.compute_type || "auto";
   setToggle($("t-autostart"), state.autostart);
   setToggle($("t-tones"), c.tones_enabled);
   setToggle($("t-paste"), c.paste_fallback);
@@ -1252,6 +1278,16 @@ $("s-format").addEventListener("change", async e => {
   const r = await api().set_value("format_mode", e.target.value);
   msg("m-format", r.ok ? "Saved" : r.error, r.ok ? "ok" : "err");
 });
+
+/* ---- performance / acceleration (instant; the tray reloads the model) ---- */
+[["s-preset", "performance_preset"], ["s-accel", "acceleration_mode"], ["s-compute", "compute_type"]]
+  .forEach(([id, key]) => {
+    const el = $(id);
+    if (el) el.addEventListener("change", async e => {
+      const r = await api().set_value(key, e.target.value);
+      msg("m-perf", r.ok ? "Saved — applies on the next model reload" : r.error, r.ok ? "ok" : "err");
+    });
+  });
 
 /* ---- appearance ---- */
 function applyAppearance(mode) {

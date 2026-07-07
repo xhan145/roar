@@ -42,7 +42,8 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "auto_vocabulary", "overlay_enabled", "streaming_preview",
                 "cleanup_enabled", "remove_discourse_fillers",
                 "milestones_enabled", "milestone_notifications",
-                "context_aware", "appearance", "format_mode"}
+                "context_aware", "appearance", "format_mode",
+                "acceleration_mode", "performance_preset", "compute_type"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -622,6 +623,21 @@ class SettingsAPI:
             "config_path": self.config_path,
             "log_path": paths.log_path(),
         }
+        # Acceleration facts: config for what's REQUESTED, status.json (written by
+        # the tray) for what's ACTUALLY running. Read-only — the settings process
+        # never imports the ML/CUDA stack.
+        try:
+            import status as status_mod
+            st = status_mod.read_status()
+        except Exception:
+            st = {}
+        info["acceleration_mode"] = cfg.get("acceleration_mode", "auto")
+        info["performance_preset"] = cfg.get("performance_preset", "balanced")
+        info["backend"] = st.get("backend")
+        info["device"] = st.get("device")            # GPU/CPU label from the engine
+        info["compute_type"] = st.get("compute_type") or cfg.get("compute_type", "auto")
+        info["last_transcription_duration_ms"] = st.get("last_transcription_duration_ms")
+        info["fallback_reason"] = st.get("fallback_reason")
         return {"report": diagnostics.format_report(info)}
 
     def safe_mode(self):
@@ -768,6 +784,10 @@ def run_settings(smoke=False):
                         "document.getElementById('b-diag-copy') ? 1 : 0")
                     has_fmt = window.evaluate_js(
                         "document.getElementById('s-format') ? 1 : 0")
+                    has_accel = window.evaluate_js(
+                        "(document.getElementById('s-preset') && "
+                        "document.getElementById('s-accel') && "
+                        "document.getElementById('s-compute')) ? 1 : 0")
                     theme_ok = window.evaluate_js(
                         "(function(){"
                         "applyAppearance('light');"
@@ -784,7 +804,7 @@ def run_settings(smoke=False):
                           f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
                           f"ms={has_ms} logo={has_logo} diag={has_diag} "
-                          f"fmt={has_fmt} themeok={theme_ok}",
+                          f"fmt={has_fmt} accel={has_accel} themeok={theme_ok}",
                           flush=True)
                 finally:
                     window.destroy()

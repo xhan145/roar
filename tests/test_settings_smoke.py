@@ -29,3 +29,4 @@ def test_settings_smoke():
     assert "diag=1" in out
     assert "themeok=1" in out
     assert "fmt=1" in out
+    assert "accel=1" in out

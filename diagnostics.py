@@ -19,6 +19,8 @@ SAFE_KEYS = frozenset({
     "last_injection_method", "config_path", "log_path",
     "last_record_duration_ms", "last_transcription_duration_ms",
     "last_injection_duration_ms",
+    "acceleration_mode", "performance_preset", "backend", "compute_type",
+    "fallback_reason",
 })
 
 # Belt-and-braces on the ALLOWLISTED set only. Substrings must not collide with

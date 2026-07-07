@@ -57,3 +57,16 @@ def test_redact_diagnostics_keeps_safe_drops_sensitive():
     for dropped in ("transcript", "audio_path", "clipboard", "signature",
                     "email", "window_title"):
         assert dropped not in out
+
+
+def test_acceleration_keys_survive_collect():
+    out = diagnostics.collect({
+        "acceleration_mode": "auto", "performance_preset": "fast",
+        "backend": "ct2", "compute_type": "float16", "fallback_reason": "",
+        "last_transcription_duration_ms": 288,
+        "transcript": "SECRET", "secret": "x",  # must be dropped
+    })
+    for k in ("acceleration_mode", "performance_preset", "backend",
+              "compute_type", "fallback_reason", "last_transcription_duration_ms"):
+        assert k in out
+    assert "transcript" not in out and "secret" not in out

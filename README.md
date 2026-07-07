@@ -73,8 +73,9 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
   - Hotwords are merged locally and used to improve transcription context.
 
 - **GPU acceleration**
-  - Uses CUDA when available.
-  - Falls back to CPU safely.
+  - Uses NVIDIA CUDA automatically when available (~8× faster than CPU); falls back to CPU safely.
+  - Fast / Balanced / Accurate presets + Acceleration and Compute-type controls (Settings → Transcription). The model stays warm between dictations; real latency shows in Diagnostics.
+  - AMD/DirectML is experimental and currently unavailable. See [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 
 ---
 

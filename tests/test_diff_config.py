@@ -51,3 +51,22 @@ def test_language_change_reloads_model_once():
 def test_language_and_model_change_single_reload():
     old, new = _pair(language="auto", model="small")
     assert diff_config(old, new).count(("reload_model", "small")) == 1
+
+
+def test_acceleration_changes_reload_model():
+    for change in ({"acceleration_mode": "cpu"}, {"compute_type": "int8_float16"},
+                   {"performance_preset": "fast"}, {"gpu_device_index": 1},
+                   {"max_vram_mode": True}, {"backend": "onnx_directml"}):
+        old, new = _pair(**change)
+        assert ("reload_model", "auto") in diff_config(old, new), change
+
+
+def test_acceleration_and_model_change_single_reload():
+    old, new = _pair(model="small", performance_preset="accurate")
+    assert diff_config(old, new).count(("reload_model", "small")) == 1
+
+
+def test_defaults_have_acceleration_keys():
+    for k in ("acceleration_mode", "performance_preset", "compute_type",
+              "backend", "gpu_device_index", "prefer_low_latency", "max_vram_mode"):
+        assert k in DEFAULTS

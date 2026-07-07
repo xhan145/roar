@@ -73,7 +73,13 @@ def diff_config(old: dict, new: dict):
             or old["hotkey_toggle"] != new["hotkey_toggle"]):
         actions.append(("rehook", None))
     if (old["model"] != new["model"]
-            or old["language"] != new["language"]):  # policy forks by language
+            or old["language"] != new["language"]  # policy forks by language
+            or old.get("acceleration_mode") != new.get("acceleration_mode")
+            or old.get("compute_type") != new.get("compute_type")
+            or old.get("performance_preset") != new.get("performance_preset")
+            or old.get("gpu_device_index") != new.get("gpu_device_index")
+            or old.get("max_vram_mode") != new.get("max_vram_mode")
+            or old.get("backend") != new.get("backend")):
         actions.append(("reload_model", new["model"]))
     if old["input_device"] != new["input_device"]:
         actions.append(("set_device", new["input_device"]))
