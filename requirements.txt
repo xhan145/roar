@@ -8,3 +8,4 @@ pyperclip==1.11.0
 numpy==2.5.0
 pywebview==6.2.1
 pytest==9.1.1
+cryptography>=42
