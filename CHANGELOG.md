@@ -11,8 +11,16 @@ exists are marked unreleased.
   only, never transcript/clipboard/audio/window titles). Added as the default
   first sidebar item; all existing sections stay reachable. Live status polls
   only while Home is visible; reduced-motion freezes the mic/waveform. No new
-  network, deps, or external assets. (Sidebar re-map to the full 8-item IA and
-  optional command IPC are deferred follow-up phases.)
+  network, deps, or external assets.
+- ROAR Home dashboard (P2): sidebar re-mapped to the 8-item IA — Home / Profiles
+  / Insights / History / Dictionary / Hotkeys / Settings / About. Profiles and
+  Dictionary split out of Transcription; General/Voice/Transcription/Privacy/
+  Snippets grouped under a Settings overview (kept intact, reachable, never
+  gated).
+- ROAR Home dashboard (P3): optional remote Start/Stop + Scratch-that from Home
+  via a local `command.json` (fixed command names only), behind the
+  `dashboard_controls` config flag (OFF by default). When off, the buttons show
+  hotkey guidance.
 - Expanded app profiles: `code` (verbatim), `casual` (texting style, keeps
   slang), `formal` (polished) with a large built-in app map (VS/JetBrains/
   terminals; WhatsApp/Discord/Ableton/Spotify; Outlook/Word), Ableton prefix
