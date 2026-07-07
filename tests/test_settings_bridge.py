@@ -46,7 +46,7 @@ def test_get_state_shape(tmp_path):
     s = api.get_state()
     assert s["config"]["hotkey_ptt"] == "ctrl+windows"
     assert isinstance(s["devices"], list) and isinstance(s["autostart"], bool)
-    assert s["version"] == "0.16.0"
+    assert s["version"] == "0.17.0"
     assert s["edition"] == "Core"
 
 

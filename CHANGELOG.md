@@ -3,6 +3,21 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## v0.17.0 — unreleased (source)
+- Commercial scaffold: reconciled licensing into one canonical, offline-signed
+  model (`commercial_config.py`, `entitlements.py`, `license.py`) with real
+  Ed25519 verification behind a `SignatureVerifier` interface, verify-before-trust,
+  fail-closed to Core, and dev-license rejection in production builds.
+- Full diagnostics redaction (`redact_diagnostics`), a calm **display-only**
+  license card in Settings, dev-only license generate/verify scripts, and a
+  pure upgrade-prompt copy helper (not wired to gate anything).
+- Commercial docs: monetization, pricing, FAQ, founder readiness, support,
+  refund policy, privacy promise, checkout setup, readiness checklist; README
+  pricing block; LICENSING updated to the real implementation.
+- **Runtime feature gates remain OFF** — the feature matrix is policy only;
+  privacy controls and history/audio deletion stay free, and nothing users have
+  today is removed.
+
 ## v0.16.0 — unreleased (source)
 - Expanded app profiles: `code` (verbatim), `casual` (texting style, keeps
   slang), `formal` (polished) with a large built-in app map (VS/JetBrains/
