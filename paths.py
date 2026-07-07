@@ -55,6 +55,12 @@ def history_db_path() -> str:
     return os.path.join(_data_dir(), "history.db")
 
 
+def status_path() -> str:
+    """Live status file the tray writes and the Settings window reads (Home
+    dashboard). Operational facts only — never transcript/audio/clipboard."""
+    return os.path.join(_data_dir(), "status.json")
+
+
 def audio_dir() -> str:
     # _ensure is safe here: only called when writing a WAV, long after startup
     return _ensure(os.path.join(_data_dir(), "audio"))
