@@ -36,6 +36,14 @@ DEFAULTS = {
     "double_tap_ms": 400,
     "context_aware": True,
     "app_profiles": {},
+    # --- transcription acceleration / performance ---
+    "acceleration_mode": "auto",      # auto | gpu | cpu
+    "gpu_device_index": 0,
+    "compute_type": "auto",           # auto | float16 | int8_float16 | int8 | bfloat16 | float32
+    "prefer_low_latency": True,
+    "max_vram_mode": False,
+    "performance_preset": "balanced",  # fast | balanced | accurate
+    "backend": "auto",                 # auto | ct2 | onnx_directml
 }
 
 
@@ -121,6 +129,26 @@ def load(path=None):
             if isinstance(value, list):
                 cfg[key] = [str(w).strip() for w in value
                             if isinstance(w, str) and w.strip()]
+        elif key == "acceleration_mode":
+            if value in ("auto", "gpu", "cpu"):
+                cfg[key] = value
+        elif key == "performance_preset":
+            if value in ("fast", "balanced", "accurate"):
+                cfg[key] = value
+        elif key == "backend":
+            if value in ("auto", "ct2", "onnx_directml"):
+                cfg[key] = value
+        elif key == "compute_type":
+            if value in ("auto", "float16", "int8_float16", "int8",
+                         "bfloat16", "float32"):
+                cfg[key] = value
+        elif key == "gpu_device_index":
+            try:
+                cfg[key] = max(0, int(value))
+            except (TypeError, ValueError):
+                pass
+        elif key in ("prefer_low_latency", "max_vram_mode"):
+            cfg[key] = bool(value)
         else:
             cfg[key] = value
     return cfg
