@@ -112,7 +112,8 @@ class ROARApp:
         self._defer_timer = None
         self._target_hwnd = None  # window the current dictation is aimed at
         self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
-                                       models_dir=paths.models_dir(), log=self.log)
+                                       models_dir=paths.models_dir(), log=self.log,
+                                       accel=cfg)
         self.model_ready = threading.Event()
         self._stop_watch = threading.Event()
         # serializes self.cfg mutation+save between menu handlers (tray

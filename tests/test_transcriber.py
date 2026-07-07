@@ -119,3 +119,93 @@ def test_load_source_order_uses_seed(monkeypatch, tmp_path):
     assert calls[0][1] is True                       # cache first
     assert calls[1][0].endswith("small")             # then bundled seed
     assert t.active_model == "small"
+
+
+# ---- acceleration-config-driven load (Commit 2) ----
+def _accel(cuda):
+    return {"cuda": cuda, "cuda_count": 1 if cuda else 0, "directml": False,
+            "cuda_compute": ({"float16", "int8_float16", "int8", "float32"}
+                             if cuda else set()),
+            "cpu_compute": {"int8", "int8_float32", "float32"}}
+
+
+class RecWM:
+    """Records (device, compute_type, device_index) of each construct; the first
+    source (cache) succeeds so load() stops there."""
+    instances = []
+
+    def __init__(self, src, device=None, compute_type=None, **kw):
+        RecWM.instances.append((device, compute_type, kw.get("device_index")))
+
+
+def _load_with(monkeypatch, cuda, accel_cfg):
+    import transcriber as tr
+    import hardware_accel
+    monkeypatch.setattr(hardware_accel, "detect_acceleration", lambda: _accel(cuda))
+    RecWM.instances = []
+    monkeypatch.setattr(tr, "WhisperModel", RecWM)
+    t = tr.Transcriber(model_name="auto", language="en", accel=accel_cfg)
+    t.load()
+    return t
+
+
+def test_cuda_available_uses_cuda_float16(monkeypatch):
+    t = _load_with(monkeypatch, True, {"performance_preset": "balanced"})
+    assert t.device == "cuda" and t.compute_type == "float16"
+    assert t.active_model == "distil-large-v3"
+    assert RecWM.instances[0][0] == "cuda"
+
+
+def test_cuda_missing_uses_cpu_int8(monkeypatch):
+    t = _load_with(monkeypatch, False, {})
+    assert t.device == "cpu" and t.compute_type == "int8"
+    assert t.active_model == "small.en"
+
+
+def test_acceleration_mode_cpu_forces_cpu_even_with_cuda(monkeypatch):
+    t = _load_with(monkeypatch, True, {"acceleration_mode": "cpu"})
+    assert t.device == "cpu"
+
+
+def test_fast_preset_int8_float16_on_cuda(monkeypatch):
+    t = _load_with(monkeypatch, True, {"performance_preset": "fast"})
+    assert t.compute_type == "int8_float16" and t.beam_size == 1
+
+
+def test_accurate_preset_widens_beam(monkeypatch):
+    t = _load_with(monkeypatch, True, {"performance_preset": "accurate"})
+    assert t.beam_size == 5
+
+
+def test_cuda_construct_failure_falls_back_to_cpu(monkeypatch):
+    import transcriber as tr
+    import hardware_accel
+    monkeypatch.setattr(hardware_accel, "detect_acceleration", lambda: _accel(True))
+
+    class FlakyWM:
+        def __init__(self, src, device=None, compute_type=None, **kw):
+            if device == "cuda":
+                raise RuntimeError("missing cudnn op")
+            # cpu construct succeeds
+
+    monkeypatch.setattr(tr, "WhisperModel", FlakyWM)
+    t = tr.Transcriber(model_name="auto", language="en", accel={"acceleration_mode": "auto"})
+    t.load()
+    assert t.device == "cpu"  # CUDA construct raised -> CPU safety net used
+
+
+def test_last_infer_ms_is_measured(monkeypatch):
+    import transcriber as tr
+
+    class Seg:
+        text = "hello"
+
+    class StubModel:
+        def transcribe(self, audio, **kw):
+            return iter([Seg()]), None
+
+    t = tr.Transcriber(model_name="small.en", force_device="cpu")
+    t._model = StubModel()
+    t.active_model, t.device = "stub", "cpu"
+    assert t.transcribe("x.wav") == "hello"
+    assert t.last_infer_ms >= 0.0

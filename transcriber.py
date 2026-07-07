@@ -65,15 +65,22 @@ def _add_nvidia_dll_dirs():
 
 class Transcriber:
     def __init__(self, model_name="auto", models_dir="models", language="en",
-                 log=print, force_device=None):
+                 log=print, force_device=None, accel=None):
         self.requested = model_name
         self.models_dir = models_dir
         self.language = language
         self.log = log
         self.force_device = force_device
+        # the app's config dict (shared by reference) — device/compute/preset
+        # are read from it at load() time; None -> Balanced auto defaults.
+        self.accel_cfg = accel or {}
         self._model = None
         self.active_model = None
         self.device = None
+        self.compute_type = None
+        self.backend = "ct2"
+        self.beam_size = 1              # overwritten from the preset at load()
+        self.last_infer_ms = 0.0        # real decode time of the last utterance
         self.hotwords = None  # merged vocabulary string; set by the app
 
     def description(self) -> str:
@@ -82,17 +89,27 @@ class Transcriber:
         return f"{self.active_model} ({self.device})"
 
     def load(self, model_name=None):
-        """Load the model, trying CUDA first (when present), falling back to CPU."""
+        """Load the model per the acceleration config, trying the chosen device
+        first and ALWAYS keeping a CPU int8 fallback attempt (the safety net)."""
+        import hardware_accel
         name = model_name or self.requested
-        device = self.force_device or detect_device()
+        accel = hardware_accel.detect_acceleration()
+        self.beam_size = hardware_accel.beam_size_for(self.accel_cfg)
+        # force_device (smoke test / CUDA self-heal) overrides the config choice
+        device = self.force_device or hardware_accel.choose_device(self.accel_cfg, accel)
+        gpu_index = int(self.accel_cfg.get("gpu_device_index", 0) or 0)
+
         attempts = []
         if device == "cuda":
-            attempts.append((resolve_model(name, "cuda", self.language),
-                             "cuda", "float16"))
-        attempts.append((resolve_model(name, "cpu", self.language),
-                         "cpu", "int8"))
+            attempts.append((resolve_model(name, "cuda", self.language), "cuda",
+                             hardware_accel.choose_compute_type(self.accel_cfg, "cuda", accel),
+                             gpu_index))
+        # ALWAYS append the CPU fallback (unchanged safety net; never removed)
+        attempts.append((resolve_model(name, "cpu", self.language), "cpu",
+                         hardware_accel.choose_compute_type(self.accel_cfg, "cpu", accel), 0))
+
         last_err = None
-        for model, dev, compute in attempts:
+        for model, dev, compute, dev_index in attempts:
             # source order: local cache -> installer-bundled seed -> download
             sources = [(model, {"download_root": self.models_dir,
                                 "local_files_only": True})]
@@ -104,10 +121,12 @@ class Transcriber:
                 try:
                     if dev == "cuda":
                         _add_nvidia_dll_dirs()
+                        extra = {**extra, "device_index": dev_index}
                     self.log(f"loading {model} on {dev} ({compute})...")
                     self._model = WhisperModel(src, device=dev,
                                                compute_type=compute, **extra)
-                    self.active_model, self.device = model, dev
+                    self.active_model, self.device, self.compute_type = model, dev, compute
+                    self.backend = "ct2"
                     return
                 except Exception as e:  # not cached, missing cuDNN, OOM...
                     last_err = e
@@ -115,15 +134,21 @@ class Transcriber:
         raise RuntimeError(f"could not load any model: {last_err}")
 
     def _run(self, audio) -> str:
-        # beam_size=1 + no VAD: measured 1.66s vs 3.7-4.4s for a ~4s clip on CPU
-        # small.en with identical output. The app's RMS gate already rejects
-        # silence, which is what vad_filter would protect against.
+        # beam_size from the preset (Fast/Balanced=1, Accurate=5) + no VAD:
+        # beam 1 measured 1.66s vs 3.7-4.4s for a ~4s clip on CPU small.en with
+        # identical output. The app's RMS gate already rejects silence, which is
+        # what vad_filter would protect against. Decoding is lazy in the join
+        # below, so the perf_counter spans the real inference work.
+        import time
+        t0 = time.perf_counter()
         segments, _info = self._model.transcribe(
             audio,
             language=None if self.language == "auto" else self.language,
-            beam_size=1, vad_filter=False,
+            beam_size=self.beam_size, vad_filter=False,
             hotwords=self.hotwords)
-        return " ".join(seg.text.strip() for seg in segments).strip()
+        text = " ".join(seg.text.strip() for seg in segments).strip()
+        self.last_infer_ms = (time.perf_counter() - t0) * 1000.0
+        return text
 
     def transcribe(self, audio) -> str:
         """audio: float32 mono 16 kHz ndarray, or a path to an audio file."""
