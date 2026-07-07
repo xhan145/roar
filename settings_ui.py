@@ -138,12 +138,16 @@ class SettingsAPI:
             "last_transcription_word_count": 0, "last_transcription_timestamp": None,
             "last_injection_status": NA, "hotkeys": {},
             "diagnostics_safe_summary": {}, "words_today": 0,
-            "words_this_week": 0, "milestone": {},
+            "words_this_week": 0, "milestone": {}, "controls_enabled": False,
         }
         try:
             cfg = config_mod.load(self.config_path)
         except Exception:
             cfg = {}
+        try:
+            out["controls_enabled"] = bool(cfg.get("dashboard_controls", False))
+        except Exception:
+            pass
         try:
             out["current_model"] = cfg.get("model") or NA
         except Exception:
@@ -248,6 +252,19 @@ class SettingsAPI:
         except Exception:
             pass
         return out
+
+    def send_command(self, cmd):
+        """Home-dashboard remote control (Start/Stop, Scratch that). No-op
+        unless the `dashboard_controls` flag is on. Only fixed command names
+        cross to the tray — never user data."""
+        try:
+            cfg = config_mod.load(self.config_path)
+            if not cfg.get("dashboard_controls", False):
+                return {"ok": False, "reason": "disabled"}
+            import ipc_commands
+            return {"ok": bool(ipc_commands.send_command(cmd))}
+        except Exception:
+            return {"ok": False}
 
     def _write(self, **changes):
         with self._cfg_lock:

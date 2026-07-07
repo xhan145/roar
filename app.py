@@ -20,6 +20,7 @@ import gestures
 import milestones
 import history as history_mod
 import injector
+import ipc_commands as ipc_cmd
 import paths
 import recorder as recorder_mod
 import status as status_mod
@@ -102,6 +103,7 @@ class ROARApp:
         self.overlay = None
         self.history = history_mod.History()
         self._purge_ticks = 0
+        self._last_cmd_ts = 0.0  # Home-dashboard remote controls (flagged)
         self._dictation_count = 0
         self._inject_stack = editing.InjectionStack()
         self._detector = gestures.TapToggleDetector(
@@ -196,6 +198,14 @@ class ROARApp:
         with self._gesture_lock:
             if self._detector.on_defer_timeout(time.monotonic()) == gestures.FINISH:
                 self._finish_recording()
+
+    def _dispatch_command(self, cmd):
+        """Act on a Home-dashboard remote command (flagged). Mirrors the hotkey
+        paths exactly; trusts only the fixed command name, nothing else."""
+        if cmd == "toggle":
+            self._on_toggle()
+        elif cmd == "scratch":
+            self._scratch()
 
     def _on_toggle(self):
         with self.state_lock:
@@ -596,6 +606,15 @@ class ROARApp:
                             self._rebuild_hotwords()
             except OSError:
                 pass  # config briefly missing/locked — retry next tick
+            # Home-dashboard remote controls (flagged off by default). Only
+            # fixed command names cross; never user data.
+            if self.cfg.get("dashboard_controls", False):
+                try:
+                    cmd, self._last_cmd_ts = ipc_cmd.take_command(self._last_cmd_ts)
+                    if cmd:
+                        self._dispatch_command(cmd)
+                except Exception as e:
+                    self.log(f"dashboard command failed: {e}")
             self._purge_ticks += 1
             if self._purge_ticks == 1 or self._purge_ticks % 1800 == 0:  # first + ~hourly
                 try:
@@ -634,6 +653,8 @@ class ROARApp:
         # Seed the Home-dashboard status file for this run (session start).
         status_mod.write_status(state=self.state, session_started_at=time.time(),
                                 session_word_count=0)
+        # Ignore any command file left over from a previous run.
+        self._last_cmd_ts = time.time()
         import overlay as overlay_mod
         self.overlay = overlay_mod.Overlay()
         self.overlay.start()

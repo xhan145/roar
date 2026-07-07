@@ -61,6 +61,13 @@ def status_path() -> str:
     return os.path.join(_data_dir(), "status.json")
 
 
+def command_path() -> str:
+    """Command file the Settings window writes and the tray reads (Home
+    dashboard remote controls). Only fixed command names — never user data.
+    Gated by the `dashboard_controls` config flag (off by default)."""
+    return os.path.join(_data_dir(), "command.json")
+
+
 def audio_dir() -> str:
     # _ensure is safe here: only called when writing a WAV, long after startup
     return _ensure(os.path.join(_data_dir(), "audio"))

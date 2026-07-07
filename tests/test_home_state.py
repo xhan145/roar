@@ -10,6 +10,7 @@ EXPECTED_KEYS = {
     "last_transcription_preview", "last_transcription_word_count",
     "last_transcription_timestamp", "last_injection_status", "hotkeys",
     "diagnostics_safe_summary", "words_today", "words_this_week", "milestone",
+    "controls_enabled",
 }
 # last_transcription_preview is allowed (same preview as History); raw private
 # fields must never appear as keys.

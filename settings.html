@@ -271,6 +271,7 @@
               <button class="btn" data-goto="settings" type="button">Open settings</button>
               <button class="btn" data-goto="history" type="button">View history</button>
               <button class="btn" data-goto="hotkeys" type="button">Change hotkeys</button>
+              <button class="btn" id="home-scratch" type="button" style="display:none;">Scratch that</button>
             </div>
           </div>
           <div class="home-card">
@@ -604,6 +605,7 @@ document.querySelectorAll("[data-section]").forEach(b => b.addEventListener("cli
 
 /* ---- Home dashboard ---- */
 let homeTimer = null;
+let homeControls = false;   // remote Start/Stop/Scratch (dashboard_controls flag)
 const STATE_LABELS = {
   idle: ["Ready", ""], loading: ["Starting…", ""],
   recording: ["Listening…", "rec"], transcribing: ["Transcribing…", "rec"],
@@ -631,6 +633,11 @@ async function renderHome() {
   const dot = $("home-dot"); if (dot) dot.className = "home-dot " + map[1];
   const mic = $("home-mic"); if (mic) mic.className = "home-mic " + map[1];
   const wave = $("home-wave"); if (wave) wave.classList.toggle("live", map[1] === "rec");
+  homeControls = !!h.controls_enabled;
+  const startBtn = $("home-start");
+  if (startBtn) startBtn.textContent = (homeControls && map[1] === "rec") ? "Stop dictation" : "Start dictation";
+  const scratchBtn = $("home-scratch");
+  if (scratchBtn) scratchBtn.style.display = homeControls ? "" : "none";
   set("home-hk", (h.hotkeys && h.hotkeys.push_to_talk) || (state && state.config && state.config.hotkey_ptt) || "—");
   set("home-dur", fmtDur(h.session_duration_seconds));
   set("home-words", h.session_word_count || 0);
@@ -661,10 +668,21 @@ document.querySelectorAll("#home [data-goto]").forEach(b => b.addEventListener("
 }));
 (function () {
   const s = $("home-start");
-  if (s) s.addEventListener("click", () => {
-    const hk = (state && state.config && state.config.hotkey_ptt) || "your hotkey";
+  if (s) s.addEventListener("click", async () => {
     const n = $("home-start-note");
-    if (n) n.textContent = "Dictate into any app: hold " + hk + " and speak.";
+    if (homeControls) {
+      try { await api().send_command("toggle"); } catch (e) {}
+      if (n) n.textContent = "Sent to ROAR.";
+      renderHome();
+    } else {
+      const hk = (state && state.config && state.config.hotkey_ptt) || "your hotkey";
+      if (n) n.textContent = "Dictate into any app: hold " + hk + " and speak.";
+    }
+  });
+  const sc = $("home-scratch");
+  if (sc) sc.addEventListener("click", async () => {
+    if (!homeControls) return;
+    try { await api().send_command("scratch"); } catch (e) {}
   });
 })();
 
