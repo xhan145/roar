@@ -78,6 +78,26 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
 
 ---
 
+## Pricing
+
+ROAR Core is free.
+ROAR Pro is $19 once.
+ROAR Developer Pack is $29 once.
+Supporter License is $49 once.
+
+No subscription.
+No account required.
+No cloud transcription.
+No telemetry.
+
+Core dictation, offline use, privacy controls, and history/audio deletion remain free.
+
+Includes v1.x updates. Optional paid major upgrades may happen later, but purchased versions keep working.
+
+More detail: [docs/PRICING.md](docs/PRICING.md) · [docs/FEATURE_MATRIX.md](docs/FEATURE_MATRIX.md) · [docs/LICENSING.md](docs/LICENSING.md) · [docs/PRIVACY_PROMISE.md](docs/PRIVACY_PROMISE.md)
+
+---
+
 ## Why ROAR Exists
 
 Most dictation tools are either cloud-based, subscription-heavy, or awkward to use across normal desktop apps.

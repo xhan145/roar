@@ -1,8 +1,9 @@
-# ROAR licensing & entitlement architecture (design — not yet enforced)
+# ROAR licensing & entitlement architecture (offline verification built; gates OFF)
 
-Nothing in the shipped app is gated today. `entitlements.py` holds the pure
-policy so that if paid editions ever ship, the rules below are already pinned
-by tests and can't drift.
+Offline license verification is implemented (real Ed25519), but **nothing in the
+shipped app is gated** — the edition is displayed, not enforced. `entitlements.py`
+holds the pure policy so that if paid editions ever ship, the rules below are
+already pinned by tests and can't drift.
 
 ## Non-negotiable policy
 
@@ -21,24 +22,56 @@ by tests and can't drift.
   symbol dictation, app profiles, per-app language/mode, project vocabulary,
   file tagging, developer snippet packs). Supporter includes everything.
 
-## Offline validation design (when implemented)
+## Offline validation (implemented)
 
-A license is a small signed document: `{edition, name, issued, license_id}`
-plus a signature. Validation is fully offline: verify the signature against a
-public key embedded in the app, then read the edition. Expiry is optional and
-would gate updates, not the app.
+**License format.** A license is a small JSON document:
 
-**Deliberately not implemented yet:** Python's stdlib has no safe public-key
-signature verification, and homemade crypto is worse than none. Real signing
-requires adding a vetted dependency (`cryptography` Ed25519 or `PyNaCl`) at
-which point: private keys live only in the issuer tooling (never the repo or
-the installer), sample/dev licenses are rejected by key mismatch, and
-`license.py` stays pure (bytes in → edition out).
+```json
+{
+  "license_id": "ROAR-PRO-XXXX",
+  "name": "Customer Name",
+  "email_hash": null,
+  "edition": "pro",
+  "issued_at": "2026-07-06",
+  "valid_for_major": 1,
+  "signature": "base64_ed25519_signature"
+}
+```
+
+**Signature.** Ed25519 over `canonical_bytes(payload)` — the payload minus its
+`signature`, JSON with sorted keys and compact separators, UTF-8. Verification
+is done by a `SignatureVerifier` (`CryptographySignatureVerifier`, backed by the
+`cryptography` library).
+
+**Keys.** Only the **public** key ships, in
+`commercial_config.LICENSE_PUBLIC_KEY_PEM`. The **private** key never lives in
+the repo or the installer — it is read from the environment by
+`scripts/dev_generate_license.py` (dev) or a secret manager (production).
+
+**Fully offline.** Validation makes no network calls. `license.py` imports no
+transcript/audio/history/vocabulary/clipboard/network module.
+
+**Fail closed to Core.** Missing, corrupt, malformed, unsigned, bad-signature,
+unsupported-edition, wrong-major, and dev-rejected all return Core, `valid=False`
+— never a crash, never a nag loop. Fields are **not trusted until the signature
+verifies**.
+
+**Production safety.** In a production build (`commercial_config.IS_PRODUCTION =
+True` with the real public key swapped in), dev-signed licenses (`env == "dev"`)
+are rejected (`reason="dev_rejected"`), and the dev key mismatch rejects them by
+signature anyway.
+
+**Test cases.** See `tests/test_license.py` (valid Pro/Developer/Supporter, bad
+signature, wrong key, malformed, missing signature, unsupported edition, wrong
+major, huge/empty/corrupt input, dev-rejected-in-production, no-network imports)
+and `tests/test_commercial_privacy.py`.
 
 ## What exists in the repo today
 
-- `entitlements.py` — pure feature policy (tested).
-- `license.py` — pure edition/document primitives (always Core today; no
-  crypto, no keys, no network).
-- No gates, no edition UI. The app behaves as
-  Supporter-with-everything because nothing checks entitlements yet.
+- `entitlements.py` — pure feature policy + canonical vocabulary (tested).
+- `license.py` — real offline Ed25519 verification behind a `SignatureVerifier`
+  interface; fail-closed to Core; no keys, no network, no user data.
+- `commercial_config.py` — pricing/URLs/support + bundled public key.
+- **No runtime gates and no edition UI enforcement.** The app still behaves as
+  "everything on"; the edition is displayed only. Turning on any gate is a
+  separate, later decision (existing users grandfathered).
