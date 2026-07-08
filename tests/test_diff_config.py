@@ -56,7 +56,8 @@ def test_language_and_model_change_single_reload():
 def test_acceleration_changes_reload_model():
     for change in ({"acceleration_mode": "cpu"}, {"compute_type": "int8_float16"},
                    {"performance_preset": "fast"}, {"gpu_device_index": 1},
-                   {"max_vram_mode": True}, {"backend": "onnx_directml"}):
+                   {"max_vram_mode": True}, {"backend": "onnx_directml"},
+                   {"cpu_threads": 6}):
         old, new = _pair(**change)
         assert ("reload_model", "auto") in diff_config(old, new), change
 

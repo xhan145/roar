@@ -56,6 +56,19 @@ also frequently slower than ROAR's existing CPU int8 path. The backend seam
 (`backends/onnx_directml_spike.py`) is in place for a future implementation;
 today, selecting DirectML cleanly falls back to CPU/CUDA and reports the reason.
 
+## CPU performance (incl. AMD Ryzen)
+On machines without an NVIDIA GPU, transcription runs on the CPU (int8). ROAR
+sets CTranslate2's `cpu_threads` to the **physical-core estimate** (`logical // 2`
+on SMT chips like Ryzen and modern Intel, capped at 16) instead of ct2's default,
+which oversubscribes SMT and is measurably slower. Measured (16-logical laptop,
+small.en int8, 4.9 s clip, p50): ct2 default **2197 ms** / all-16-threads
+**2561 ms** vs physical-core count **~1720–1770 ms** — **~20% faster**.
+
+On a uniform Ryzen (e.g. 8C/16T → 8 threads, 6C/12T → 6) this maps exactly to the
+physical cores, which is the sweet spot. Override via the `cpu_threads` config key
+(`0` = auto; a positive value forces that thread count). The active count shows in
+Diagnostics.
+
 ## Packaging
 The CUDA runtime ships as pip `nvidia-*` wheels (cuBLAS + cuDNN 9) — no system
 CUDA toolkit required. CPU-only installs work unchanged.

@@ -115,8 +115,34 @@ def test_beam_size_by_preset():
 
 
 # ---- config keys ----
+# ---- cpu_threads (Ryzen/CPU tuning) ----
+def test_cpu_threads_explicit_override_wins():
+    assert ha.choose_cpu_threads({"cpu_threads": 6}) == 6
+    assert ha.choose_cpu_threads({"cpu_threads": 1}) == 1
+
+
+def test_cpu_threads_auto_uses_physical_cores_on_smt(monkeypatch):
+    monkeypatch.setattr(ha.os, "cpu_count", lambda: 16)   # e.g. Ryzen 8C/16T
+    assert ha.choose_cpu_threads({}) == 8
+    monkeypatch.setattr(ha.os, "cpu_count", lambda: 12)   # 6C/12T
+    assert ha.choose_cpu_threads({"cpu_threads": 0}) == 6
+
+
+def test_cpu_threads_auto_small_cpu_uses_all(monkeypatch):
+    monkeypatch.setattr(ha.os, "cpu_count", lambda: 4)
+    assert ha.choose_cpu_threads({}) == 4
+
+
+def test_cpu_threads_capped_and_floored(monkeypatch):
+    monkeypatch.setattr(ha.os, "cpu_count", lambda: 128)
+    assert ha.choose_cpu_threads({}) == 16          # capped for a tiny model
+    monkeypatch.setattr(ha.os, "cpu_count", lambda: None)
+    assert ha.choose_cpu_threads({}) >= 1           # never zero/crash
+
+
 def test_new_accel_config_defaults(tmp_path):
     cfg = config_mod.load(str(tmp_path / "c.json"))
+    assert cfg["cpu_threads"] == 0
     assert cfg["acceleration_mode"] == "auto"
     assert cfg["performance_preset"] == "balanced"
     assert cfg["compute_type"] == "auto"

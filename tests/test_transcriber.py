@@ -135,7 +135,8 @@ class RecWM:
     instances = []
 
     def __init__(self, src, device=None, compute_type=None, **kw):
-        RecWM.instances.append((device, compute_type, kw.get("device_index")))
+        RecWM.instances.append((device, compute_type, kw.get("device_index"),
+                                kw.get("cpu_threads")))
 
 
 def _load_with(monkeypatch, cuda, accel_cfg):
@@ -192,6 +193,14 @@ def test_cuda_construct_failure_falls_back_to_cpu(monkeypatch):
     t = tr.Transcriber(model_name="auto", language="en", accel={"acceleration_mode": "auto"})
     t.load()
     assert t.device == "cpu"  # CUDA construct raised -> CPU safety net used
+
+
+def test_cpu_threads_passed_to_model(monkeypatch):
+    import hardware_accel
+    monkeypatch.setattr(hardware_accel, "choose_cpu_threads", lambda cfg: 7)
+    t = _load_with(monkeypatch, False, {})   # cpu path
+    assert t.cpu_threads == 7
+    assert RecWM.instances[0][3] == 7        # cpu_threads reached WhisperModel
 
 
 def test_last_infer_ms_is_measured(monkeypatch):

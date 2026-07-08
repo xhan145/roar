@@ -3,6 +3,13 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## v0.20.1 — unreleased (source)
+- CPU / AMD Ryzen perf: set CTranslate2 `cpu_threads` to the physical-core
+  estimate (logical//2 on SMT chips, capped 16) instead of ct2's default,
+  which oversubscribes SMT. Measured ~20% faster CPU transcription
+  (2197ms -> ~1770ms, small.en int8, 16-logical laptop). New `cpu_threads`
+  config (0=auto; >0 explicit), shown in Diagnostics; changing it reloads.
+
 ## v0.20.0 — unreleased (source)
 - GPU/perf hardening: automatic NVIDIA CUDA fast path made config-driven —
   `hardware_accel.py` detection + device/compute selection with a safe fallback

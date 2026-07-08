@@ -81,6 +81,7 @@ class Transcriber:
         self.backend = "ct2"
         self.cuda_detected = False      # was a CUDA device present at last load?
         self.beam_size = 1              # overwritten from the preset at load()
+        self.cpu_threads = 0            # actual CT2 CPU thread count (set at load)
         self.last_infer_ms = 0.0        # real decode time of the last utterance
         self.hotwords = None  # merged vocabulary string; set by the app
 
@@ -97,6 +98,7 @@ class Transcriber:
         accel = hardware_accel.detect_acceleration()
         self.cuda_detected = bool(accel.get("cuda"))
         self.beam_size = hardware_accel.beam_size_for(self.accel_cfg)
+        self.cpu_threads = hardware_accel.choose_cpu_threads(self.accel_cfg)
         # force_device (smoke test / CUDA self-heal) overrides the config choice
         device = self.force_device or hardware_accel.choose_device(self.accel_cfg, accel)
         gpu_index = int(self.accel_cfg.get("gpu_device_index", 0) or 0)
@@ -124,9 +126,10 @@ class Transcriber:
                     if dev == "cuda":
                         _add_nvidia_dll_dirs()
                         extra = {**extra, "device_index": dev_index}
-                    self.log(f"loading {model} on {dev} ({compute})...")
+                    self.log(f"loading {model} on {dev} ({compute}, {self.cpu_threads} cpu threads)...")
                     self._model = WhisperModel(src, device=dev,
-                                               compute_type=compute, **extra)
+                                               compute_type=compute,
+                                               cpu_threads=self.cpu_threads, **extra)
                     self.active_model, self.device, self.compute_type = model, dev, compute
                     self.backend = "ct2"
                     return

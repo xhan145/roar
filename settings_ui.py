@@ -636,6 +636,7 @@ class SettingsAPI:
         info["backend"] = st.get("backend")
         info["device"] = st.get("device")            # GPU/CPU label from the engine
         info["compute_type"] = st.get("compute_type") or cfg.get("compute_type", "auto")
+        info["cpu_threads"] = st.get("cpu_threads")
         info["last_transcription_duration_ms"] = st.get("last_transcription_duration_ms")
         info["fallback_reason"] = st.get("fallback_reason")
         return {"report": diagnostics.format_report(info)}

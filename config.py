@@ -44,6 +44,7 @@ DEFAULTS = {
     "max_vram_mode": False,
     "performance_preset": "balanced",  # fast | balanced | accurate
     "backend": "auto",                 # auto | ct2 | onnx_directml
+    "cpu_threads": 0,                  # 0 = auto (physical-core estimate); >0 = explicit
 }
 
 
@@ -142,7 +143,7 @@ def load(path=None):
             if value in ("auto", "float16", "int8_float16", "int8",
                          "bfloat16", "float32"):
                 cfg[key] = value
-        elif key == "gpu_device_index":
+        elif key in ("gpu_device_index", "cpu_threads"):
             try:
                 cfg[key] = max(0, int(value))
             except (TypeError, ValueError):

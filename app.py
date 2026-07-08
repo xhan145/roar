@@ -79,6 +79,7 @@ def diff_config(old: dict, new: dict):
             or old.get("performance_preset") != new.get("performance_preset")
             or old.get("gpu_device_index") != new.get("gpu_device_index")
             or old.get("max_vram_mode") != new.get("max_vram_mode")
+            or old.get("cpu_threads") != new.get("cpu_threads")
             or old.get("backend") != new.get("backend")):
         actions.append(("reload_model", new["model"]))
     if old["input_device"] != new["input_device"]:
@@ -363,6 +364,7 @@ class ROARApp:
             device=("CUDA (GPU)" if getattr(self.transcriber, "device", None) == "cuda" else "CPU"),
             backend=getattr(self.transcriber, "backend", None),
             compute_type=getattr(self.transcriber, "compute_type", None),
+            cpu_threads=getattr(self.transcriber, "cpu_threads", None),
             fallback_reason=self._accel_fallback_reason())
 
     def _handle_transcription(self, audio):

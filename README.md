@@ -1,7 +1,7 @@
 # ROAR
 
 <!-- ROAR-VERSION -->
-**Version:** v0.20.0
+**Version:** v0.20.1
 <!-- /ROAR-VERSION -->
 
 
@@ -113,7 +113,7 @@ ROAR is not trying to be a giant writing suite. It is a small, sharp desktop too
 
 ## Current Status
 
-Current app version: `0.20.0` (`paths.APP_VERSION`).
+Current app version: `0.20.1` (`paths.APP_VERSION`).
 
 **Shipped**
 
@@ -169,6 +169,7 @@ Implemented milestones include:
 - `v0.18.0` ROAR Home dashboard - Settings opens to a live local-state cockpit; 8-item sidebar (Home/Profiles/Insights/History/Dictionary/Hotkeys/Settings/About); optional remote controls behind a flag
 - `v0.19.0` reconcile - commercial scaffold + Home dashboard unified on main; responsive settings/dashboard layout
 - `v0.20.0` GPU/perf hardening - config-driven CUDA fast path (~8x faster), Fast/Balanced/Accurate presets, real latency instrumentation, offline benchmark, honest experimental DirectML scaffold
+- `v0.20.1` CPU/Ryzen perf - CTranslate2 cpu_threads set to physical-core count (auto), ~20% faster CPU transcription; `cpu_threads` config + Diagnostics
 
 ### Project status at a glance
 
@@ -191,7 +192,7 @@ accounts, subscriptions, auto-updating, background network calls, local LLM
 rewriting, storing window titles. (Spoken-symbol substitution exists ONLY in
 the opt-in Code formatting mode — never in Clean or Raw.)
 
-Note: `v0.20.0` is the current source version; installers for it are produced
+Note: `v0.20.1` is the current source version; installers for it are produced
 by the release scripts below — the newest *published* tag may trail this.
 
 **Version parity:** `scripts/roar_versions.py` is the single source of truth check — it reads each ROAR component's canonical version, syncs the README version badge + version-asserting tests, and writes `VERSIONS.md`. A pre-commit hook runs `--check` so docs/tests can't drift. Run `python scripts/roar_versions.py --fix` after any version bump.

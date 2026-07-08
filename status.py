@@ -20,6 +20,7 @@ ALLOWED = frozenset({
     # performance / acceleration (operational facts only — never transcripts)
     "last_record_duration_ms", "last_transcription_duration_ms",
     "last_injection_duration_ms", "backend", "compute_type", "fallback_reason",
+    "cpu_threads",
 })
 
 
