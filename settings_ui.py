@@ -43,7 +43,8 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "cleanup_enabled", "remove_discourse_fillers",
                 "milestones_enabled", "milestone_notifications",
                 "context_aware", "appearance", "format_mode",
-                "acceleration_mode", "performance_preset", "compute_type"}
+                "acceleration_mode", "performance_preset", "compute_type",
+                "backend"}
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
