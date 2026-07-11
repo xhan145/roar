@@ -8,7 +8,7 @@ import os
 import sys
 
 APP_NAME = "ROAR"
-APP_VERSION = "0.20.1"
+APP_VERSION = "0.21.0"
 
 
 def is_frozen() -> bool:
@@ -49,6 +49,12 @@ def _data_dir() -> str:
     if is_frozen():
         return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME)
     return _source_root()
+
+
+def vulkan_dir() -> str:
+    """Where the downloaded whisper.cpp Vulkan binary is unpacked (on first GPU
+    use). Under the per-user data root so it survives app updates."""
+    return os.path.join(_data_dir(), "vulkan")
 
 
 def history_db_path() -> str:

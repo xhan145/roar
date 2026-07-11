@@ -21,14 +21,23 @@ def _src(name):
 
 
 def test_only_check_updates_touches_the_network():
+    # Sanctioned network sites, each inbound-only and never in the dictation
+    # path (no user data ever leaves the machine):
+    #   settings_ui.py     — check_updates, click-only
+    #   whispercpp_assets.py — one-time, OPT-IN download of the Vulkan GPU
+    #                          binary/model (like faster-whisper's model fetch),
+    #                          only after the user enables the GPU backend
+    allowed = {"settings_ui.py", "whispercpp_assets.py"}
     offenders = {}
     for name in FIRST_PARTY:
         hits = NET_CALL.findall(_src(name))
         if hits:
             offenders[name] = hits
-    assert set(offenders) <= {"settings_ui.py"}, offenders
-    # and within settings_ui, urlopen appears exactly once (check_updates)
+    assert set(offenders) <= allowed, offenders
+    # within settings_ui, urlopen appears exactly once (check_updates)
     assert _src("settings_ui.py").count("urlopen(") == 1
+    # whispercpp_assets only downloads (urlopen); it never opens raw sockets
+    assert "socket.socket" not in _src("whispercpp_assets.py")
 
 
 def test_startup_path_never_calls_update_check():

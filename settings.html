@@ -420,7 +420,13 @@
             <option value="int8">int8</option>
           </select>
         </div>
-        <div class="hint" style="margin-top:6px;">Auto chooses the fastest working local backend on this machine. If GPU acceleration fails, ROAR falls back to CPU. DirectML (AMD) is experimental and currently unavailable.</div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <select id="s-backend" aria-label="Engine" style="max-width:280px;">
+            <option value="auto">Engine: Auto (NVIDIA / CPU)</option>
+            <option value="whispercpp_vulkan">AMD / Intel GPU (Vulkan) — experimental</option>
+          </select>
+        </div>
+        <div class="hint" style="margin-top:6px;">Auto chooses the fastest working local backend on this machine (NVIDIA CUDA when present, else CPU). <b>AMD / Intel GPU (Vulkan)</b> runs on any Vulkan GPU and is much faster than CPU; selecting it downloads a small GPU engine + model once (one-time, offline afterward). If it can't start, ROAR falls back to CPU automatically. Nothing ever leaves your machine.</div>
         <div class="msg" id="m-perf"></div>
       </div>
       <div class="row" id="model-list"></div>
@@ -774,6 +780,7 @@ async function init() {
   $("s-preset").value = c.performance_preset || "balanced";
   $("s-accel").value = c.acceleration_mode || "auto";
   $("s-compute").value = c.compute_type || "auto";
+  $("s-backend").value = (c.backend === "whispercpp_vulkan") ? "whispercpp_vulkan" : "auto";
   setToggle($("t-autostart"), state.autostart);
   setToggle($("t-tones"), c.tones_enabled);
   setToggle($("t-paste"), c.paste_fallback);
@@ -1280,12 +1287,16 @@ $("s-format").addEventListener("change", async e => {
 });
 
 /* ---- performance / acceleration (instant; the tray reloads the model) ---- */
-[["s-preset", "performance_preset"], ["s-accel", "acceleration_mode"], ["s-compute", "compute_type"]]
+[["s-preset", "performance_preset"], ["s-accel", "acceleration_mode"],
+ ["s-compute", "compute_type"], ["s-backend", "backend"]]
   .forEach(([id, key]) => {
     const el = $(id);
     if (el) el.addEventListener("change", async e => {
       const r = await api().set_value(key, e.target.value);
-      msg("m-perf", r.ok ? "Saved — applies on the next model reload" : r.error, r.ok ? "ok" : "err");
+      const note = (key === "backend" && e.target.value === "whispercpp_vulkan")
+        ? "Saved — downloading the GPU engine on the next reload (one-time)"
+        : "Saved — applies on the next model reload";
+      msg("m-perf", r.ok ? note : r.error, r.ok ? "ok" : "err");
     });
   });
 

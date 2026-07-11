@@ -86,10 +86,27 @@ def choose_cpu_threads(cfg) -> int:
     return max(1, min(16, est))
 
 
+def vulkan_runtime_present() -> bool:
+    """True if the Vulkan loader (vulkan-1.dll, installed with GPU drivers) is
+    loadable — a cheap proxy for 'this machine can run the Vulkan backend'. The
+    backend's own load() is the real gate; this just avoids offering it on
+    machines with no Vulkan at all. Never raises."""
+    try:
+        import ctypes
+        ctypes.WinDLL("vulkan-1")
+        return True
+    except Exception:
+        return False
+
+
 def choose_best_backend(cfg, accel) -> str:
-    """'ct2' (CTranslate2/faster-whisper) or 'onnx_directml'. DirectML is only
-    honored when explicitly requested AND actually present; otherwise ct2."""
+    """'ct2' (CTranslate2/faster-whisper), 'whispercpp_vulkan', or
+    'onnx_directml'. The GPU alternatives are honored ONLY when explicitly
+    requested AND actually available — a big first-use download must be
+    user-initiated, never automatic. Otherwise ct2 (CUDA/CPU)."""
     cfg = cfg or {}
+    if cfg.get("backend") == "whispercpp_vulkan" and vulkan_runtime_present():
+        return "whispercpp_vulkan"
     if cfg.get("backend") == "onnx_directml" and (accel or {}).get("directml"):
         return "onnx_directml"
     return "ct2"

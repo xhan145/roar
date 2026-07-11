@@ -137,7 +137,7 @@ def load(path=None):
             if value in ("fast", "balanced", "accurate"):
                 cfg[key] = value
         elif key == "backend":
-            if value in ("auto", "ct2", "onnx_directml"):
+            if value in ("auto", "ct2", "onnx_directml", "whispercpp_vulkan"):
                 cfg[key] = value
         elif key == "compute_type":
             if value in ("auto", "float16", "int8_float16", "int8",

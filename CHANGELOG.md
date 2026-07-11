@@ -3,6 +3,17 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## v0.21.0 — unreleased (source)
+- Real AMD / Intel GPU acceleration via a new **whisper.cpp Vulkan** backend
+  (Vulkan is vendor-agnostic — any Vulkan-1.3 GPU). Opt-in from Settings
+  ("Engine: AMD / Intel GPU (Vulkan)"); selecting it downloads a small,
+  checksum-verified GPU binary + model once (inbound-only, never in the
+  dictation path), then transcribes on a warm local `whisper-server` subprocess
+  bound to loopback — 100% offline. If it can't start, ROAR falls back to the
+  CTranslate2 CPU/CUDA path automatically. Validated on GPU hardware
+  (~0.3s/11s clip); NVIDIA CUDA and CPU paths are unchanged.
+- Replaces the honest-but-dead DirectML scaffold as the AMD GPU story.
+
 ## v0.20.1 — unreleased (source)
 - CPU / AMD Ryzen perf: set CTranslate2 `cpu_threads` to the physical-core
   estimate (logical//2 on SMT chips, capped 16) instead of ct2's default,
