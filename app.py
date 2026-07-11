@@ -118,9 +118,7 @@ class ROARApp:
         self._gesture_lock = threading.Lock()
         self._defer_timer = None
         self._target_hwnd = None  # window the current dictation is aimed at
-        self.transcriber = Transcriber(model_name=cfg["model"], language=cfg["language"],
-                                       models_dir=paths.models_dir(), log=self.log,
-                                       accel=cfg)
+        self.transcriber = self._build_transcriber(cfg)
         self.model_ready = threading.Event()
         self._stop_watch = threading.Event()
         # serializes self.cfg mutation+save between menu handlers (tray
@@ -306,7 +304,7 @@ class ROARApp:
     # -- worker thread ------------------------------------------------------
     def _worker(self):
         try:
-            self.transcriber.load()
+            self._load_with_fallback()
             # Warm-up inference: the first CUDA call pays a one-time kernel
             # autotune cost (~13s measured). Pay it now, not on first dictation.
             import numpy as np
@@ -327,9 +325,18 @@ class ROARApp:
             try:
                 if kind == "reload":
                     self._set_state(self.LOADING)
+                    # Rebuild via the factory so a backend switch (e.g. enabling
+                    # the Vulkan GPU engine) takes effect, closing the old one.
+                    old = self.transcriber
+                    self.transcriber = self._build_transcriber(self.cfg)
                     self.transcriber.requested = payload  # "auto" re-runs the policy
                     self.transcriber.language = self.cfg["language"]
-                    self.transcriber.load()
+                    self._load_with_fallback()
+                    if old is not self.transcriber and hasattr(old, "close"):
+                        try:
+                            old.close()
+                        except Exception:
+                            pass
                     self._write_accel_status()  # refresh accel facts + fallback_reason
                     self.notify(f"Model ready: {self.transcriber.description()}")
                 elif kind == "transcribe":
@@ -344,6 +351,40 @@ class ROARApp:
             if kind != "partial":  # partials must not reset RECORDING to IDLE
                 self._set_state(self.IDLE)
 
+    def _build_transcriber(self, cfg):
+        """Pick the transcription backend. The whisper.cpp Vulkan GPU backend is
+        used ONLY when the user explicitly opted in (backend=whispercpp_vulkan)
+        AND a Vulkan runtime is present; otherwise the CTranslate2 engine
+        (CUDA/CPU). A Vulkan load() failure falls back to CTranslate2 in the
+        worker, so this never leaves the app without a working engine."""
+        import hardware_accel
+        if hardware_accel.choose_best_backend(cfg, {}) == "whispercpp_vulkan":
+            from backends.whispercpp_vulkan import WhisperCppVulkanBackend
+            return WhisperCppVulkanBackend(
+                model_name=cfg["model"], language=cfg["language"],
+                models_dir=paths.models_dir(), log=self.log, accel=cfg)
+        return Transcriber(model_name=cfg["model"], language=cfg["language"],
+                           models_dir=paths.models_dir(), log=self.log, accel=cfg)
+
+    def _load_with_fallback(self):
+        """Load the current transcriber; if the Vulkan GPU backend can't start,
+        transparently rebuild on CTranslate2 (CPU/CUDA) and load that."""
+        try:
+            self.transcriber.load()
+        except Exception as e:
+            if getattr(self.transcriber, "backend", None) == "whispercpp_vulkan":
+                self.log(f"Vulkan GPU backend unavailable ({e}); using CPU/CUDA")
+                try:
+                    self.transcriber.close()
+                except Exception:
+                    pass
+                self.transcriber = Transcriber(
+                    model_name=self.cfg["model"], language=self.cfg["language"],
+                    models_dir=paths.models_dir(), log=self.log, accel=self.cfg)
+                self.transcriber.load()
+            else:
+                raise
+
     def _accel_fallback_reason(self):
         """Honest one-liner for diagnostics when the engine is NOT on the accel
         the user asked for. Empty string when there's nothing to report.
@@ -355,13 +396,23 @@ class ROARApp:
         if (self.cfg.get("backend") == "onnx_directml"
                 and getattr(t, "backend", None) != "onnx_directml"):
             return "AMD/DirectML acceleration unavailable (experimental) — using CUDA/CPU."
+        if (self.cfg.get("backend") == "whispercpp_vulkan"
+                and getattr(t, "backend", None) != "whispercpp_vulkan"):
+            return "Vulkan GPU acceleration unavailable — using CUDA/CPU."
         return ""
 
     def _write_accel_status(self):
         """Push the CURRENT engine acceleration facts to status.json (called
         after load + reload so diagnostics never show a stale fallback reason)."""
+        dev = getattr(self.transcriber, "device", None)
+        if dev == "cuda":
+            device_label = "CUDA (GPU)"
+        elif getattr(self.transcriber, "backend", None) == "whispercpp_vulkan":
+            device_label = "Vulkan (GPU)"
+        else:
+            device_label = "CPU"
         status_mod.write_status(
-            device=("CUDA (GPU)" if getattr(self.transcriber, "device", None) == "cuda" else "CPU"),
+            device=device_label,
             backend=getattr(self.transcriber, "backend", None),
             compute_type=getattr(self.transcriber, "compute_type", None),
             cpu_threads=getattr(self.transcriber, "cpu_threads", None),

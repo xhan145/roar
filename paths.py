@@ -51,6 +51,12 @@ def _data_dir() -> str:
     return _source_root()
 
 
+def vulkan_dir() -> str:
+    """Where the downloaded whisper.cpp Vulkan binary is unpacked (on first GPU
+    use). Under the per-user data root so it survives app updates."""
+    return os.path.join(_data_dir(), "vulkan")
+
+
 def history_db_path() -> str:
     return os.path.join(_data_dir(), "history.db")
 
