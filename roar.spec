@@ -22,6 +22,11 @@ for pkg in (
     binaries += b
     hiddenimports += h
 
+# The Vulkan GPU backend is imported lazily (only when the user opts in), which
+# PyInstaller's static analysis can miss — pin it so the frozen build always has
+# it available for the opt-in path.
+hiddenimports += ["whispercpp_assets", "backends", "backends.whispercpp_vulkan"]
+
 datas += [("settings.html", ".")]
 
 import os as _os2
