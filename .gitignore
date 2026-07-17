@@ -17,3 +17,14 @@ audio/
 models-seed/
 backups/
 .obsidian/
+
+# License signing — never commit a private key or an issued customer license.
+# The signing keypair lives OUTSIDE the repo (~/.roar-signing/); these patterns
+# are a defensive net in case a tool is run from the repo directory.
+*_private_key.pem
+*private*.pem
+roar_pro_*.json
+roar_developer_*.json
+roar_supporter_*.json
+*roar_license*.json
+roar_license.json

@@ -13,7 +13,10 @@ def test_prices_are_the_agreed_one_time_amounts():
 def test_defaults():
     assert cc.DEFAULT_EDITION == "core"
     assert cc.CURRENT_MAJOR_VERSION == 1
-    assert cc.IS_PRODUCTION is False
+    # Production signing is live: the real keypair was generated
+    # (scripts/generate_keypair.py) and the public key baked in, so dev-signed
+    # (env:"dev") licenses are rejected. See scripts/issue_license.py.
+    assert cc.IS_PRODUCTION is True
 
 
 def test_purchase_urls_are_https():
