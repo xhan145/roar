@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROAR — Talk. Type. Locally.</title>
+<meta name="description" content="Local-first voice dictation for Windows. Hold a hotkey, speak, release — ROAR types into whatever app you're in. Nothing leaves your machine. No account, no subscription.">
+<meta property="og:title" content="ROAR — Talk. Type. Locally.">
+<meta property="og:description" content="Local-first voice dictation for Windows. Nothing leaves your machine.">
+<meta property="og:type" content="website">
+<link rel="icon" href="roar-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---- ROAR brand tokens (matches the app: lavender on near-black) ---- */
+  :root{
+    --bg:#0B0B10; --surface:#14141C; --surface-2:#1B1B26;
+    --text:#EDEDEF; --muted:#9BA1AC; --border:#2A2A38;
+    --accent:#A78BFA; --accent-ink:#0B0B10; --accent-dim:#7B85E2;
+    --ok:#5BD6A0;
+    --r:14px; --maxw:1080px;
+    --step:8px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+  .skip{position:absolute;left:-9999px}
+  .skip:focus{left:16px;top:16px;position:fixed;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:8px;z-index:99}
+
+  /* ---- header ---- */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+    background:rgba(11,11,16,.78);border-bottom:1px solid var(--border)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.02em;color:var(--text)}
+  .brand:hover{text-decoration:none}
+  .brand img{width:28px;height:28px}
+  .nav-links{display:flex;gap:24px;align-items:center}
+  .nav-links a{color:var(--muted);font-size:15px;font-weight:500}
+  .nav-links a:hover{color:var(--text);text-decoration:none}
+  @media(max-width:720px){.nav-links a:not(.btn){display:none}}
+
+  /* ---- buttons (44px+ touch targets) ---- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    min-height:44px;padding:12px 20px;border-radius:10px;font-weight:600;font-size:15px;
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+    cursor:pointer;transition:background .15s ease,border-color .15s ease,transform .15s ease}
+  .btn:hover{background:#232331;text-decoration:none}
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .btn.primary:hover{background:#B9A3FB}
+  .btn svg{width:18px;height:18px;flex:none}
+
+  /* ---- hero ---- */
+  .hero{padding:96px 0 64px;text-align:center}
+  h1{font-size:clamp(38px,6.2vw,64px);line-height:1.08;margin:0 0 18px;letter-spacing:-.03em;font-weight:700}
+  h1 .accent{color:var(--accent)}
+  .lede{font-size:clamp(17px,2.1vw,20px);color:var(--muted);max-width:62ch;margin:0 auto 32px}
+  .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .cta-note{margin-top:14px;font-size:14px;color:var(--muted)}
+
+  /* ---- trust strip ---- */
+  .trust{display:flex;gap:10px 28px;justify-content:center;flex-wrap:wrap;
+    margin-top:44px;padding-top:28px;border-top:1px solid var(--border)}
+  .trust span{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;font-weight:500}
+  .trust svg{width:16px;height:16px;color:var(--ok);flex:none}
+
+  /* ---- sections ---- */
+  section{padding:72px 0}
+  h2{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.02em;margin:0 0 12px;font-weight:700}
+  .sub{color:var(--muted);margin:0 0 40px;max-width:62ch}
+  .center{text-align:center}
+  .center .sub{margin-left:auto;margin-right:auto}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+  .card h3{margin:14px 0 8px;font-size:17px;font-weight:600}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  .icon{width:36px;height:36px;border-radius:9px;background:rgba(167,139,250,.12);
+    display:grid;place-items:center;color:var(--accent)}
+  .icon svg{width:20px;height:20px}
+
+  /* ---- pricing ---- */
+  .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:start}
+  .tier{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;height:100%}
+  .tier.best{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 12px 40px -12px rgba(167,139,250,.35);position:relative}
+  .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+    background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;
+    padding:4px 10px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  .tier h3{margin:0 0 4px;font-size:18px;font-weight:700}
+  .tier .who{color:var(--muted);font-size:14px;min-height:40px;margin:0 0 14px}
+  .price{font-size:38px;font-weight:700;letter-spacing:-.03em;
+    font-variant-numeric:tabular-nums;line-height:1}
+  .price small{font-size:14px;font-weight:500;color:var(--muted);letter-spacing:0}
+  .tier ul{list-style:none;padding:0;margin:20px 0 24px;display:grid;gap:10px}
+  .tier li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;color:var(--text)}
+  .tier li svg{width:16px;height:16px;color:var(--accent);margin-top:4px;flex:none}
+  .tier li.plain{color:var(--muted)}
+  .tier .btn{width:100%;margin-top:auto}
+  .fineprint{margin-top:28px;color:var(--muted);font-size:14px;text-align:center;max-width:70ch;margin-left:auto;margin-right:auto}
+
+  /* ---- privacy ---- */
+  .privacy{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:40px}
+  .privacy ul{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:12px;
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .privacy li{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:15px}
+  .privacy li svg{width:18px;height:18px;color:var(--ok);margin-top:3px;flex:none}
+  .privacy li b{color:var(--text);font-weight:600}
+
+  /* ---- faq ---- */
+  details{border:1px solid var(--border);border-radius:12px;background:var(--surface);
+    padding:18px 20px;margin-bottom:10px}
+  details[open]{background:var(--surface-2)}
+  summary{cursor:pointer;font-weight:600;font-size:15.5px;list-style:none;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:28px}
+  summary::-webkit-details-marker{display:none}
+  summary::after{content:"+";color:var(--accent);font-size:20px;font-weight:400;flex:none}
+  details[open] summary::after{content:"−"}
+  details p{color:var(--muted);margin:12px 0 0;font-size:15px}
+
+  footer{border-top:1px solid var(--border);padding:36px 0;color:var(--muted);font-size:14px}
+  .foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+  .foot-links{display:flex;gap:20px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#"><img src="roar-logo.png" alt="" width="28" height="28">ROAR</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#privacy">Privacy</a>
+      <a class="btn primary" id="nav-download" href="#">Download free</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <h1>Talk. Type. <span class="accent">Locally.</span></h1>
+      <p class="lede">
+        Hold a hotkey, speak, release — ROAR transcribes on your own machine and types
+        the text straight into whatever app you're already in. Your voice never leaves
+        your computer.
+      </p>
+      <div class="cta-row">
+        <a class="btn primary" id="hero-download" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for Windows — free
+        </a>
+        <a class="btn" href="#pricing">See pricing</a>
+      </div>
+      <p class="cta-note">Free forever for everyday dictation. No account. Windows 10/11.</p>
+
+      <div class="trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Runs 100% offline</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No cloud transcription</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No account</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No telemetry</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="center">
+        <h2>Dictation that stays yours</h2>
+        <p class="sub">Everything runs on your machine — the speech model, your history, your words.</p>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></div>
+          <h3>Push-to-talk, anywhere</h3>
+          <p>Hold your hotkey in any app — editor, browser, chat — speak, and release. The text lands in the focused field.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          <h3>Fast, on your hardware</h3>
+          <p>NVIDIA CUDA and AMD/Intel GPU acceleration when you have it, tuned CPU when you don't.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="8" y1="20" x2="16" y2="20"/></svg></div>
+          <h3>Reads like writing</h3>
+          <p>Removes "um", stutters and false starts as you go, so what lands is clean prose — not a raw transcript.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9"/><polyline points="3 3 3 8 8 8"/></svg></div>
+          <h3>"Scratch that"</h3>
+          <p>Say it and the last thing you dictated is removed — no reaching for the mouse.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg></div>
+          <h3>Speaks your language</h3>
+          <p>Multilingual dictation with the models bundled — switch languages without going online.</p>
+        </div>
+        <div class="card">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <h3>Your history, your rules</h3>
+          <p>Keep a local history or none at all. Delete it whenever. Those controls are free, forever, in every edition.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="center">
+        <h2>Buy once. Keep it.</h2>
+        <p class="sub">One-time purchase. No subscription, no account, no cloud. Your licence is verified on your own device.</p>
+      </div>
+
+      <div class="tiers">
+        <div class="tier">
+          <h3>Core</h3>
+          <p class="who">Private local dictation, free to use.</p>
+          <div class="price">Free<small> forever</small></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Push-to-talk + hands-free dictation</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Local transcription, fully offline</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Multilingual + live preview</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>"Scratch that" undo</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>All privacy &amp; deletion controls</li>
+          </ul>
+          <a class="btn" id="tier-download" href="#">Download free</a>
+        </div>
+
+        <div class="tier best">
+          <span class="badge">Most popular</span>
+          <h3>Pro</h3>
+          <p class="who">Smarter dictation and productivity.</p>
+          <div class="price">$29<small> once</small></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Everything in Core</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Smart formatting modes</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Snippets + variables</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Vocabulary suggestions</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Advanced cleanup, insights &amp; history filters</li>
+          </ul>
+          <a class="btn primary" id="buy-pro" href="#">Buy ROAR Pro</a>
+        </div>
+
+        <div class="tier">
+          <h3>Developer</h3>
+          <p class="who">Pro, plus code-aware workflows.</p>
+          <div class="price">$49<small> once</small></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Everything in Pro</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Code Mode — verbatim in editors</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Spoken programming symbols</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Per-app profiles &amp; language</li>
+          </ul>
+          <a class="btn" id="buy-developer" href="#">Buy ROAR Developer</a>
+        </div>
+
+        <div class="tier">
+          <h3>Supporter</h3>
+          <p class="who">Everything in Developer — and it keeps the lights on.</p>
+          <div class="price">$99<small> once</small></div>
+          <ul>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Everything in Developer</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Supporter badge on your licence screen</li>
+            <li class="plain">No exclusive features — it's a thank-you, not a better tier. Buy this only if you want to fund the work.</li>
+          </ul>
+          <a class="btn" id="buy-supporter" href="#">Support ROAR</a>
+        </div>
+      </div>
+
+      <p class="fineprint">
+        Buy once and keep the version you purchased. All v1.x updates are included. A future
+        major version may be offered as an optional paid upgrade — the version you bought
+        keeps working either way.
+      </p>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section id="privacy">
+    <div class="wrap">
+      <div class="privacy">
+        <h2>The privacy promise</h2>
+        <p class="sub">This isn't a marketing line — it's how the app is built.</p>
+        <ul>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><b>Your voice never leaves your machine.</b> Transcription runs locally. There is no cloud path to disable — there isn't one.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><b>No telemetry, ever.</b> ROAR only touches the network if you click "check for updates".</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><b>Your licence is checked offline.</b> No account, no sign-in, no licence server phoning home.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><b>Privacy is never paid.</b> History and audio deletion, retention controls and offline use are free in every edition — permanently.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="center"><h2>Questions</h2></div>
+      <details>
+        <summary>Is Core a trial?</summary>
+        <p>No. Core is free dictation you can use forever — it doesn't expire, nag, or lock up. The paid editions add workflow power on top; they don't unlock the basics.</p>
+      </details>
+      <details>
+        <summary>Do I need an account or an internet connection?</summary>
+        <p>Neither. ROAR transcribes locally and verifies your licence on your own device. It works on a machine that has never been online.</p>
+      </details>
+      <details>
+        <summary>Is this a subscription?</summary>
+        <p>No. It's a one-time purchase. All v1.x updates are included. A future major version may be an optional paid upgrade, and the version you bought will keep working.</p>
+      </details>
+      <details>
+        <summary>What happens to my dictation history?</summary>
+        <p>It stays on your machine in a local database — or nowhere at all, if you turn it off. You can delete it, and any retained audio, at any time. Those controls are free in every edition.</p>
+      </details>
+      <details>
+        <summary>What's the difference between Developer and Supporter?</summary>
+        <p>Functionally, nothing. Supporter has exactly the same capabilities as Developer. It exists for people who want to fund independent development, and it puts a supporter badge on your licence screen.</p>
+      </details>
+      <details>
+        <summary>Which GPUs are supported?</summary>
+        <p>NVIDIA via CUDA out of the box. AMD and Intel GPUs are supported through an optional Vulkan engine you can enable in Settings. No GPU? A tuned CPU path is the default.</p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>© <span id="year">2026</span> ROAR — local-first dictation for Windows.</div>
+    <nav class="foot-links" aria-label="Footer">
+      <a id="foot-github" href="https://github.com/xhan145/roar">GitHub</a>
+      <a href="#pricing">Pricing</a>
+      <a id="foot-support" href="#">Support</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+/* ---------------------------------------------------------------------------
+   ONE place to configure commerce. Point these at your checkout links when you
+   have them (Polar / Paddle / Gumroad / manual mailto). They must match
+   commercial_config.py in the app.
+
+   PLACEHOLDERS — replace before launch.
+--------------------------------------------------------------------------- */
+const ROAR = {
+  // Where "Download" goes. Point at a real release once v0.22.0 is published.
+  downloadUrl: "https://github.com/xhan145/roar/releases/latest",
+  // Checkout links per edition. Empty string => the button falls back to
+  // an email pre-order (which is exactly how manual fulfillment works).
+  purchase: {
+    pro: "",          // e.g. "https://buy.polar.sh/roar-pro"
+    developer: "",
+    supporter: "",
+  },
+  supportEmail: "support@example.com",   // TODO before launch
+};
+
+document.getElementById("year").textContent = new Date().getFullYear();
+
+for (const id of ["nav-download", "hero-download", "tier-download"]) {
+  document.getElementById(id).href = ROAR.downloadUrl;
+}
+document.getElementById("foot-support").href = "mailto:" + ROAR.supportEmail;
+
+// Until a checkout exists, a Buy button opens a pre-order email rather than
+// pretending to be a store. Honest, and it's the manual fulfillment path.
+const EDITIONS = {
+  pro: {label: "Pro", price: 29},
+  developer: {label: "Developer", price: 49},
+  supporter: {label: "Supporter", price: 99},
+};
+for (const [key, {label, price}] of Object.entries(EDITIONS)) {
+  const el = document.getElementById("buy-" + key);
+  const url = ROAR.purchase[key];
+  if (url) {
+    el.href = url;
+  } else {
+    const subject = encodeURIComponent(`ROAR ${label} ($${price}) — licence request`);
+    const body = encodeURIComponent(
+      `Hi — I'd like to buy ROAR ${label} ($${price} one-time).\n\n` +
+      `Name (for the licence):\n`);
+    el.href = `mailto:${ROAR.supportEmail}?subject=${subject}&body=${body}`;
+    el.textContent = key === "supporter" ? "Support ROAR" : `Request ${label} licence`;
+  }
+}
+</script>
+</body>
+</html>
