@@ -299,6 +299,23 @@ class SettingsAPI:
             "upgrades": upgrade_prompts.all_copy(),
         }
 
+    def feature_access(self):
+        """Which gated features this install may use, plus the upgrade copy for
+        the ones it may not. The UI uses this to EXPLAIN a locked control rather
+        than silently disabling it — and never to enforce: the real gates live at
+        each feature's backend entry point."""
+        import access
+        import upgrade_prompts
+        import entitlements
+        out = {"edition": access.edition(), "features": {}}
+        for feature in sorted(entitlements.KNOWN_FEATURES - entitlements.ALWAYS_FREE):
+            allowed = access.can(feature)
+            entry = {"allowed": allowed}
+            if not allowed:
+                entry["upgrade"] = upgrade_prompts.prompt_for(feature)
+            out["features"][feature] = entry
+        return out
+
     def license_import(self, source):
         """Install a pasted license. Oversized input is rejected before parsing;
         validation happens BEFORE anything is written, so a bad paste can never
