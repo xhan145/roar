@@ -18,10 +18,20 @@ PRO_PRICE_USD = 29
 DEVELOPER_PRICE_USD = 49
 SUPPORTER_PRICE_USD = 99
 
-PURCHASE_URL_PRO = "https://example.com/roar/pro"                # TODO before launch
-PURCHASE_URL_DEVELOPER = "https://example.com/roar/developer"    # TODO before launch
-PURCHASE_URL_SUPPORTER = "https://example.com/roar/supporter"    # TODO before launch
-SUPPORT_EMAIL = "support@example.com"                            # TODO before launch
+# Where "Buy" goes. These point at ROAR's own pricing page (published from
+# site/ by .github/workflows/pages.yml), which currently hands off to a
+# pre-order email — the manual fulfillment path in docs/CHECKOUT_SETUP.md.
+# Swap them for real checkout links (Polar / Paddle / …) when one exists; the
+# app needs no other change, and site/index.html has the matching config block.
+_SITE = "https://xhan145.github.io/roar/"
+PURCHASE_URL_PRO = _SITE + "#pricing"
+PURCHASE_URL_DEVELOPER = _SITE + "#pricing"
+PURCHASE_URL_SUPPORTER = _SITE + "#pricing"
+
+# TODO before launch: a real address. This is the ONLY thing standing between
+# the pricing page and a working pre-order, and it must be a mailbox you want
+# published — deliberately not defaulted to a personal address.
+SUPPORT_EMAIL = "support@example.com"
 
 # When False (repo/dev builds), dev-signed licenses are accepted so the app can
 # be exercised end-to-end. A production build sets this True AND swaps in the

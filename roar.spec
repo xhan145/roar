@@ -33,9 +33,20 @@ import os as _os2
 if _os2.path.isdir("assets"):
     datas += [("assets", "assets")]  # roar-logo-purple* brand images
 
-# multilingual model seed (scripts/fetch_models.py) — ships offline languages
+# Multilingual model seed (scripts/fetch_models.py) — ships offline languages.
+#
+# It is 2.0 GB of the ~3.5 GB bundle, which pushed the installer to 2.65 GB —
+# OVER GitHub's 2 GiB release-asset cap, i.e. undistributable, and a brutal
+# download for a first-time user. Build with ROAR_SLIM=1 to omit it: the app
+# already falls back local cache -> bundled seed -> download (transcriber.load),
+# so a slim build simply fetches the model on first run. The trade is that a
+# slim install needs the network ONCE; everything after is offline as always.
 import os as _os
-if _os.path.isdir("models-seed"):
+_SLIM = _os.environ.get("ROAR_SLIM", "").strip() not in ("", "0", "false")
+if _SLIM:
+    print("ROAR_SLIM=1 - omitting models-seed (~2 GB); the model downloads on "
+          "first run", flush=True)
+elif _os.path.isdir("models-seed"):
     datas += [("models-seed", "models-seed")]
 else:
     # gitignored, so fresh clones won't have it — warn instead of silently

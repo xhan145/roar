@@ -1,0 +1,43 @@
+name: deploy landing page
+
+# Publishes site/ to GitHub Pages -> https://xhan145.github.io/roar/
+#
+# Deliberately an Actions deploy rather than the "main /docs" Pages option:
+# docs/ holds the project's markdown (monetization, security review, etc.) and
+# should NOT become the public website. This publishes ONLY site/.
+#
+# The app's purchase URLs point at this page (see commercial_config.py), so the
+# buy flow is: app -> pricing -> pre-order email -> a signed licence.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; don't cancel a run that's mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
