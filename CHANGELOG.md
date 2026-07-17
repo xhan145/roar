@@ -3,7 +3,20 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
-## v0.22.0 — unreleased (source)
+## v0.23.0 — 2026-07-17
+- **Paid editions now activate.** This build carries the production license key
+  and runs in production mode, so a signed Pro/Developer/Supporter license
+  imported in Settings → License unlocks its edition — verified offline. Test
+  (dev-signed) licenses are rejected.
+- **License generator tooling** (owner-side, not shipped in the app):
+  `scripts/generate_keypair.py` mints the Ed25519 signing keypair (private key
+  kept off the repo); `scripts/issue_license.py` signs a real per-customer
+  license (unique id, hashed email, self-verifies against the app key before
+  writing). See docs/commercial/LICENSE_FULFILLMENT.md.
+- Core is unchanged and still free; existing installs stay grandfathered and
+  their settings/history/license survive the upgrade.
+
+## v0.22.0 — 2026-07-11
 - Commercial editions are now real and **enforced, with grandfathering**. The
   edition model, entitlements and offline Ed25519 licensing shipped in v0.17.0;
   this release closes the gaps and turns the gates on.
