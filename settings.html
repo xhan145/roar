@@ -616,7 +616,26 @@
       <div class="row" id="license-block" style="margin-top:14px;">
         <div>License</div>
         <div class="kv" style="margin-top:4px;">Edition <b id="a-edition" style="color:var(--text)">Core</b> · <span id="a-license-status">Not activated</span> · validated locally / offline</div>
-        <div class="hint" style="margin-top:6px;">ROAR validates your license locally. No account is required. Your dictation data stays on this machine.</div>
+        <div class="hint" id="a-license-message" style="margin-top:6px;white-space:pre-line;">ROAR validates your license locally. No account is required. Your dictation data stays on this machine.</div>
+        <div class="kv" id="a-license-meta" style="margin-top:6px;"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn" id="b-license-paste">Paste License</button>
+          <button class="btn" id="b-license-file">Import License File</button>
+          <button class="btn" id="b-license-remove">Remove License</button>
+        </div>
+        <textarea id="a-license-text" rows="4" placeholder="Paste your license JSON here"
+                  style="display:none;width:100%;margin-top:8px;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;" id="a-license-paste-actions" hidden>
+          <button class="btn primary" id="b-license-activate">Activate</button>
+          <button class="btn" id="b-license-cancel">Cancel</button>
+        </div>
+        <div class="msg" id="m-license"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn" id="b-buy-pro">Buy ROAR Pro</button>
+          <button class="btn" id="b-buy-dev">Buy ROAR Developer</button>
+          <button class="btn" id="b-buy-supporter">Support ROAR</button>
+        </div>
+        <div class="hint" style="margin-top:6px;">Buy once and keep the version you purchased. All v1.x updates are included. A future major version may be offered as an optional paid upgrade, but the version you purchased will continue working.</div>
       </div>
       <div class="row" id="diag-block" style="margin-top:14px;">
         <div>Diagnostics</div>
@@ -816,6 +835,7 @@ async function init() {
   });
   $("a-version").textContent = state.version;
   if (state.edition) $("a-edition").textContent = state.edition;
+  renderLicense();   // full license/activation state (hoisted decl)
   $("a-config").textContent = state.config_path;
   $("a-log").textContent = state.log_path;
   setToggle($("t-overlay"), c.overlay_enabled);
@@ -1299,6 +1319,59 @@ $("s-format").addEventListener("change", async e => {
       msg("m-perf", r.ok ? note : r.error, r.ok ? "ok" : "err");
     });
   });
+
+/* ---- license / activation ----
+   Display + activation only. Nothing here gates a feature, and the section is
+   always reachable — Core, privacy and deletion controls never depend on it. */
+async function renderLicense() {
+  const info = await api().license_info();
+  if (!info) return;
+  $("a-edition").textContent = info.edition;
+  $("a-license-status").textContent = info.status;
+  $("a-license-message").textContent = info.message || "";
+  const meta = [];
+  if (info.license_id) meta.push("License " + info.license_id);
+  if (info.customer_name) meta.push("Licensed to " + info.customer_name);
+  if (info.valid_for_major) meta.push("ROAR v" + info.valid_for_major + ".x");
+  meta.push(info.detail || "");
+  $("a-license-meta").textContent = meta.filter(Boolean).join(" · ");
+  $("b-license-remove").style.display = info.valid ? "" : "none";
+  const urls = info.purchase_urls || {}, prices = info.prices || {};
+  $("b-buy-pro").textContent = "Buy ROAR Pro — $" + prices.pro + " once";
+  $("b-buy-dev").textContent = "Buy ROAR Developer — $" + prices.developer + " once";
+  $("b-buy-supporter").textContent = "Support ROAR — $" + prices.supporter + " once";
+  $("b-buy-pro").onclick = () => window.open(urls.pro, "_blank");
+  $("b-buy-dev").onclick = () => window.open(urls.developer, "_blank");
+  $("b-buy-supporter").onclick = () => window.open(urls.supporter, "_blank");
+}
+
+function showPaste(on) {
+  $("a-license-text").style.display = on ? "" : "none";
+  $("a-license-paste-actions").hidden = !on;
+  if (on) $("a-license-text").focus();
+}
+$("b-license-paste").addEventListener("click", () => showPaste(true));
+$("b-license-cancel").addEventListener("click", () => {
+  $("a-license-text").value = ""; showPaste(false); msg("m-license", "", "ok");
+});
+$("b-license-activate").addEventListener("click", async () => {
+  const r = await api().license_import($("a-license-text").value || "");
+  msg("m-license", r.message, r.ok ? "ok" : "err");
+  if (r.ok) { $("a-license-text").value = ""; showPaste(false); }
+  await renderLicense();
+});
+$("b-license-file").addEventListener("click", async () => {
+  const r = await api().license_import_file();
+  if (r && r.cancelled) return;
+  msg("m-license", r.message, r.ok ? "ok" : "err");
+  await renderLicense();
+});
+$("b-license-remove").addEventListener("click", async () => {
+  const r = await api().license_remove();
+  msg("m-license", r.ok ? "License removed. ROAR Core is active — your data is untouched."
+                        : r.message, r.ok ? "ok" : "err");
+  await renderLicense();
+});
 
 /* ---- appearance ---- */
 function applyAppearance(mode) {

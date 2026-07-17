@@ -270,16 +270,25 @@ class SettingsAPI:
             return {"ok": False}
 
     def license_info(self):
-        """Display-only license status. Gates are OFF — this never blocks any
-        feature; it just reports the edition and where validation happens."""
-        import license as license_mod
+        """License status for display + activation. Reads ONLY the license file
+        (via license_service) — never transcript/audio/history/clipboard, never
+        the network. Nothing here blocks a feature; gates live at the feature's
+        own entry point."""
+        import license_service
         import commercial_config as cc
         import upgrade_prompts
-        edition = license_mod.get_current_edition()   # "core" today
+        s = license_service.get_status()
         return {
-            "edition": edition.title(),
-            "status": ("Activated locally" if edition != license_mod.CORE
-                       else "Not activated"),
+            "edition": s["edition"].title(),
+            "edition_id": s["edition"],
+            "valid": s["valid"],
+            "status": "Activated locally" if s["valid"] else "Not activated",
+            "reason": s["reason"],
+            "message": s["message"],
+            "detail": s["detail"],
+            "license_id": s["license_id"],          # already redacted
+            "customer_name": s["customer_name"],
+            "valid_for_major": s["valid_for_major"],
             "validation": "Local/offline",
             "prices": {"pro": cc.PRO_PRICE_USD,
                        "developer": cc.DEVELOPER_PRICE_USD,
@@ -289,6 +298,41 @@ class SettingsAPI:
                               "supporter": cc.PURCHASE_URL_SUPPORTER},
             "upgrades": upgrade_prompts.all_copy(),
         }
+
+    def license_import(self, source):
+        """Install a pasted license. Oversized input is rejected before parsing;
+        validation happens BEFORE anything is written, so a bad paste can never
+        disturb an existing valid license."""
+        import license_service
+        if not isinstance(source, str):
+            return {"ok": False, "message": license_service.reason_copy("malformed")}
+        if len(source) > license_service.MAX_IMPORT_BYTES:
+            return {"ok": False, "message": license_service.reason_copy("too_large")}
+        r = license_service.import_license(source)
+        return {"ok": r["ok"], "message": r["message"],
+                "edition": r["edition"].title()}
+
+    def license_import_file(self):
+        """Pick a license file and install it. Same validate-before-write rules."""
+        import webview
+        import license_service
+        if _WINDOW is None:
+            return {"error": "no window"}
+        path = _WINDOW.create_file_dialog(webview.OPEN_DIALOG)
+        if not path:
+            return {"cancelled": True}
+        path = path if isinstance(path, str) else path[0]
+        r = license_service.import_license(path)
+        return {"ok": r["ok"], "message": r["message"],
+                "edition": r["edition"].title()}
+
+    def license_remove(self):
+        """Return to Core. Deletes ONLY the license file — never history, audio,
+        snippets, vocabulary, or settings."""
+        import license_service
+        r = license_service.remove_license()
+        return {"ok": r["ok"], "message": r["message"],
+                "edition": r["edition"].title()}
 
     def _write(self, **changes):
         with self._cfg_lock:
