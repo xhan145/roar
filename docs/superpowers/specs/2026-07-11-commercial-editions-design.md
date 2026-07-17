@@ -182,11 +182,17 @@ The **signed license is authoritative** — no manually-editable trusted edition
 
 ## Docs
 
-Create `docs/commercial/`: **REPOSITORY_COMMERCIAL_AUDIT.md** (incl. both
-divergences), **COMMERCIAL_SECURITY_REVIEW.md**, **RELEASE_CHECKLIST.md**; move
-MONETIZATION / FEATURE_MATRIX / LICENSE_ARCHITECTURE / PRICING / REFUND_POLICY
-there and fix inbound references. FEATURE_MATRIX records the grandfathering
-decision and marks never-shipped features **planned**.
+Create `docs/commercial/` for the **new** docs: **REPOSITORY_COMMERCIAL_AUDIT.md**
+(incl. all divergences), **COMMERCIAL_SECURITY_REVIEW.md**, **RELEASE_CHECKLIST.md**.
+
+**Do NOT move the existing commercial docs.** MONETIZATION / FEATURE_MATRIX /
+LICENSE_ARCHITECTURE / PRICING / REFUND_POLICY stay at `docs/*.md`: they are
+referenced by `tests/test_commercial_privacy.py`, `README.md`, `AGENTS.md`,
+`ROADMAP-14DAY.md`, the `entitlements.py` docstring, and prior specs — moving
+them would break a test and six references for no benefit. The prompt permits
+"adapting paths to repository conventions", and flat `docs/` **is** this repo's
+convention. The audit records the layout. FEATURE_MATRIX (in place) records the
+grandfathering decision and marks never-shipped features **planned**.
 
 ## Sub-projects (sequenced; full suite after each)
 
