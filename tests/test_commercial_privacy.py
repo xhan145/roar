@@ -32,7 +32,7 @@ def _imported_modules(py_path):
 
 def test_commercial_modules_import_no_user_data_or_network():
     for mod in ("license.py", "entitlements.py", "commercial_config.py",
-                "upgrade_prompts.py"):
+                "upgrade_prompts.py", "license_service.py"):
         assert not (_imported_modules(ROOT / mod) & _USER_DATA_OR_NET), mod
 
 
@@ -60,7 +60,7 @@ def test_dev_scripts_not_imported_by_any_app_module():
 
 # --- copy hygiene: no positive subscription/account/cloud model -------------
 _COMMERCIAL_COPY = [
-    "README.md", "upgrade_prompts.py",
+    "README.md", "upgrade_prompts.py", "license_service.py",
     *[f"docs/{n}" for n in (
         "MONETIZATION.md", "PRICING.md", "FAQ.md", "PRIVACY_PROMISE.md",
         "FEATURE_MATRIX.md", "SUPPORT.md", "REFUND_POLICY.md",
