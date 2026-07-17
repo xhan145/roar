@@ -28,10 +28,9 @@ PURCHASE_URL_PRO = _SITE + "#pricing"
 PURCHASE_URL_DEVELOPER = _SITE + "#pricing"
 PURCHASE_URL_SUPPORTER = _SITE + "#pricing"
 
-# TODO before launch: a real address. This is the ONLY thing standing between
-# the pricing page and a working pre-order, and it must be a mailbox you want
-# published — deliberately not defaulted to a personal address.
-SUPPORT_EMAIL = "support@example.com"
+# Published support / pre-order mailbox. Buyers reach this from the pricing page
+# and the in-app License screen; it's where manual license fulfilment happens.
+SUPPORT_EMAIL = "gregm@joincollective.net"
 
 # When False (repo/dev builds), dev-signed licenses are accepted so the app can
 # be exercised end-to-end. A production build sets this True AND uses the real

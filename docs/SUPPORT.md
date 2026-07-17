@@ -1,6 +1,6 @@
 # Support
 
-Email: **support@example.com**  <!-- TODO before launch -->
+Email: **gregm@joincollective.net**
 
 ROAR support is **privacy-safe by default**: we never ask for your transcripts or
 audio to help you. Operational details are enough.

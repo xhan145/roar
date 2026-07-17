@@ -11,7 +11,7 @@ Do not tag a paid release or take payment until every box is checked.
 
 ## Commerce
 - [ ] Payment processor configured (see [CHECKOUT_SETUP.md](CHECKOUT_SETUP.md))
-- [ ] Support email configured (replace `support@example.com`)
+- [x] Support email configured — `gregm@joincollective.net`
 - [ ] Purchase URLs set in `commercial_config.py` (replace `example.com` placeholders)
 
 ## Licensing

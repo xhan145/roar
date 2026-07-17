@@ -12,7 +12,7 @@ purchase for a refund.
 
 ## How to request
 
-Email **support@example.com** <!-- TODO before launch --> with your order
+Email **gregm@joincollective.net** with your order
 reference and a short description of the problem. See [SUPPORT.md](SUPPORT.md). We
 do not need your transcripts or audio.
 
