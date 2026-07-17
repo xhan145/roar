@@ -385,6 +385,29 @@ class ROARApp:
             else:
                 raise
 
+    def _effective_formatting(self):
+        """Resolve the user's saved formatting settings DOWN to what this
+        install is entitled to.
+
+        Paid CONFIG is never rewritten — only the BEHAVIOR is withheld — so a
+        user who drops to Core keeps `format_mode: "code"`, their snippets and
+        their app profiles on disk, and restoring a license reactivates them
+        with no reconfiguration. Resolving down (code -> clean) rather than
+        raising also means a gate can never break plain dictation.
+        """
+        import access
+        mode = self.cfg.get("format_mode", "clean")
+        if mode == "code" and not access.can("code.mode"):
+            mode = "clean"          # config keeps "code"; behavior steps down
+        return {
+            "mode": mode,
+            "snippets": (self.cfg.get("snippets")
+                         if access.can("snippets.packs") else {}),
+            "discourse": access.can("cleanup.advanced"),
+            "profiles": (self.cfg.get("context_aware", True)
+                         and access.can("profiles.apps")),
+        }
+
     def _accel_fallback_reason(self):
         """Honest one-liner for diagnostics when the engine is NOT on the accel
         the user asked for. Empty string when there's nothing to report.
@@ -429,21 +452,23 @@ class ROARApp:
         if editing.is_scratch(raw):
             self._scratch()
             return
+        eff = self._effective_formatting()
         prof = (context.profile_for(
                     self._foreground_exe(),
                     self._foreground_title(),
                     self.cfg.get("app_profiles"))
-                if self.cfg.get("context_aware", True) else {})
+                if eff["profiles"] else {})
         text = commands.process(
             raw, self.cfg["replacements"],
-            self.cfg.get("snippets"),
+            eff["snippets"],
             self.cfg.get("snippet_keyword", "snippet"),
             cleanup=prof.get("cleanup", self.cfg.get("cleanup_enabled", True)),
-            discourse_fillers=prof.get(
+            discourse_fillers=(prof.get(
                 "discourse_fillers",
-                self.cfg.get("remove_discourse_fillers", False)),
+                self.cfg.get("remove_discourse_fillers", False))
+                if eff["discourse"] else False),
             capitalize=prof.get("capitalize", True),
-            mode=self.cfg.get("format_mode", "clean"))
+            mode=eff["mode"])
         if not text:
             self.log("empty transcript — nothing injected")
             return
@@ -651,11 +676,15 @@ class ROARApp:
     def _rebuild_hotwords(self):
         """Merge custom + auto signature words into the transcriber. Never
         raises; on failure the previous hotwords stay in effect."""
+        import access
         import vocabulary
         try:
             signature = []
+            # auto signature-word hotwords are the Pro "vocabulary suggestions"
+            # feature; the user's manual custom_vocabulary stays free (Core).
             if (self.cfg.get("auto_vocabulary", True)
-                    and self.cfg.get("history_enabled", True)):
+                    and self.cfg.get("history_enabled", True)
+                    and access.can("vocabulary.suggestions")):
                 from insights import compute_insights
                 signature = compute_insights(
                     self.history.list(limit=5000))["signature_words"]
@@ -760,6 +789,30 @@ class ROARApp:
         self.log("clean exit")
 
 
+def _apply_legacy_grant(cfg, config_existed):
+    """One-time grandfathering: an install that predates commercial gating keeps
+    the paid-target features that shipped free, then the config is stamped so
+    this never runs again. A fresh install gets nothing and is gated normally.
+
+    Never raises and never blocks startup — if anything goes wrong the user is
+    simply ungranted (and Core, privacy and dictation are unaffected either way).
+    """
+    try:
+        import legacy_grant
+        source = cfg if config_existed else {}
+        if not legacy_grant.is_legacy_install(source):
+            # Still stamp fresh installs so the marker exists going forward.
+            if int(cfg.get(legacy_grant.SCHEMA_KEY, 0) or 0) < legacy_grant.SCHEMA_VERSION:
+                cfg[legacy_grant.SCHEMA_KEY] = legacy_grant.SCHEMA_VERSION
+                config_mod.save(cfg)
+            return
+        legacy_grant.ensure_grant(source, log=lambda m: print(f"ROAR: {m}", flush=True))
+        cfg[legacy_grant.SCHEMA_KEY] = legacy_grant.SCHEMA_VERSION
+        config_mod.save(cfg)
+    except Exception as e:  # never let commercial plumbing break startup
+        print(f"ROAR: legacy grant skipped ({e})", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description="ROAR — local voice-to-text")
     parser.add_argument("--smoke", action="store_true",
@@ -801,7 +854,12 @@ def main():
     except OSError:
         pass
 
+    # Grandfathering must be decided from whether a config EXISTED before this
+    # run: config_mod.load() creates one from defaults on a fresh install, which
+    # would otherwise look like a pre-gating user.
+    config_existed = os.path.exists(paths.config_path())
     cfg = config_mod.load()
+    _apply_legacy_grant(cfg, config_existed)
     if args.smoke:  # deterministic, small, CPU-only for the self-test
         cfg["model"] = "small.en"
     app = ROARApp(cfg, smoke=args.smoke)

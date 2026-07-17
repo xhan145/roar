@@ -43,8 +43,16 @@ DEFAULTS = {
     "prefer_low_latency": True,
     "max_vram_mode": False,
     "performance_preset": "balanced",  # fast | balanced | accurate
-    "backend": "auto",                 # auto | ct2 | onnx_directml
+    "backend": "auto",                 # auto | ct2 | onnx_directml | whispercpp_vulkan
     "cpu_threads": 0,                  # 0 = auto (physical-core estimate); >0 = explicit
+    # --- commercial ---
+    # The active edition is NEVER stored here: only a signed license (see
+    # license_service) is authoritative — a config key could simply be edited.
+    "license_notifications": True,
+    "purchase_urls": {},               # empty -> commercial_config defaults
+    # Stamped once gating exists. Its ABSENCE in an EXISTING config identifies a
+    # pre-gating install for grandfathering (legacy_grant.py). Never remove.
+    "commercial_schema": 0,
 }
 
 
@@ -143,11 +151,20 @@ def load(path=None):
             if value in ("auto", "float16", "int8_float16", "int8",
                          "bfloat16", "float32"):
                 cfg[key] = value
-        elif key in ("gpu_device_index", "cpu_threads"):
+        elif key in ("gpu_device_index", "cpu_threads", "commercial_schema"):
             try:
                 cfg[key] = max(0, int(value))
             except (TypeError, ValueError):
                 pass
+        elif key == "license_notifications":
+            cfg[key] = bool(value)
+        elif key == "purchase_urls":
+            # Only https overrides are honoured; anything else falls back to the
+            # commercial_config defaults. Never a place to smuggle in an edition.
+            if isinstance(value, dict):
+                cfg[key] = {k: v for k, v in value.items()
+                            if k in ("pro", "developer", "supporter")
+                            and isinstance(v, str) and v.startswith("https://")}
         elif key in ("prefer_low_latency", "max_vram_mode"):
             cfg[key] = bool(value)
         else:

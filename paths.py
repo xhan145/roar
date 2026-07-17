@@ -8,7 +8,7 @@ import os
 import sys
 
 APP_NAME = "ROAR"
-APP_VERSION = "0.21.0"
+APP_VERSION = "0.22.0"
 
 
 def is_frozen() -> bool:
@@ -41,6 +41,26 @@ def models_dir() -> str:
     if is_frozen():
         return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models")
     return os.path.join(_source_root(), "models")
+
+
+def license_path() -> str:
+    """The signed license file. Deliberately beside config.json in %APPDATA%\\ROAR
+    — NOT in the %LOCALAPPDATA% data dir that holds history/audio, so that a
+    history clear, privacy reset, or audio delete can never remove it, and a
+    normal MSI upgrade (which replaces program files only) preserves it. Only an
+    explicit "Remove License" deletes it."""
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "license.json")
+    return os.path.join(_source_root(), "license.json")
+
+
+def legacy_grant_path() -> str:
+    """One-time grandfathering grant: a set of FEATURE IDs (never an edition)
+    recorded for installs that predate commercial gating. Stored beside the
+    license for the same upgrade-survival reasons."""
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "legacy_grant.json")
+    return os.path.join(_source_root(), "legacy_grant.json")
 
 
 def _data_dir() -> str:

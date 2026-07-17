@@ -10,13 +10,28 @@ import threading
 import types
 
 import numpy as np
+import pytest
 
+import access
 import app as app_mod
 import editing
 import gestures
 import history as history_mod
 import injector
+import legacy_grant
 import recorder as recorder_mod
+
+
+@pytest.fixture
+def grandfathered(monkeypatch):
+    """Simulate an EXISTING install. Every paid-target feature shipped free
+    through v0.21.0, so a pre-gating user carries the one-time legacy grant and
+    keeps them — that is the whole grandfathering promise. Tests that exercise
+    those features use this fixture; a fresh Core install is covered separately
+    below."""
+    monkeypatch.setattr(access, "edition", lambda: "core")
+    monkeypatch.setattr(access, "grants", lambda: legacy_grant.GRANTED_FEATURES)
+    return legacy_grant.GRANTED_FEATURES
 
 
 class _StubRecorder:
@@ -127,7 +142,7 @@ def test_duration_recorded(tmp_path, monkeypatch):
     a.history.close()
 
 
-def test_rebuild_hotwords_merges_custom_and_signature(tmp_path, monkeypatch):
+def test_rebuild_hotwords_merges_custom_and_signature(tmp_path, monkeypatch, grandfathered):
     monkeypatch.setattr(injector, "inject_text",
                         lambda text, paste_fallback=False: None)
     a = _make_app(tmp_path)
@@ -294,7 +309,7 @@ def test_hold_is_still_ptt(tmp_path, monkeypatch):
     a.history.close()
 
 
-def test_context_aware_casual_app_keeps_texting_style(tmp_path, monkeypatch):
+def test_context_aware_casual_app_keeps_texting_style(tmp_path, monkeypatch, grandfathered):
     injected = {}
     monkeypatch.setattr(injector, "inject_text",
                         lambda text, paste_fallback=False: injected.update(text=text))
@@ -309,7 +324,7 @@ def test_context_aware_casual_app_keeps_texting_style(tmp_path, monkeypatch):
     a.history.close()
 
 
-def test_context_aware_formal_app_polishes(tmp_path, monkeypatch):
+def test_context_aware_formal_app_polishes(tmp_path, monkeypatch, grandfathered):
     injected = {}
     monkeypatch.setattr(injector, "inject_text",
                         lambda text, paste_fallback=False: injected.update(text=text))
@@ -324,7 +339,7 @@ def test_context_aware_formal_app_polishes(tmp_path, monkeypatch):
     a.history.close()
 
 
-def test_context_aware_code_editor_is_verbatim(tmp_path, monkeypatch):
+def test_context_aware_code_editor_is_verbatim(tmp_path, monkeypatch, grandfathered):
     injected = {}
     monkeypatch.setattr(injector, "inject_text",
                         lambda text, paste_fallback=False: injected.update(text=text))
@@ -336,6 +351,57 @@ def test_context_aware_code_editor_is_verbatim(tmp_path, monkeypatch):
     a.transcriber.transcribe = lambda audio: "um hello from the test"
     a._handle_transcription(_loud_audio())
     assert injected["text"] == "um hello from the test"
+    a.history.close()
+
+
+def test_fresh_core_install_is_gated_but_dictation_still_works(tmp_path, monkeypatch):
+    """A NEW user (no license, no grant) does NOT get Developer per-app profiles
+    — but plain dictation still works and is cleanly formatted. A gate must never
+    be able to break dictation itself."""
+    injected = {}
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: injected.update(text=text))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_exe",
+                        staticmethod(lambda: "code.exe"))
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_title",
+                        staticmethod(lambda: "Visual Studio Code"))
+    monkeypatch.setattr(access, "edition", lambda: "core")
+    monkeypatch.setattr(access, "grants", lambda: frozenset())   # fresh install
+    a = _make_app(tmp_path, {"context_aware": True})
+    a.transcriber.transcribe = lambda audio: "um hello from the test"
+    a._handle_transcription(_loud_audio())
+    # the code-editor profile (verbatim) is Developer-only, so it does NOT apply;
+    # the user still gets working, cleanly-formatted dictation
+    assert injected["text"] == "Hello from the test"
+    a.history.close()
+
+
+def test_unentitled_code_mode_steps_down_without_touching_config(tmp_path, monkeypatch):
+    """Dropping to Core must not rewrite the user's settings: format_mode stays
+    'code' on disk while the BEHAVIOR resolves down, so restoring a license
+    reactivates it with no reconfiguration."""
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    monkeypatch.setattr(access, "edition", lambda: "core")
+    monkeypatch.setattr(access, "grants", lambda: frozenset())
+    a = _make_app(tmp_path, {"format_mode": "code", "snippets": {"sig": "Greg"}})
+    eff = a._effective_formatting()
+    assert eff["mode"] == "clean"              # behaviour steps down
+    assert eff["snippets"] == {}               # Pro snippets withheld
+    assert a.cfg["format_mode"] == "code"      # ...but config is PRESERVED
+    assert a.cfg["snippets"] == {"sig": "Greg"}
+    a.history.close()
+
+
+def test_restoring_entitlement_reactivates_saved_paid_settings(tmp_path, monkeypatch):
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    monkeypatch.setattr(access, "edition", lambda: "developer")
+    monkeypatch.setattr(access, "grants", lambda: frozenset())
+    a = _make_app(tmp_path, {"format_mode": "code", "snippets": {"sig": "Greg"}})
+    eff = a._effective_formatting()
+    assert eff["mode"] == "code"                       # active again
+    assert eff["snippets"] == {"sig": "Greg"}
     a.history.close()
 
 

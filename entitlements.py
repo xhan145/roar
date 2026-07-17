@@ -62,30 +62,39 @@ def normalize_edition(edition):
     return CORE
 
 
-def allowed(feature, edition=None):
+def allowed(feature, edition=None, legacy_grants=frozenset()):
     """Pure decision: may `edition` use `feature`? Free features are free for
-    everyone; unknown features default to allowed (and warn — see module doc)."""
+    everyone; unknown features default to allowed (and warn — see module doc).
+
+    `legacy_grants` is an optional set of grandfathered feature IDs, passed IN by
+    the caller (see legacy_grant.py) so this module stays pure — no file I/O, no
+    UI. A grant only ever re-allows a specific feature; it never confers an
+    edition, so a signed license remains the only path to one."""
     if feature in ALWAYS_FREE:
         return True
     if feature not in _PAID:
         _log.warning("unregistered entitlement feature: %s", feature)
         return True
-    return feature in _BY_EDITION[normalize_edition(edition)]
+    if feature in _BY_EDITION[normalize_edition(edition)]:
+        return True
+    return feature in (legacy_grants or frozenset())
 
 
 # `can_use` is the name used by callers that read as a gate check; same logic.
 can_use = allowed
 
 
-def features_for_edition(edition=None):
-    """The full set of features available to `edition` (free + its paid tier)."""
-    return set(ALWAYS_FREE | _BY_EDITION[normalize_edition(edition)])
+def features_for_edition(edition=None, legacy_grants=frozenset()):
+    """The full set of features available to `edition` (free + its paid tier +
+    any grandfathered grants)."""
+    grants = frozenset(legacy_grants or frozenset()) & _PAID
+    return set(ALWAYS_FREE | _BY_EDITION[normalize_edition(edition)] | grants)
 
 
-def requires_upgrade(feature, edition=None):
-    """True only for a KNOWN paid feature this edition doesn't have. Unknown or
-    always-free features never require an upgrade."""
-    return feature in _PAID and not allowed(feature, edition)
+def requires_upgrade(feature, edition=None, legacy_grants=frozenset()):
+    """True only for a KNOWN paid feature this edition (or grant) doesn't have.
+    Unknown or always-free features never require an upgrade."""
+    return feature in _PAID and not allowed(feature, edition, legacy_grants)
 
 
 def minimum_edition_for(feature):

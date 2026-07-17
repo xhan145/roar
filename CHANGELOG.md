@@ -3,6 +3,38 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## v0.22.0 — unreleased (source)
+- Commercial editions are now real and **enforced, with grandfathering**. The
+  edition model, entitlements and offline Ed25519 licensing shipped in v0.17.0;
+  this release closes the gaps and turns the gates on.
+- **Licences actually load now.** There was no `license_path()`, so the edition
+  was always Core and no licence was ever read from disk. Licences live at
+  `%APPDATA%\ROAR\license.json` — beside config, never in the data dir that
+  history/audio clears touch, so clears and upgrades can't remove them.
+- **License service + activation UI**: paste or import a licence file, remove it,
+  buy links. Import is atomic and validates *before* replacing, so a bad paste
+  can never disturb a valid licence. Oversized input is rejected before parsing;
+  licence IDs are redacted everywhere.
+- **Grandfathering**: every paid-target feature shipped free through v0.21.0, so
+  an existing install gets a one-time grant of exactly those features — **nobody
+  loses anything they already had**. New installs are gated. A grant is feature
+  IDs only and never confers an edition; never-shipped features stay Developer-
+  only for everyone.
+- **Gates run in the backend**, not the markup: the pipeline resolves settings
+  *down* to what you're entitled to (code→clean, snippets/profiles withheld), so
+  a gate can never break plain dictation, and your paid settings are preserved —
+  drop to Core and back and everything reactivates untouched.
+- One reusable upgrade prompt, shown only on intentional paid-feature
+  interaction — never at startup, never during dictation, no countdowns, no
+  "trial expired", and Core is never called a trial.
+- Core is untouchable: dictation, offline use, privacy controls, history/audio
+  deletion and retention toggles are free in every edition, forever.
+- Docs: commercial audit, security review, release checklist; FEATURE_MATRIX
+  records the grandfathering decision and marks unbuilt features **planned**.
+- Pricing stays **$29 / $49 / $99** (the brief's $19/$29/$49 table was stale).
+  Purchase URLs + the production key remain placeholders — see
+  docs/commercial/RELEASE_CHECKLIST.md before charging.
+
 ## v0.21.0 — unreleased (source)
 - Real AMD / Intel GPU acceleration via a new **whisper.cpp Vulkan** backend
   (Vulkan is vendor-agnostic — any Vulkan-1.3 GPU). Opt-in from Settings
