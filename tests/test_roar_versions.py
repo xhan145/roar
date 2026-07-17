@@ -36,3 +36,50 @@ def test_echo_drift_and_rewrite():
     fixed = rv.rewrite_echo(text, pat, "0.16.0")
     assert '"version"] == "0.16.0"' in fixed
     assert rv.echo_drift(fixed, pat, "0.16.0") == []
+
+
+# -- GitHub release parity (pure helpers; no network in tests) ---------------
+
+def test_tag_to_version():
+    assert rv.tag_to_version("v0.22.0") == "0.22.0"
+    assert rv.tag_to_version("0.22.0") == "0.22.0"
+    assert rv.tag_to_version(" v1.0.0 ") == "1.0.0"
+    for junk in ("latest", "v1.2", "", None, "v1.2.3-beta"):
+        assert rv.tag_to_version(junk) is None
+
+
+def test_release_in_sync_is_no_drift():
+    assert rv.release_drift("0.22.0", "v0.22.0", asset_count=1) == []
+
+
+def test_stale_release_is_drift():
+    """The real failure this exists to catch: the app moved on, the download
+    everyone gets did not."""
+    drift = rv.release_drift("0.22.0", "v0.7.0", asset_count=1)
+    assert len(drift) == 1
+    assert "v0.7.0" in drift[0] and "v0.22.0" in drift[0]
+
+
+def test_no_release_at_all_is_drift():
+    drift = rv.release_drift("0.22.0", None)
+    assert len(drift) == 1 and "no GitHub release" in drift[0]
+
+
+def test_release_without_an_asset_is_drift():
+    """A tag with nothing attached means there is nothing to download."""
+    drift = rv.release_drift("0.22.0", "v0.22.0", asset_count=0)
+    assert len(drift) == 1 and "no downloadable asset" in drift[0]
+
+
+def test_nonstandard_tag_is_reported():
+    drift = rv.release_drift("0.22.0", "release-2026", asset_count=1)
+    assert any("not vX.Y.Z" in d for d in drift)
+
+
+def test_no_canonical_version_means_no_release_opinion():
+    assert rv.release_drift(None, None) == []
+
+
+def test_every_component_declares_its_github_repo():
+    for c in rv.COMPONENTS:
+        assert c.get("github"), c["name"]

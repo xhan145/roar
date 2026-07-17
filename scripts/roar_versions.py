@@ -14,15 +14,29 @@ Usage:
   python scripts/roar_versions.py            # report + (re)write VERSIONS.md
   python scripts/roar_versions.py --check    # exit 1 on any drift (CI / pre-release)
   python scripts/roar_versions.py --fix      # sync READMEs + echo files, then report
+  python scripts/roar_versions.py --github   # ALSO check the published GitHub release
   python scripts/roar_versions.py --install-hook   # add a pre-commit --check hook
 
-Pure parsing helpers (find_version / sync_badge) are unit-tested; file I/O is
-kept thin around them.
+GitHub parity (--github) answers "does what we ship match what we built?": it
+compares each component's canonical version against the latest PUBLISHED GitHub
+release and checks that release actually has a downloadable asset. It is
+deliberately OPT-IN, because `--check` runs as a pre-commit hook and a hook must
+never need the network. CI runs `--check --github` on every push instead — see
+.github/workflows/version-parity.yml.
+
+This tool NEVER publishes a release. Cutting a public release is a deliberate
+act; the checker reports drift and leaves the decision to a human.
+
+Pure parsing helpers (find_version / sync_badge / tag_to_version /
+release_drift) are unit-tested; file I/O and network are kept thin around them.
 """
 import argparse
+import json
 import os
 import re
+import subprocess
 import sys
+import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DESKTOP = os.path.dirname(HERE)                       # ...\flowlocal
@@ -45,6 +59,7 @@ COMPONENTS = [
             ("tests/test_settings_bridge.py", r's\["version"\] == "([0-9.]+)"'),
         ],
         "readme": "README.md",
+        "github": "xhan145/roar",
     },
     {
         "name": "ROAR Android",
@@ -53,6 +68,7 @@ COMPONENTS = [
                       r'versionName\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"'),
         "echo": [],
         "readme": "README.md",
+        "github": "xhan145/roar-android",
     },
 ]
 
@@ -83,6 +99,80 @@ def echo_drift(text, pattern, canonical):
             if m.group(1) != canonical]
 
 
+def tag_to_version(tag):
+    """'v0.22.0' / '0.22.0' -> '0.22.0'. Anything else -> None. Pure."""
+    if not isinstance(tag, str):
+        return None
+    m = re.match(r"^v?([0-9]+\.[0-9]+\.[0-9]+)$", tag.strip())
+    return m.group(1) if m else None
+
+
+def release_drift(canonical, latest_tag, asset_count=0):
+    """How the PUBLISHED GitHub release differs from what we built. Pure.
+
+    This is the check that catches the failure nobody notices: the app bumps to
+    v0.22.0 while the newest thing a user can actually download is v0.7.0.
+    """
+    if not canonical:
+        return []
+    if latest_tag is None:
+        return [f"no GitHub release published - users cannot download v{canonical}"]
+    published = tag_to_version(latest_tag)
+    out = []
+    if published is None:
+        out.append(f"latest release tag {latest_tag!r} is not vX.Y.Z")
+    elif published != canonical:
+        out.append(f"latest GitHub release is v{published}, but this repo builds "
+                   f"v{canonical} - publish a release")
+    if asset_count == 0:
+        out.append(f"release {latest_tag} has no downloadable asset")
+    return out
+
+
+# -- GitHub (network; opt-in, never in the pre-commit hook) -------------------
+def fetch_latest_release(repo, timeout=10):
+    """(tag, asset_count) for `repo`'s latest release; (None, 0) when there is
+    none. Returns ('?', -1) when the lookup itself failed (offline, rate-limited,
+    no auth) so callers can say "unknown" instead of crying drift. Never raises.
+    """
+    payload = _gh_api(f"repos/{repo}/releases/latest") or \
+        _http_api(f"https://api.github.com/repos/{repo}/releases/latest", timeout)
+    if payload == "none":
+        return None, 0                      # 404 -> genuinely no release yet
+    if not isinstance(payload, dict):
+        return "?", -1                      # lookup failed -> unknown
+    return payload.get("tag_name"), len(payload.get("assets") or [])
+
+
+def _gh_api(path):
+    """Use the gh CLI when present (handles auth + rate limits). None if gh is
+    unavailable; 'none' when GitHub says 404."""
+    try:
+        p = subprocess.run(["gh", "api", path], capture_output=True, timeout=20)
+    except Exception:
+        return None
+    if p.returncode != 0:
+        err = (p.stderr or b"").decode("utf-8", "ignore")
+        return "none" if "404" in err or "Not Found" in err else None
+    try:
+        return json.loads(p.stdout.decode("utf-8", "ignore"))
+    except Exception:
+        return None
+
+
+def _http_api(url, timeout):
+    """Unauthenticated fallback (public repos, 60 req/hr)."""
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json",
+                                                   "User-Agent": "roar-version-parity"})
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8", "ignore"))
+    except urllib.error.HTTPError as e:
+        return "none" if e.code == 404 else None
+    except Exception:
+        return None
+
+
 def rewrite_echo(text, pattern, canonical):
     """Rewrite every capture-group occurrence to `canonical`."""
     def repl(m):
@@ -100,10 +190,10 @@ def _read(root, rel):
         return f.read()
 
 
-def scan(component):
+def scan(component, github=False):
     root = component["root"]
     result = {"name": component["name"], "root": root, "version": None,
-              "found": os.path.isdir(root), "drift": []}
+              "found": os.path.isdir(root), "drift": [], "release": None}
     if not result["found"]:
         return result
     cfile, cpat = component["canonical"]
@@ -124,6 +214,14 @@ def scan(component):
         rtext = _read(root, component["readme"])
         if rtext is not None and f"**Version:** v{v}" not in rtext:
             result["drift"].append(f"{component['readme']} badge != v{v}")
+        # published GitHub release (opt-in: needs the network)
+        if github and component.get("github"):
+            tag, assets = fetch_latest_release(component["github"])
+            if assets == -1:
+                result["release"] = "unknown"   # lookup failed; not drift
+            else:
+                result["release"] = tag or "none"
+                result["drift"].extend(release_drift(v, tag, assets))
     return result
 
 
@@ -153,16 +251,19 @@ def apply_fix(component, version):
 def write_dashboard(results):
     lines = ["# ROAR version dashboard", "",
              "_Generated by `scripts/roar_versions.py` — do not edit by hand._",
-             "", "| Component | Version | Source | Status |",
-             "|---|---|---|---|"]
+             "", "| Component | Version | Published | Source | Status |",
+             "|---|---|---|---|---|"]
     for r in results:
+        rel = r.get("release")
+        pub = {None: "—", "none": "❌ none", "unknown": "? (offline)"}.get(rel, rel)
         if not r["found"]:
-            lines.append(f"| {r['name']} | — | not found | ⚠️ missing |")
+            lines.append(f"| {r['name']} | — | — | not found | ⚠️ missing |")
         elif r["drift"]:
-            lines.append(f"| {r['name']} | v{r['version']} | `{r['root']}` | "
+            lines.append(f"| {r['name']} | v{r['version']} | {pub} | `{r['root']}` | "
                          f"❌ {len(r['drift'])} drift |")
         else:
-            lines.append(f"| {r['name']} | v{r['version']} | `{r['root']}` | ✅ in sync |")
+            lines.append(f"| {r['name']} | v{r['version']} | {pub} | `{r['root']}` | "
+                         f"✅ in sync |")
     lines.append("")
     lines.append("Components are versioned independently (a port at v0.1 need "
                  "not match the mature app) — this table proves each one is "
@@ -187,6 +288,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="exit 1 on drift")
     ap.add_argument("--fix", action="store_true", help="sync READMEs + echo files")
+    ap.add_argument("--github", action="store_true",
+                    help="also compare the published GitHub release (needs network; "
+                         "deliberately NOT in the pre-commit hook)")
     ap.add_argument("--install-hook", action="store_true")
     args = ap.parse_args()
 
@@ -194,21 +298,23 @@ def main():
         install_hook()
         return 0
 
-    results = [scan(c) for c in COMPONENTS]
+    results = [scan(c, github=args.github) for c in COMPONENTS]
     if args.fix:
         for c, r in zip(COMPONENTS, results):
             if r["found"] and r["version"]:
                 changed = apply_fix(c, r["version"])
                 if changed:
                     print(f"fixed {r['name']}: {', '.join(changed)}")
-        results = [scan(c) for c in COMPONENTS]  # rescan post-fix
+        results = [scan(c, github=args.github) for c in COMPONENTS]  # rescan post-fix
 
     write_dashboard(results)
     drift = False
     for r in results:
         tag = ("missing" if not r["found"]
                else f"v{r['version']}" if not r["drift"] else "DRIFT")
-        print(f"{r['name']:28} {tag}")
+        rel = r.get("release")
+        suffix = f"   published: {rel}" if rel else ""
+        print(f"{r['name']:28} {tag}{suffix}")
         for d in r["drift"]:
             drift = True
             print(f"    - {d}")

@@ -1,0 +1,59 @@
+name: version parity
+
+# Answers one question on every push: does what we SHIP match what we BUILT?
+#
+# The pre-commit hook runs `--check` offline (fast, works on a plane). The
+# network half — "is the published GitHub release actually the version this repo
+# builds?" — lives here instead, so it runs automatically without ever slowing
+# down a local commit.
+#
+# This job never publishes anything. It reports drift; cutting a release stays a
+# deliberate human act.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"    # Monday 09:00 UTC — catches "we bumped but never shipped"
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Check version + published-release parity
+        id: parity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}   # lets `gh api` avoid anonymous rate limits
+        run: |
+          # pipefail is NOT on by default here: without it `| tee` would swallow
+          # the checker's exit code and drift would pass silently.
+          set -o pipefail
+          # The Android component lives in a separate repo and simply won't be
+          # present here; scan() reports it as "missing", which is not drift.
+          python scripts/roar_versions.py --check --github | tee parity.txt
+
+      - name: Publish the dashboard to the job summary
+        if: always()
+        run: |
+          {
+            echo "## ROAR version parity"
+            echo
+            echo '```'
+            cat parity.txt 2>/dev/null || echo "(no output)"
+            echo '```'
+            echo
+            if [ -f VERSIONS.md ]; then cat VERSIONS.md; fi
+          } >> "$GITHUB_STEP_SUMMARY"
