@@ -32,7 +32,7 @@ def _imported_modules(py_path):
 
 def test_commercial_modules_import_no_user_data_or_network():
     for mod in ("license.py", "entitlements.py", "commercial_config.py",
-                "upgrade_prompts.py", "license_service.py"):
+                "upgrade_prompts.py", "license_service.py", "legacy_grant.py"):
         assert not (_imported_modules(ROOT / mod) & _USER_DATA_OR_NET), mod
 
 
