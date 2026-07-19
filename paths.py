@@ -7,12 +7,41 @@ frozen runs keep config in %APPDATA%\\ROAR and models plus the log in
 import os
 import sys
 
+import platform_id
+
 APP_NAME = "ROAR"
 APP_VERSION = "0.23.0"
 
 
 def is_frozen() -> bool:
     return bool(getattr(sys, "frozen", False))
+
+
+def _xdg_home() -> str:
+    # Read HOME directly rather than os.path.expanduser("~"): on Windows,
+    # ntpath.expanduser prefers USERPROFILE over HOME, which would silently
+    # ignore a HOME override when this Linux code path is exercised (e.g. in
+    # tests) on a Windows dev box. On real Linux, HOME is what expanduser
+    # consults anyway, so behavior is unchanged there.
+    return os.environ.get("HOME") or os.path.expanduser("~")
+
+
+def _xdg_config_home() -> str:
+    return os.environ.get("XDG_CONFIG_HOME") or os.path.join(
+        _xdg_home(), ".config")
+
+
+def _xdg_data_home() -> str:
+    return os.environ.get("XDG_DATA_HOME") or os.path.join(
+        _xdg_home(), ".local", "share")
+
+
+def _linux_config_dir() -> str:
+    return os.path.join(_xdg_config_home(), APP_NAME)
+
+
+def _linux_data_dir() -> str:
+    return os.path.join(_xdg_data_home(), APP_NAME)
 
 
 def _source_root() -> str:
@@ -34,12 +63,16 @@ def _ensure(path: str) -> str:
 def config_path() -> str:
     if is_frozen():
         return os.path.join(os.environ["APPDATA"], APP_NAME, "config.json")
+    if platform_id.is_linux():
+        return os.path.join(_linux_config_dir(), "config.json")
     return os.path.join(_source_root(), "config.json")
 
 
 def models_dir() -> str:
     if is_frozen():
         return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models")
+    if platform_id.is_linux():
+        return os.path.join(_linux_data_dir(), "models")
     return os.path.join(_source_root(), "models")
 
 
@@ -51,6 +84,8 @@ def license_path() -> str:
     explicit "Remove License" deletes it."""
     if is_frozen():
         return os.path.join(os.environ["APPDATA"], APP_NAME, "license.json")
+    if platform_id.is_linux():
+        return os.path.join(_linux_config_dir(), "license.json")
     return os.path.join(_source_root(), "license.json")
 
 
@@ -60,6 +95,8 @@ def legacy_grant_path() -> str:
     license for the same upgrade-survival reasons."""
     if is_frozen():
         return os.path.join(os.environ["APPDATA"], APP_NAME, "legacy_grant.json")
+    if platform_id.is_linux():
+        return os.path.join(_linux_config_dir(), "legacy_grant.json")
     return os.path.join(_source_root(), "legacy_grant.json")
 
 
@@ -68,6 +105,8 @@ def _data_dir() -> str:
     source: project root."""
     if is_frozen():
         return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME)
+    if platform_id.is_linux():
+        return _linux_data_dir()
     return _source_root()
 
 
@@ -107,6 +146,8 @@ def resource_path(name: str) -> str:
 
 
 def log_path() -> str:
+    if platform_id.is_linux():
+        return os.path.join(_linux_data_dir(), "roar.log")
     return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "roar.log")
 
 
