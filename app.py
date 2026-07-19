@@ -1,6 +1,5 @@
 """ROAR — local voice-to-text tray app. Entry point."""
 import argparse
-import ctypes
 import os
 import queue
 import subprocess
@@ -23,6 +22,7 @@ import injector
 import ipc_commands as ipc_cmd
 import paths
 import recorder as recorder_mod
+import single_instance
 import status as status_mod
 import tray_icons
 import window_focus
@@ -31,17 +31,7 @@ from transcriber import Transcriber
 
 __version__ = paths.APP_VERSION
 
-ERROR_ALREADY_EXISTS = 183
-MUTEX_NAME = "Global\\ROARSingleton"
-
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en", "distil-large-v3"]
-
-
-def acquire_single_instance():
-    handle = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
-    if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
-        return None
-    return handle
 
 
 def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
@@ -789,8 +779,7 @@ def main():
         import settings_ui
         sys.exit(settings_ui.run_settings(smoke=args.smoke))
 
-    mutex = acquire_single_instance()
-    if mutex is None:
+    if not single_instance.acquire():
         print("ROAR: already running — exiting", flush=True)
         sys.exit(1)
 
