@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ROAR
+Comment=Local voice-to-text dictation
+Exec=roar
+Icon=roar
+Terminal=false
+Categories=Utility;Accessibility;
