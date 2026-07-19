@@ -3,6 +3,13 @@
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
+## Unreleased — Linux (experimental)
+- **ROAR runs on Ubuntu 24.04 (X11)** from the same codebase: XDG paths,
+  pynput global hotkey (self-healing), pynput/xdotool text injection, xdotool
+  focus tracking, flock single-instance, .desktop autostart, CUDA GPU via the
+  nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
+  plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
+
 ## v0.23.0 — 2026-07-17
 - **Paid editions now activate.** This build carries the production license key
   and runs in production mode, so a signed Pro/Developer/Supporter license
