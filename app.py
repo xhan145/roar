@@ -8,7 +8,6 @@ import sys
 import threading
 import time
 
-import keyboard
 import pystray
 from pystray import Menu, MenuItem as Item
 
@@ -17,6 +16,7 @@ import config as config_mod
 import context
 import editing
 import gestures
+import hotkey_listener
 import milestones
 import history as history_mod
 import injector
@@ -61,8 +61,7 @@ def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
 
 def send_backspaces(n):
     """Undo helper: one backspace per typed char (module-level, test-patchable)."""
-    for _ in range(n):
-        keyboard.send("backspace")
+    injector.send_backspaces(n)
 
 
 def diff_config(old: dict, new: dict):
@@ -100,6 +99,7 @@ class ROARApp:
         self.state = self.LOADING
         self.session_mode = None  # "ptt" | "toggle"
         self.pressed = set()
+        self._hotkeys = None
         # RLock: _start/_finish_recording call _set_state while holding it
         self.state_lock = threading.RLock()
         self.jobs = queue.Queue()
@@ -226,12 +226,11 @@ class ROARApp:
                 self._start_recording("toggle")
 
     def _register_hotkeys(self):
-        keyboard.hook(self._on_key_event)
-        toggle = self.cfg["hotkey_toggle"]
-        try:
-            keyboard.add_hotkey(toggle, self._on_toggle)
-        except ValueError:
-            keyboard.add_hotkey(toggle.replace("windows", "left windows"), self._on_toggle)
+        # rebuilt (not just restarted) each call so a live-edited hotkey_toggle
+        # is honored on rehook — the backend captures its chord at construction
+        self._hotkeys = hotkey_listener.HotkeyListener(
+            self._on_key_event, self._on_toggle, self.cfg["hotkey_toggle"])
+        self._hotkeys.start()
         self.log("hotkeys registered")
 
     # -- record / transcribe flow ------------------------------------------
@@ -669,7 +668,7 @@ class ROARApp:
                             self.cfg.get("double_tap_ms", 400) / 1000)
                     for action, arg in actions:
                         if action == "rehook":
-                            keyboard.unhook_all()
+                            self._hotkeys.stop()
                             self.pressed.clear()
                             self.ptt_chord = parse_chord(self.cfg["hotkey_ptt"])
                             self._register_hotkeys()
@@ -703,7 +702,8 @@ class ROARApp:
     def _quit(self):
         self._stop_watch.set()
         try:
-            keyboard.unhook_all()
+            if self._hotkeys is not None:
+                self._hotkeys.stop()
         except Exception:
             pass
         if self.overlay is not None:

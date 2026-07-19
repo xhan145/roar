@@ -22,3 +22,8 @@ class WindowsInjector:
                 pyperclip.copy(old)
             except Exception:
                 pass
+
+    def send_backspaces(self, n):
+        import keyboard
+        for _ in range(n):
+            keyboard.send("backspace")

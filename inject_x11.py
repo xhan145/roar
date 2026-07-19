@@ -41,3 +41,15 @@ class X11Injector:
                 pyperclip.copy(old)
             except Exception:
                 pass
+
+    def send_backspaces(self, n):
+        if self.mode == "xdotool":
+            for _ in range(n):
+                subprocess.run(["xdotool", "key", "--clearmodifiers", "BackSpace"],
+                               check=False)
+            return
+        from pynput import keyboard
+        kb = self._controller()
+        for _ in range(n):
+            kb.press(keyboard.Key.backspace)
+            kb.release(keyboard.Key.backspace)

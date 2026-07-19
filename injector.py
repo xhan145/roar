@@ -48,3 +48,10 @@ def inject_text(text, paste_fallback=False) -> bool:
     except Exception as e:
         print(f"ROAR: injection failed ({e})", flush=True)
         return False
+
+
+def send_backspaces(n) -> None:
+    try:
+        _BACKEND.send_backspaces(int(n))
+    except Exception as e:
+        print(f"ROAR: send_backspaces failed ({e})", flush=True)
