@@ -1,6 +1,5 @@
 """ROAR — local voice-to-text tray app. Entry point."""
 import argparse
-import ctypes
 import os
 import queue
 import subprocess
@@ -8,7 +7,6 @@ import sys
 import threading
 import time
 
-import keyboard
 import pystray
 from pystray import Menu, MenuItem as Item
 
@@ -17,30 +15,23 @@ import config as config_mod
 import context
 import editing
 import gestures
+import hotkey_listener
 import milestones
 import history as history_mod
 import injector
 import ipc_commands as ipc_cmd
 import paths
 import recorder as recorder_mod
+import single_instance
 import status as status_mod
 import tray_icons
+import window_focus
 from hotkeys import MODIFIER_ALIASES, parse_chord
 from transcriber import Transcriber
 
 __version__ = paths.APP_VERSION
 
-ERROR_ALREADY_EXISTS = 183
-MUTEX_NAME = "Global\\ROARSingleton"
-
 MODEL_CHOICES = ["auto", "tiny.en", "base.en", "small.en", "medium.en", "distil-large-v3"]
-
-
-def acquire_single_instance():
-    handle = ctypes.windll.kernel32.CreateMutexW(None, False, MUTEX_NAME)
-    if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
-        return None
-    return handle
 
 
 def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
@@ -60,8 +51,7 @@ def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
 
 def send_backspaces(n):
     """Undo helper: one backspace per typed char (module-level, test-patchable)."""
-    for _ in range(n):
-        keyboard.send("backspace")
+    return injector.send_backspaces(n)
 
 
 def diff_config(old: dict, new: dict):
@@ -99,6 +89,7 @@ class ROARApp:
         self.state = self.LOADING
         self.session_mode = None  # "ptt" | "toggle"
         self.pressed = set()
+        self._hotkeys = None
         # RLock: _start/_finish_recording call _set_state while holding it
         self.state_lock = threading.RLock()
         self.jobs = queue.Queue()
@@ -225,12 +216,11 @@ class ROARApp:
                 self._start_recording("toggle")
 
     def _register_hotkeys(self):
-        keyboard.hook(self._on_key_event)
-        toggle = self.cfg["hotkey_toggle"]
-        try:
-            keyboard.add_hotkey(toggle, self._on_toggle)
-        except ValueError:
-            keyboard.add_hotkey(toggle.replace("windows", "left windows"), self._on_toggle)
+        # rebuilt (not just restarted) each call so a live-edited hotkey_toggle
+        # is honored on rehook — the backend captures its chord at construction
+        self._hotkeys = hotkey_listener.HotkeyListener(
+            self._on_key_event, self._on_toggle, self.cfg["hotkey_toggle"])
+        self._hotkeys.start()
         self.log("hotkeys registered")
 
     # -- record / transcribe flow ------------------------------------------
@@ -507,66 +497,17 @@ class ROARApp:
 
     @staticmethod
     def _foreground_hwnd():
-        return ctypes.windll.user32.GetForegroundWindow()
+        return window_focus.current_id()
 
     @staticmethod
     def _foreground_exe():
         """Lowercased exe basename of the focused window, or '' on failure."""
-        try:
-            import os as _os
-            import ctypes.wintypes as wintypes
-            u32, k32 = ctypes.windll.user32, ctypes.windll.kernel32
-            # explicit signatures: default ctypes int types truncate 64-bit
-            # handles/pointers on Win64
-            u32.GetForegroundWindow.restype = wintypes.HWND
-            u32.GetWindowThreadProcessId.argtypes = [
-                wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
-            k32.OpenProcess.restype = wintypes.HANDLE
-            k32.OpenProcess.argtypes = [
-                wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
-            k32.QueryFullProcessImageNameW.argtypes = [
-                wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR,
-                ctypes.POINTER(wintypes.DWORD)]
-            k32.CloseHandle.argtypes = [wintypes.HANDLE]
-            hwnd = u32.GetForegroundWindow()
-            pid = wintypes.DWORD()
-            u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-            h = k32.OpenProcess(0x1000, False, pid.value)  # QUERY_LIMITED_INFO
-            if not h:
-                return ""
-            try:
-                buf = ctypes.create_unicode_buffer(260)
-                size = wintypes.DWORD(260)
-                k32.QueryFullProcessImageNameW(h, 0, buf, ctypes.byref(size))
-                return _os.path.basename(buf.value).lower()
-            finally:
-                k32.CloseHandle(h)
-        except Exception:
-            return ""
+        return window_focus.active_process()
 
     @staticmethod
     def _foreground_title():
         """Window title of the focused window, or '' on failure."""
-        try:
-            import ctypes.wintypes as wintypes
-            u32 = ctypes.windll.user32
-            u32.GetForegroundWindow.restype = wintypes.HWND
-            u32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
-            u32.GetWindowTextLengthW.restype = ctypes.c_int
-            u32.GetWindowTextW.argtypes = [
-                wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
-            u32.GetWindowTextW.restype = ctypes.c_int
-            hwnd = u32.GetForegroundWindow()
-            if not hwnd:
-                return ""
-            length = u32.GetWindowTextLengthW(hwnd)
-            if length <= 0:
-                return ""
-            buf = ctypes.create_unicode_buffer(length + 1)
-            u32.GetWindowTextW(hwnd, buf, length + 1)
-            return buf.value
-        except Exception:
-            return ""
+        return window_focus.active_title()
 
     def _check_milestones(self, text, rid):
         """Persist + notify any word-count milestones this dictation crossed.
@@ -595,7 +536,10 @@ class ROARApp:
             self.log("scratch refused — nothing typed here to undo")
             return
         n = editing.keystroke_len(entry.typed)
-        send_backspaces(n)
+        if send_backspaces(n) is False:
+            recorder_mod.play_tone("error", self.cfg["tones_enabled"])
+            self.log(f"scratch failed — backspaces did not land; keeping history")
+            return
         if entry.history_id is not None:
             try:
                 self.history.delete(entry.history_id)
@@ -717,7 +661,7 @@ class ROARApp:
                             self.cfg.get("double_tap_ms", 400) / 1000)
                     for action, arg in actions:
                         if action == "rehook":
-                            keyboard.unhook_all()
+                            self._hotkeys.stop()
                             self.pressed.clear()
                             self.ptt_chord = parse_chord(self.cfg["hotkey_ptt"])
                             self._register_hotkeys()
@@ -751,7 +695,8 @@ class ROARApp:
     def _quit(self):
         self._stop_watch.set()
         try:
-            keyboard.unhook_all()
+            if self._hotkeys is not None:
+                self._hotkeys.stop()
         except Exception:
             pass
         if self.overlay is not None:
@@ -834,8 +779,7 @@ def main():
         import settings_ui
         sys.exit(settings_ui.run_settings(smoke=args.smoke))
 
-    mutex = acquire_single_instance()
-    if mutex is None:
+    if not single_instance.acquire():
         print("ROAR: already running — exiting", flush=True)
         sys.exit(1)
 

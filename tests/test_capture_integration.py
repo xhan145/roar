@@ -179,6 +179,21 @@ def test_scratch_undoes_last_injection(tmp_path, monkeypatch):
     a.history.close()
 
 
+def test_scratch_keeps_history_when_backspaces_fail(tmp_path, monkeypatch):
+    monkeypatch.setattr(app_mod.ROARApp, "_foreground_hwnd",
+                        staticmethod(lambda: 42))
+    monkeypatch.setattr(app_mod, "send_backspaces", lambda n: False)
+    monkeypatch.setattr(injector, "inject_text",
+                        lambda text, paste_fallback=False: True)
+    a = _make_app(tmp_path)
+    a._handle_transcription(_loud_audio())
+    assert a.history.stats()["count"] == 1
+    a.transcriber.transcribe = lambda audio: "scratch that"
+    a._handle_transcription(_loud_audio())
+    assert a.history.stats()["count"] == 1    # history row kept — backspaces failed
+    a.history.close()
+
+
 def test_scratch_refuses_on_focus_change(tmp_path, monkeypatch):
     sent = {"backspaces": 0}
     hwnd = {"v": 42}

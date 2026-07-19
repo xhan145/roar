@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# ROAR launcher — activates the venv and runs the app.
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# when installed to ~/.local/bin, resolve the repo via a saved marker
+if [ ! -f "$ROOT/app.py" ] && [ -f "$HOME/.config/ROAR/repo_path" ]; then
+  ROOT="$(cat "$HOME/.config/ROAR/repo_path")"
+fi
+. "$ROOT/.venv/bin/activate"
+exec python "$ROOT/app.py" "$@"

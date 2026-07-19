@@ -1,0 +1,13 @@
+# ROAR runtime deps for Ubuntu 24.04 (X11). System GTK/webkit come from apt
+# (see linux/setup.sh) and are visible via --system-site-packages.
+faster-whisper
+sounddevice
+numpy
+pynput
+pyperclip
+pywebview>=5
+pystray
+pillow
+# CUDA 12 runtime for CTranslate2 GPU (NVIDIA driver must be installed on host)
+nvidia-cublas-cu12
+nvidia-cudnn-cu12

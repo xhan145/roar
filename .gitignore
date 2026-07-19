@@ -28,3 +28,7 @@ roar_developer_*.json
 roar_supporter_*.json
 *roar_license*.json
 roar_license.json
+
+# Source-run license/grant artifacts (per-user data written at repo root when run from source)
+legacy_grant.json
+license.json
