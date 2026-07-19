@@ -61,7 +61,7 @@ def record_history(hist, cfg, text, model=None, audio=None, duration_s=None):
 
 def send_backspaces(n):
     """Undo helper: one backspace per typed char (module-level, test-patchable)."""
-    injector.send_backspaces(n)
+    return injector.send_backspaces(n)
 
 
 def diff_config(old: dict, new: dict):
@@ -546,7 +546,10 @@ class ROARApp:
             self.log("scratch refused — nothing typed here to undo")
             return
         n = editing.keystroke_len(entry.typed)
-        send_backspaces(n)
+        if send_backspaces(n) is False:
+            recorder_mod.play_tone("error", self.cfg["tones_enabled"])
+            self.log(f"scratch failed — backspaces did not land; keeping history")
+            return
         if entry.history_id is not None:
             try:
                 self.history.delete(entry.history_id)
