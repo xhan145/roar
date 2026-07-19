@@ -17,9 +17,10 @@ operating systems.
 
 - **Wayland.** X11/Xorg only. Wayland blocks global hotkey capture and cross-app
   injection; supporting it needs a root `ydotool` daemon and is deferred.
-- **Vulkan GPU.** The Vulkan backend uses Windows-only prebuilt binaries. Linux
-  gets CPU by default with optional CUDA auto-detection; Vulkan is cleanly
-  unavailable, not broken.
+- **Vulkan GPU.** The Vulkan backend uses Windows-only prebuilt binaries and is
+  cleanly unavailable on Linux, not broken. **CUDA is first-class on Linux** (the
+  machine has an NVIDIA GPU) — see hardware_accel below; Vulkan is simply not the
+  Linux GPU path.
 - **A published Linux release / .deb / Flatpak.** Run-from-source + an AppImage
   recipe the owner builds on Ubuntu. No CI Linux build yet.
 
@@ -123,7 +124,10 @@ never raised, so a stuck injection can't crash dictation.
 injectors monkeypatched. Real typing is on the Ubuntu checklist (type into
 gedit / a browser field).
 
-### 3. hotkey_listener.py — global push-to-talk / toggle
+### 3. hotkey_listener.py — global push-to-talk / toggle (RELIABILITY IS THE PRIORITY)
+
+The global hotkey is the make-or-break of a dictation app; on Linux it must be
+rock-solid. It is the **#1 must-pass** item on the Ubuntu checklist.
 
 Extract the global-key listener currently inline in `app.py` behind
 `start(on_event)` / `stop()`. Windows backend wraps the `keyboard` lib (today's
@@ -131,13 +135,28 @@ behavior). Linux backend uses `pynput.keyboard.Listener`, which captures global
 key events on X11 without root. Events feed the existing `gestures.py` timing
 logic unchanged, preserving push-to-talk, toggle, and double-tap hands-free.
 
+Reliability requirements for the X11 backend:
+
+- **Never miss or wedge the key.** The listener runs on its own thread; a slow
+  transcription must not block key events. Key-down/up are delivered to
+  `gestures.py` promptly so hold/double-tap timing stays accurate.
+- **Clean start/stop and restart.** `stop()` fully tears down the pynput listener
+  (no leaked X grabs); the listener can be restarted (e.g. after a settings
+  change) without a process restart.
+- **Self-heal.** If the pynput listener thread dies, log it and attempt one
+  restart rather than silently going deaf; surface a tray/notification if it
+  can't recover, so the user is never left with a dead hotkey and no signal.
+- **Modifier hygiene.** Release-all-modifiers semantics match Windows so a held
+  modifier from the trigger never leaks into the injected text.
+
 `app.py` changes from calling `keyboard` directly to calling `hotkey_listener`.
 This is the one shared-file edit; it must keep Windows behavior identical
 (verified by the existing Windows hotkey/gesture tests).
 
-**Tests:** the existing gesture tests are unchanged (pure logic). Add a test that
-`app.py` drives `hotkey_listener.start/stop` (with a fake backend) rather than
-touching a platform lib directly.
+**Tests:** existing gesture tests unchanged (pure logic). Add tests that `app.py`
+drives `hotkey_listener.start/stop` via the seam (fake backend), that `stop()`
+after `start()` releases the backend, and that a simulated backend-thread death
+triggers exactly one restart attempt.
 
 ### 4. autostart.py — login autostart
 
@@ -157,15 +176,27 @@ X-GNOME-Autostart-enabled=true
 **Tests (Windows-runnable):** generate the `.desktop` text and assert its fields
 and the target path; assert enable-then-disable round-trips using a temp HOME.
 
-### 5. hardware_accel.py — device selection
+### 5. hardware_accel.py — device selection (CUDA is first-class)
 
-Linux branch: probe for CUDA via faster-whisper/ctranslate2 (`device="cuda"` if
-nvidia libraries are importable/available) else CPU. **No Vulkan on Linux** — the
-Vulkan option is filtered out of the available backends so the settings UI never
-offers it. CPU threading tuning (already present) applies.
+The Ubuntu machine has an **NVIDIA GPU**, so CUDA is a first-class supported
+backend on Linux, not a best-effort auto-detect:
 
-**Tests:** on Linux, `available_backends()` excludes Vulkan and includes CPU;
-CUDA appears only when the probe says so (probe monkeypatched).
+- **Backend selection:** on Linux, probe for CUDA (CTranslate2 `device="cuda"`
+  usable — the NVIDIA runtime libs are importable and `nvidia-smi` present) and
+  **prefer GPU** when available, exactly like the Windows CUDA fast path. Fall
+  back to tuned CPU if the probe fails, logged clearly.
+- **How CUDA reaches CTranslate2 on Linux:** faster-whisper/CTranslate2 need the
+  CUDA 12 cuBLAS + cuDNN runtime. Rather than depend on a system CUDA install,
+  `setup.sh` pip-installs the `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` wheels
+  into the venv (the vendor-supported recipe), and CTranslate2 loads them. The
+  host only needs a recent **NVIDIA driver** (`setup.sh` checks `nvidia-smi` and
+  warns if absent, continuing with CPU).
+- **No Vulkan on Linux** — filtered out of `available_backends()` so the settings
+  UI never offers it. CPU threading tuning still applies as the fallback.
+
+**Tests (Windows-runnable):** on Linux, `available_backends()` excludes Vulkan,
+includes CPU, and includes CUDA when the probe succeeds (probe monkeypatched);
+device preference resolves to `cuda` when CUDA is present and `cpu` otherwise.
 
 ### 6. Shared UI — code reused, system deps added
 
@@ -226,14 +257,18 @@ New `linux/` directory:
 
 **User, on Ubuntu 24.04 (X11) — the smoke checklist in docs/LINUX.md:**
 1. `linux/setup.sh` completes; `linux/roar` launches; tray icon appears.
-2. Press the hotkey, speak, release → text types into **gedit**.
-3. Repeat into a browser text field and a terminal — injection works cross-app.
-4. Double-tap hands-free toggle works; overlay pill shows recording state.
-5. Open Settings (tray → Settings) — the pywebview window renders; change a
+2. **(MUST PASS) Hotkey:** press push-to-talk, speak, release → text types into
+   **gedit**; toggle mode and double-tap hands-free both work; the hotkey keeps
+   working after several dictations and after opening/closing Settings.
+3. Injection works cross-app: repeat into a browser field and a terminal.
+4. **GPU:** the log shows `device=cuda`; a clip transcribes markedly faster than
+   CPU (confirm `nvidia-smi` shows the process). Force `device=cpu` still works.
+5. Overlay pill shows recording state.
+6. Open Settings (tray → Settings) — the pywebview window renders; change a
    setting; it persists to `~/.config/ROAR/config.json`.
-6. History records entries; delete history and audio; retention toggles work.
-7. Import a signed license (`issue_license.py` output) → edition activates.
-8. Enable autostart → `~/.config/autostart/roar.desktop` exists; log out/in →
+7. History records entries; delete history and audio; retention toggles work.
+8. Import a signed license (`issue_license.py` output) → edition activates.
+9. Enable autostart → `~/.config/autostart/roar.desktop` exists; log out/in →
    ROAR starts.
 
 ## Risks (build-blind)
@@ -242,9 +277,10 @@ New `linux/` directory:
 |---|---|---|
 | pywebview/webkit2gtk-4.1 binding mismatch | High | `--system-site-packages` venv + system `python3-gi`/`gir1.2-webkit2-4.1`; documented fallback to the Qt backend |
 | pynput `.type()` Unicode quirks | Medium | clipboard-paste + `xdotool` backends via `ROAR_INJECT_BACKEND` |
+| pynput global listener misses keys / thread dies | Medium | dedicated listener thread; one-shot self-heal restart; tray/notify on unrecoverable — hotkey is the #1 must-pass |
+| CUDA libs/driver mismatch on Linux | Medium | pip `nvidia-cublas-cu12`+`nvidia-cudnn-cu12` into venv; `setup.sh` checks `nvidia-smi`; clean CPU fallback |
 | pystray AppIndicator menu refresh quirks | Medium | GTK main-loop threading care; tray is non-critical vs the hotkey path |
 | tkinter overlay not staying on top on GNOME | Low–Med | overlay is cosmetic; tray + sounds remain |
-| CUDA libs absent | Low | CPU default; CUDA only when probed |
 | Author cannot verify Linux runtime | Certain | tight checklist + logged, non-fatal failures + env-var backend switches |
 
 ## Rollout
