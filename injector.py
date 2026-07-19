@@ -1,7 +1,8 @@
-"""Text injection: SendInput unicode typing (primary), clipboard paste (fallback)."""
-import time
+"""Text injection: platform backend types into the focused app, with a
+clipboard-paste fallback. Backend picked by platform_id + ROAR_INJECT_BACKEND."""
+import os
 
-import keyboard
+import platform_id
 
 # Backstop: never fire a runaway injection into the focused app. Real
 # dictations are a few hundred chars; snippets are capped at 2000 and the
@@ -19,6 +20,17 @@ def prepare(text):
     return text if text.endswith("\n") else text + " "
 
 
+def _select_backend():
+    if platform_id.is_linux():
+        from inject_x11 import X11Injector          # Task 6
+        return X11Injector(os.environ.get("ROAR_INJECT_BACKEND", "pynput"))
+    from inject_windows import WindowsInjector
+    return WindowsInjector()
+
+
+_BACKEND = _select_backend()
+
+
 def inject_text(text, paste_fallback=False) -> bool:
     out = prepare(text)
     if out is None:
@@ -27,25 +39,12 @@ def inject_text(text, paste_fallback=False) -> bool:
         print(f"ROAR: injection refused — {len(out)} chars exceeds the "
               f"{MAX_PASTE} safety bound", flush=True)
         return False
-    if paste_fallback:
-        return _paste(out)
-    keyboard.write(out, delay=0)  # SendInput with KEYEVENTF_UNICODE
-    return True
-
-
-def _paste(out) -> bool:
-    import pyperclip
-    old = None
     try:
-        old = pyperclip.paste()
-    except Exception:
-        pass
-    pyperclip.copy(out)
-    keyboard.send("ctrl+v")
-    time.sleep(0.8)  # let the target app read the clipboard before restoring
-    try:
-        if old is not None:
-            pyperclip.copy(old)
-    except Exception:
-        pass
-    return True
+        if paste_fallback:
+            _BACKEND.paste_text(out)
+        else:
+            _BACKEND.type_text(out)
+        return True
+    except Exception as e:
+        print(f"ROAR: injection failed ({e})", flush=True)
+        return False
