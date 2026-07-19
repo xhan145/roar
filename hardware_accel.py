@@ -12,6 +12,8 @@ never transcript text.
 """
 import os
 
+import platform_id
+
 # Performance presets tune PRECISION + beam width only (never the model), so
 # every preset stays within the models the installer already bundles offline —
 # no preset ever triggers a download. Fast trades a little accuracy for lower
@@ -91,6 +93,8 @@ def vulkan_runtime_present() -> bool:
     loadable — a cheap proxy for 'this machine can run the Vulkan backend'. The
     backend's own load() is the real gate; this just avoids offering it on
     machines with no Vulkan at all. Never raises."""
+    if platform_id.is_linux():
+        return False  # Vulkan backend ships Windows-only binaries
     try:
         import ctypes
         ctypes.WinDLL("vulkan-1")
