@@ -10,12 +10,24 @@ class _Event:
         self.name = name
 
 
+# pynput reports side-specific / platform names; fold them to the canonical
+# vocabulary app.MODIFIER_ALIASES + the default config use (ctrl/windows/alt/shift).
+# pynput calls the Super/Windows key "cmd" on its cross-platform API.
+_CANON = {
+    "ctrl_l": "ctrl", "ctrl_r": "ctrl",
+    "alt_l": "alt", "alt_r": "alt", "alt_gr": "alt",
+    "shift_l": "shift", "shift_r": "shift",
+    "cmd": "windows", "cmd_l": "windows", "cmd_r": "windows",
+    "super": "windows", "super_l": "windows", "super_r": "windows",
+}
+
+
 def _key_name(key):
     char = getattr(key, "char", None)
     if char:
         return char.lower()
-    name = getattr(key, "name", None) or str(key).replace("Key.", "")
-    return name.lower()
+    name = (getattr(key, "name", None) or str(key).replace("Key.", "")).lower()
+    return _CANON.get(name, name)
 
 
 class X11Hotkeys:
@@ -35,8 +47,7 @@ class X11Hotkeys:
         self._down.add(name)
         self._on_key_event(_Event("down", name))
         if self._chord and not self._toggle_fired and all(
-                (c in self._down) or (c == "ctrl" and "ctrl_l" in self._down)
-                for c in self._chord):
+                c in self._down for c in self._chord):
             self._toggle_fired = True
             try:
                 self._on_toggle()
@@ -47,7 +58,7 @@ class X11Hotkeys:
         name = _key_name(key)
         self._down.discard(name)
         self._on_key_event(_Event("up", name))
-        if name in self._chord or (name == "ctrl_l" and "ctrl" in self._chord):
+        if name in self._chord:
             self._toggle_fired = False
 
     def start(self):

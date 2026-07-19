@@ -98,5 +98,5 @@ relevant lines from `~/.local/share/ROAR/roar.log`.
    setting; it persists to `~/.config/ROAR/config.json`.
 7. History records entries; delete history and audio; retention toggles work.
 8. Import a signed license (`issue_license.py` output) → edition activates.
-9. Enable autostart → `~/.config/autostart/roar.desktop` exists; log out/in →
+9. Enable autostart → `~/.config/autostart/ROAR.desktop` exists; log out/in →
    ROAR starts.

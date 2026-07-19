@@ -2,6 +2,14 @@
 import sys, types
 import pytest
 
+class _NamedKey:
+    """Mimics a pynput Key/KeyCode that reports a raw platform/side-specific
+    name via .name (e.g. "ctrl_l", "cmd_l"), as opposed to the plain-string
+    stand-ins used elsewhere in this stub."""
+    def __init__(self, name):
+        self.name = name
+        self.char = None
+
 def _stub_pynput(monkeypatch, listener_holder):
     kb = types.ModuleType("pynput.keyboard")
     class KeyCode:
@@ -101,3 +109,30 @@ def test_stop_prevents_restart(monkeypatch):
     dead_listener = types.SimpleNamespace(is_alive=lambda: False)
     assert h._maybe_restart(dead_listener) is False
     assert h._restarted is False
+
+def test_key_name_canonicalizes_modifiers(monkeypatch):
+    holder = {}
+    _stub_pynput(monkeypatch, holder)
+    import importlib, hotkeys_x11; importlib.reload(hotkeys_x11)
+    assert hotkeys_x11._key_name(_NamedKey("ctrl_l")) == "ctrl"
+    assert hotkeys_x11._key_name(_NamedKey("cmd_l")) == "windows"
+    assert hotkeys_x11._key_name(_NamedKey("alt_r")) == "alt"
+    class Char:
+        char = "a"; name = None
+    assert hotkeys_x11._key_name(Char()) == "a"
+
+def test_default_config_chord_fires(monkeypatch):
+    # Regression test: pynput reports the default config's "ctrl+windows+space"
+    # modifiers as ctrl_l / cmd_l on Linux, never the literal strings "ctrl"/"windows".
+    holder = {}
+    _stub_pynput(monkeypatch, holder)
+    import importlib, hotkeys_x11; importlib.reload(hotkeys_x11)
+    fired = []
+    h = hotkeys_x11.X11Hotkeys(lambda e: None, lambda: fired.append(1),
+                               "ctrl+windows+space")
+    h.start()
+    holder["on_press"](_NamedKey("ctrl_l"))
+    holder["on_press"](_NamedKey("cmd_l"))
+    holder["on_press"](_NamedKey("space"))
+    assert fired == [1]
+    h.stop()
