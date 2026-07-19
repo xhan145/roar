@@ -10,9 +10,6 @@ class _Event:
         self.name = name
 
 
-_MOD_NAMES = {"ctrl", "alt", "shift", "cmd", "super"}
-
-
 def _key_name(key):
     char = getattr(key, "char", None)
     if char:
@@ -30,14 +27,17 @@ class X11Hotkeys:
         self._listener = None
         self._watchdog = None
         self._stopped = False
+        self._restarted = False
+        self._toggle_fired = False
 
     def _press(self, key):
         name = _key_name(key)
         self._down.add(name)
         self._on_key_event(_Event("down", name))
-        if self._chord and all(
+        if self._chord and not self._toggle_fired and all(
                 (c in self._down) or (c == "ctrl" and "ctrl_l" in self._down)
                 for c in self._chord):
+            self._toggle_fired = True
             try:
                 self._on_toggle()
             except Exception:
@@ -47,6 +47,8 @@ class X11Hotkeys:
         name = _key_name(key)
         self._down.discard(name)
         self._on_key_event(_Event("up", name))
+        if name in self._chord or (name == "ctrl_l" and "ctrl" in self._chord):
+            self._toggle_fired = False
 
     def start(self):
         from pynput import keyboard
@@ -57,22 +59,31 @@ class X11Hotkeys:
         self._watchdog = threading.Thread(target=self._watch, daemon=True)
         self._watchdog.start()
 
+    def _maybe_restart(self, listener):
+        """Decide whether to self-heal a dead listener. Returns True if a
+        restart was performed. Per-instance, once-per-lifetime budget;
+        stop() always wins the race."""
+        alive = getattr(listener, "is_alive", lambda: True)()
+        if alive or self._restarted:
+            return False
+        if self._stopped:      # stop() won the race — do not resurrect
+            return False
+        self._restarted = True
+        print("ROAR: hotkey listener died — restarting once", flush=True)
+        try:
+            self.start()
+        except Exception as e:
+            print(f"ROAR: hotkey restart failed ({e})", flush=True)
+        return True
+
     def _watch(self):
         import time
-        healed = False
         while not self._stopped:
             time.sleep(2.0)
             lis = self._listener
             if self._stopped or lis is None:
                 return
-            alive = getattr(lis, "is_alive", lambda: True)()
-            if not alive and not healed:
-                healed = True
-                print("ROAR: hotkey listener died — restarting once", flush=True)
-                try:
-                    self.start()
-                except Exception as e:
-                    print(f"ROAR: hotkey restart failed ({e})", flush=True)
+            if self._maybe_restart(lis):
                 return
 
     def stop(self):
