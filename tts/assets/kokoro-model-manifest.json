@@ -1,0 +1,54 @@
+{
+  "engine": "kokoro",
+  "model": "Kokoro-82M",
+  "model_version": "1.0",
+  "package_version": "1.0-roar.1",
+  "upstream": "hexgrad/Kokoro-82M",
+  "revision": "8542409da2986c0ab5d41b3cf0411f7a58caab38",
+  "sample_rate": 24000,
+  "approximate_disk_bytes": 329308292,
+  "files": [
+    {
+      "path": "config.json",
+      "size": 2351,
+      "sha256": "5abb01e2403b072bf03d04fde160443e209d7a0dad49a423be15196b9b43c17f",
+      "license": "Apache-2.0",
+      "origin": "https://huggingface.co/hexgrad/Kokoro-82M"
+    },
+    {
+      "path": "kokoro-v1_0.pth",
+      "size": 327212226,
+      "sha256": "496dba118d1a58f5f3db2efc88dbdc216e0483fc89fe6e47ee1f2c53f18ad1e4",
+      "license": "Apache-2.0",
+      "origin": "https://huggingface.co/hexgrad/Kokoro-82M"
+    },
+    {
+      "path": "voices/af_heart.pt",
+      "size": 523425,
+      "sha256": "0ab5709b8ffab19bfd849cd11d98f75b60af7733253ad0d67b12382a102cb4ff",
+      "license": "Apache-2.0",
+      "origin": "https://huggingface.co/hexgrad/Kokoro-82M"
+    },
+    {
+      "path": "voices/af_bella.pt",
+      "size": 523425,
+      "sha256": "8cb64e02fcc8de0327a8e13817e49c76c945ecf0052ceac97d3081480e8e48d6",
+      "license": "Apache-2.0",
+      "origin": "https://huggingface.co/hexgrad/Kokoro-82M"
+    },
+    {
+      "path": "voices/af_nicole.pt",
+      "size": 523430,
+      "sha256": "c5561808bcf5250fe8c5f5de32caf2d94f27e57e95befdb098c5c85991d4c5da",
+      "license": "Apache-2.0",
+      "origin": "https://huggingface.co/hexgrad/Kokoro-82M"
+    },
+    {
+      "path": "voices/am_michael.pt",
+      "size": 523435,
+      "sha256": "9a443b79a4b22489a5b0ab7c651a0bcd1a30bef675c28333f06971abbd47bd37",
+      "license": "Apache-2.0",
+      "origin": "https://huggingface.co/hexgrad/Kokoro-82M"
+    }
+  ]
+}
