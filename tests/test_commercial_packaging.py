@@ -121,3 +121,13 @@ def test_pyinstaller_spec_does_not_bundle_dev_tooling_or_keys():
     for banned in ("dev_generate_license", "verify_license_file",
                    "private", "secret_key", "tests/fixtures"):
         assert banned not in spec, banned
+
+
+def test_setup_blocks_an_upgrade_while_roar_is_running():
+    """An in-use same-version upgrade can strand PyInstaller runtime files."""
+    script = (ROOT / "scripts" / "build_setup.sh").read_text(encoding="utf-8")
+    assert 'tasklist /FI "IMAGENAME eq ROAR.exe"' in script
+    assert 'find /I "ROAR.exe"' in script
+    assert "Please exit ROAR" in script
+    assert "exit /b 1618" in script
+    assert "exit /b %ERRORLEVEL%" in script

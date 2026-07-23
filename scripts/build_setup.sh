@@ -39,9 +39,23 @@ cp "dist/ROAR-$VERSION.msi" dist/roar*.cab "$STAGE/"
 # install.cmd travels INSIDE the archive: the 7zSD stub launches in-archive
 # files reliably (ExecuteFile/ShellExecute); bare program names like
 # "msiexec" fail its CreateProcess path. %~dp0 = the extraction temp dir.
+#
+# Never replace the one-dir PyInstaller runtime while ROAR is running. In
+# particular, a same-version major upgrade can otherwise remove an in-use
+# base_library.zip without successfully putting it back, leaving the next
+# launch unable to import Python's encodings module.
 printf '%s\r\n' \
   '@echo off' \
-  "msiexec /i \"%~dp0ROAR-$VERSION.msi\" /qb" > "$STAGE/install.cmd"
+  'tasklist /FI "IMAGENAME eq ROAR.exe" /NH 2>NUL | find /I "ROAR.exe" >NUL' \
+  'if ERRORLEVEL 1 goto install' \
+  'echo.' \
+  'echo ROAR is currently running. Please exit ROAR from its tray icon, then run this installer again.' \
+  'echo.' \
+  'pause' \
+  'exit /b 1618' \
+  ':install' \
+  "msiexec /i \"%~dp0ROAR-$VERSION.msi\" /qb" \
+  'exit /b %ERRORLEVEL%' > "$STAGE/install.cmd"
 
 # store-mode archive: the cabs are already mszip-compressed
 rm -f build/setup-payload.7z
