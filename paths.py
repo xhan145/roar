@@ -76,6 +76,27 @@ def models_dir() -> str:
     return os.path.join(_source_root(), "models")
 
 
+def tts_dir() -> str:
+    """Per-user Read Aloud data root. Kept separate from dictation models."""
+    if platform_id.is_windows() and os.environ.get("LOCALAPPDATA"):
+        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "tts")
+    if platform_id.is_linux():
+        return os.path.join(_linux_data_dir(), "tts")
+    return os.path.join(_source_root(), "tts-data")
+
+
+def tts_model_dir() -> str:
+    """Managed, verified ROAR Local Voice Pack location."""
+    return os.path.join(tts_dir(), "kokoro")
+
+
+def tts_runtime_python() -> str:
+    """Optional isolated Python 3.12 runtime installed by the voice component."""
+    if platform_id.is_windows():
+        return os.path.join(tts_dir(), "runtime", "Scripts", "python.exe")
+    return os.path.join(tts_dir(), "runtime", "bin", "python")
+
+
 def license_path() -> str:
     """The signed license file. Deliberately beside config.json in %APPDATA%\\ROAR
     — NOT in the %LOCALAPPDATA% data dir that holds history/audio, so that a
