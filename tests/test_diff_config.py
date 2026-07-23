@@ -71,3 +71,8 @@ def test_defaults_have_acceleration_keys():
     for k in ("acceleration_mode", "performance_preset", "compute_type",
               "backend", "gpu_device_index", "prefer_low_latency", "max_vram_mode"):
         assert k in DEFAULTS
+
+
+def test_tts_change_reconfigures_only_tts():
+    old, new = _pair(tts_speed=1.2)
+    assert diff_config(old, new) == [("reload_tts_config", None)]

@@ -1,5 +1,6 @@
 """ROAR — local voice-to-text tray app. Entry point."""
 import argparse
+import ctypes
 import os
 import queue
 import subprocess
@@ -77,6 +78,9 @@ def diff_config(old: dict, new: dict):
     if (old["custom_vocabulary"] != new["custom_vocabulary"]
             or old["auto_vocabulary"] != new["auto_vocabulary"]):
         actions.append(("rebuild_hotwords", None))
+    if any(old.get(key) != new.get(key)
+           for key in set(old) | set(new) if key.startswith("tts_")):
+        actions.append(("reload_tts_config", None))
     return actions
 
 
@@ -109,6 +113,7 @@ class ROARApp:
         self._gesture_lock = threading.Lock()
         self._defer_timer = None
         self._target_hwnd = None  # window the current dictation is aimed at
+        self._tts_active_commands = set()
         self.transcriber = self._build_transcriber(cfg)
         self.model_ready = threading.Event()
         self._stop_watch = threading.Event()
@@ -118,6 +123,9 @@ class ROARApp:
         self.icon = pystray.Icon("ROAR", tray_icons.make_icon(self.LOADING),
                                  "ROAR", menu=self._build_menu())
         self.worker = threading.Thread(target=self._worker, daemon=True)
+        self.tts_service = self._build_tts_service(cfg)
+        from tts.ipc import TTSCommandServer
+        self._tts_command_server = TTSCommandServer(self._handle_tts_command)
 
     # -- logging / notifications ------------------------------------------
     def log(self, msg):
@@ -129,6 +137,51 @@ class ROARApp:
             self.icon.notify(msg, "ROAR")
         except Exception:
             pass
+
+    def _build_tts_service(self, cfg):
+        from tts.kokoro_engine import KokoroEngine
+        from tts.service import TTSService
+        from tts.types import TTSConfig
+        return TTSService(
+            KokoroEngine(), TTSConfig.from_mapping(cfg),
+            listener=self._on_tts_state, logger=self._tts_log)
+
+    def _tts_log(self, event, fields):
+        safe = " ".join(
+            f"{key}={value}" for key, value in sorted(fields.items())
+            if key in {
+                "character_count", "chunk_count", "audio_duration_ms",
+                "elapsed_ms", "first_audio_ms", "real_time_factor",
+                "error_category",
+            })
+        self.log(f"{event}" + (f" {safe}" if safe else ""))
+
+    def _on_tts_state(self, state, fields):
+        payload = {
+            "tts_state": state.value,
+            "tts_engine": "kokoro",
+            "tts_voice": self.cfg.get("tts_voice", "af_heart"),
+            "tts_language": self.cfg.get("tts_language", "en-us"),
+            "tts_sample_rate": 24000,
+        }
+        if fields.get("error_category"):
+            payload["tts_error_category"] = fields["error_category"]
+        metrics = getattr(getattr(self, "tts_service", None), "engine", None)
+        metrics = getattr(metrics, "metrics", {}) or {}
+        if metrics.get("engine_version"):
+            payload["tts_engine_version"] = metrics["engine_version"]
+        if metrics.get("model_version"):
+            payload["tts_model_version"] = metrics["model_version"]
+        if metrics.get("backend"):
+            payload["tts_device"] = metrics["backend"]
+        for source, target in (
+                ("elapsed_ms", "tts_last_elapsed_ms"),
+                ("audio_duration_ms", "tts_last_audio_duration_ms"),
+                ("first_audio_ms", "tts_last_first_audio_ms"),
+                ("real_time_factor", "tts_last_real_time_factor")):
+            if metrics.get(source) is not None:
+                payload[target] = metrics[source]
+        status_mod.write_status(**payload)
 
     # -- state ------------------------------------------------------------
     def _set_state(self, state):
@@ -162,6 +215,33 @@ class ROARApp:
             self._gesture("down")
         elif before and not after:
             self._gesture("up")
+        self._check_tts_hotkeys()
+
+    def _check_tts_hotkeys(self):
+        commands = {
+            "read_selected": self.cfg.get("tts_hotkey_read_selected", ""),
+            "read_clipboard": self.cfg.get("tts_hotkey_read_clipboard", ""),
+            "pause_resume": self.cfg.get("tts_hotkey_pause_resume", ""),
+            "stop": self.cfg.get("tts_hotkey_stop", ""),
+            "repeat": self.cfg.get("tts_hotkey_repeat", ""),
+        }
+        now = set()
+        for command, chord in commands.items():
+            parts = parse_chord(chord)
+            if parts and all(any(self._matches(p, part) for p in self.pressed)
+                             for part in parts):
+                now.add(command)
+                if command not in self._tts_active_commands:
+                    if command == "stop":
+                        self.tts_service.stop()
+                    else:
+                        threading.Thread(
+                            target=self._handle_tts_command,
+                            args=({"command": command},),
+                            name=f"ROAR-TTS-hotkey-{command}",
+                            daemon=True,
+                        ).start()
+        self._tts_active_commands = now
 
     def _gesture(self, kind):
         with self._gesture_lock:
@@ -228,6 +308,10 @@ class ROARApp:
         with self.state_lock:
             if self.state != self.IDLE:
                 return
+            if (self.cfg.get("tts_stop_when_dictation_starts", True)
+                    and getattr(self, "tts_service", None) is not None
+                    and self.tts_service.active):
+                self.tts_service.stop()
             self.session_mode = mode
             # the dictation targets the window focused when speech STARTS —
             # if focus moves before transcription lands, we refuse to type
@@ -442,6 +526,19 @@ class ROARApp:
         if editing.is_scratch(raw):
             self._scratch()
             return
+        if (self.cfg.get("tts_readback_mode") == "on_command"
+                and raw.strip().lower().rstrip(".!?") in {
+                    "read that back", "read it back", "repeat that"}):
+            if self.last_transcript:
+                try:
+                    self.tts_service.speak(
+                        self.last_transcript, source="dictation_command",
+                        remember=False)
+                except Exception:
+                    self.notify("Read Aloud is unavailable. Dictation still works normally.")
+            else:
+                self.notify("There is no previous dictation to read.")
+            return
         eff = self._effective_formatting()
         prof = (context.profile_for(
                     self._foreground_exe(),
@@ -462,9 +559,20 @@ class ROARApp:
         if not text:
             self.log("empty transcript — nothing injected")
             return
+        target = getattr(self, "_target_hwnd", None)
+        if (self.cfg.get("tts_enabled", False)
+                and self.cfg.get("tts_readback_mode") == "before"):
+            self._preview_before_insert(text, audio, tr_ms, target)
+            return
+        self._inject_final(text, audio, tr_ms, target)
+
+    def _inject_final(self, text, audio, tr_ms, target):
+        with self.state_lock:
+            if self.state == self.RECORDING:
+                self.notify("New dictation started — the pending read-back was not inserted.")
+                return
         self.last_transcript = text
         hwnd = self._foreground_hwnd()
-        target = getattr(self, "_target_hwnd", None)
         if target is not None and hwnd != target:
             # text landing in the wrong app is the one unforgivable failure —
             # refuse rather than type into whatever got focus meanwhile
@@ -494,6 +602,106 @@ class ROARApp:
         self._dictation_count += 1
         if self._dictation_count % 25 == 0:  # signature words drift slowly
             self._rebuild_hotwords()
+        if (self.cfg.get("tts_enabled", False)
+                and self.cfg.get("tts_readback_mode") == "after"):
+            try:
+                self.tts_service.speak(
+                    text, source="dictation_readback", remember=False)
+            except Exception:
+                self.notify("Dictation was inserted. Read-back is unavailable.")
+        elif (self.cfg.get("tts_enabled", False)
+              and self.cfg.get("tts_spoken_status_enabled", False)):
+            try:
+                self.tts_service.speak(
+                    "Dictation complete.", source="status", remember=False)
+            except Exception:
+                pass
+
+    def _preview_before_insert(self, text, audio, tr_ms, target):
+        """Speak, then use a standard keyboard/Narrator-friendly decision box."""
+        def decide(outcome):
+            if outcome != "completed":
+                return
+            result = self._readback_decision(
+                "Preview complete.\n\n"
+                "Yes: Accept and insert\nNo: Repeat\nCancel: Cancel")
+            if result == 6:  # IDYES
+                self._inject_final(text, audio, tr_ms, target)
+            elif result == 7:  # IDNO
+                try:
+                    self.tts_service.speak(
+                        text, source="dictation_preview", remember=False,
+                        on_complete=decide)
+                except Exception:
+                    pass
+
+        try:
+            self.tts_service.speak(
+                text, source="dictation_preview", remember=False,
+                on_complete=decide)
+        except Exception:
+            result = self._readback_decision(
+                "The local voice is unavailable. Dictation is unchanged.\n\n"
+                "Yes: Accept and insert\nCancel: Cancel")
+            if result == 6:
+                self._inject_final(text, audio, tr_ms, target)
+
+    @staticmethod
+    def _readback_decision(message):
+        if os.name != "nt":
+            return 2
+        # MB_YESNOCANCEL | MB_ICONINFORMATION | MB_SETFOREGROUND
+        return ctypes.windll.user32.MessageBoxW(
+            None, message, "ROAR Read Aloud", 0x00000003 | 0x40 | 0x10000)
+
+    def _handle_tts_command(self, message):
+        command = message.get("command")
+        try:
+            if (self.state == self.RECORDING
+                    and command in {
+                        "speak", "preview", "read_clipboard",
+                        "read_selected", "repeat", "preload",
+                    }):
+                return {"ok": False,
+                        "error": "Stop dictation before starting Read Aloud."}
+            if command in ("speak", "preview"):
+                self.tts_service.speak(
+                    message["text"],
+                    source="preview" if command == "preview" else "typed",
+                    voice=message.get("voice"),
+                    speed=message.get("speed"),
+                )
+            elif command == "read_clipboard":
+                from tts.text_sources import read_clipboard_explicit
+                self.tts_service.speak(
+                    read_clipboard_explicit(), source="clipboard")
+            elif command == "read_selected":
+                from tts.text_sources import read_selected_text
+                self.tts_service.speak(
+                    read_selected_text(
+                        clipboard_fallback=self.cfg.get(
+                            "tts_clipboard_fallback_enabled", False)),
+                    source="selected")
+            elif command == "pause_resume":
+                if not self.tts_service.pause_resume():
+                    return {"ok": False, "error": "No speech is playing."}
+            elif command == "stop":
+                self.tts_service.stop()
+            elif command == "repeat":
+                if not self.tts_service.repeat_last():
+                    return {"ok": False, "error": "Nothing has been read aloud yet."}
+            elif command == "preload":
+                if not self.tts_service.preload():
+                    return {"ok": False, "error": "Read Aloud is disabled."}
+            elif command == "unload":
+                self.tts_service.unload()
+            else:
+                return {"ok": False, "error": "Unknown Read Aloud command."}
+            return {"ok": True}
+        except Exception as exc:
+            category = type(exc).__name__
+            self.log(f"tts.command.failed error_category={category}")
+            return {"ok": False, "error": str(exc)}
 
     @staticmethod
     def _foreground_hwnd():
@@ -575,6 +783,18 @@ class ROARApp:
             Item("Input device", Menu(device_items)),
             Item("Fallback paste mode", self._toggle_paste,
                  checked=lambda item: self.cfg["paste_fallback"]),
+            Item("Read Aloud", Menu(
+                Item("Read selected text",
+                     lambda: self._handle_tts_command({"command": "read_selected"})),
+                Item("Read clipboard",
+                     lambda: self._handle_tts_command({"command": "read_clipboard"})),
+                Item("Pause or resume",
+                     lambda: self._handle_tts_command({"command": "pause_resume"})),
+                Item("Repeat last",
+                     lambda: self._handle_tts_command({"command": "repeat"})),
+                Item("Stop speech",
+                     lambda: self._handle_tts_command({"command": "stop"})),
+            )),
             Item("Settings…", self._open_settings),
             Item("Open config", self._open_config),
             Menu.SEPARATOR,
@@ -672,6 +892,10 @@ class ROARApp:
                             self.recorder.device = arg
                         elif action == "rebuild_hotwords":
                             self._rebuild_hotwords()
+                        elif action == "reload_tts_config":
+                            from tts.types import TTSConfig
+                            self.tts_service.update_config(
+                                TTSConfig.from_mapping(self.cfg))
             except OSError:
                 pass  # config briefly missing/locked — retry next tick
             # Home-dashboard remote controls (flagged off by default). Only
@@ -694,6 +918,14 @@ class ROARApp:
     # -- lifecycle -------------------------------------------------------------
     def _quit(self):
         self._stop_watch.set()
+        try:
+            self._tts_command_server.stop()
+        except Exception:
+            pass
+        try:
+            self.tts_service.shutdown()
+        except Exception:
+            pass
         try:
             if self._hotkeys is not None:
                 self._hotkeys.stop()
@@ -728,6 +960,14 @@ class ROARApp:
         self.overlay = overlay_mod.Overlay()
         self.overlay.start()
         self.worker.start()
+        try:
+            self._tts_command_server.start()
+        except Exception as exc:
+            # Read Aloud IPC is optional. A local pipe failure must not take
+            # down dictation or the tray process.
+            self.log(
+                "tts.ipc.unavailable "
+                f"error_category={type(exc).__name__}")
         self._register_hotkeys()
         threading.Thread(target=self._watch_config, daemon=True).start()
         self.icon.run(setup=self._on_tray_ready)

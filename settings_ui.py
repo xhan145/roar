@@ -45,6 +45,16 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "context_aware", "appearance", "format_mode",
                 "acceleration_mode", "performance_preset", "compute_type",
                 "backend"}
+_TTS_SETTINGS = {
+    "tts_enabled", "tts_voice", "tts_language", "tts_speed", "tts_volume",
+    "tts_output_device", "tts_readback_mode", "tts_spoken_status_enabled",
+    "tts_stop_when_dictation_starts", "tts_clipboard_fallback_enabled",
+    "tts_preload_model", "tts_unload_after_idle_minutes",
+}
+_TTS_HOTKEYS = (
+    "tts_hotkey_read_selected", "tts_hotkey_read_clipboard",
+    "tts_hotkey_pause_resume", "tts_hotkey_stop", "tts_hotkey_repeat",
+)
 RETENTION_CHOICES = {0, 1, 7, 30, 90}
 _SIDE = {"left ctrl": "ctrl", "right ctrl": "ctrl", "left shift": "shift",
          "right shift": "shift", "left alt": "alt", "alt gr": "alt",
@@ -109,18 +119,164 @@ class SettingsAPI:
 
     # -- state ---------------------------------------------------------
     def get_state(self):
+        cfg = config_mod.load(self.config_path)
         return {
-            "config": config_mod.load(self.config_path),
+            "config": cfg,
             "autostart": autostart.get(APP_NAME) is not None,
             "devices": recorder_mod.list_input_devices(),
             "models": MODEL_CHOICES,
             "version": paths.APP_VERSION,
             "config_path": self.config_path,
             "log_path": paths.log_path(),
+            "tts_enabled": cfg.get("tts_enabled", False),
+            "tts_engine": cfg.get("tts_engine", "kokoro"),
+            "tts_voice": cfg.get("tts_voice", "af_heart"),
+            "tts_language": cfg.get("tts_language", "en-us"),
+            "tts_output_device": cfg.get("tts_output_device", "default"),
+            "tts_readback_mode": cfg.get("tts_readback_mode", "off"),
+            "tts_stop_when_dictation_starts": cfg.get(
+                "tts_stop_when_dictation_starts", True),
+            "tts_preload_model": cfg.get("tts_preload_model", False),
+            "tts_unload_after_idle_minutes": cfg.get(
+                "tts_unload_after_idle_minutes", 10),
             "languages": _language_options(),
             "logo_path": paths.resource_path("assets/roar-logo-purple-256.png"),
             "edition": _license_edition(),
+            "tts": self.tts_state(cfg),
         }
+
+    def tts_state(self, cfg=None):
+        """Read-only operational state; never imports Kokoro/PyTorch."""
+        import status as status_mod
+        import time as _time
+        from tts import model_manager
+        from tts.playback import list_output_devices
+        from tts.voices import catalog
+        cfg = cfg or config_mod.load(self.config_path)
+        pack_dir = model_manager.configured_pack_dir(cfg)
+        pack = model_manager.inspect_pack(pack_dir, verify_hashes=True)
+        st = status_mod.read_status()
+        live = bool(st.get("updated_at")
+                    and _time.time() - st["updated_at"] < 15)
+        return {
+            "pack": {key: value for key, value in pack.items()
+                     if key != "path"},
+            "voices": catalog(pack_dir),
+            "output_devices": list_output_devices(),
+            "state": (st.get("tts_state") if live else None) or (
+                "unloaded" if pack["valid"] else "unavailable"),
+            "error_category": st.get("tts_error_category", ""),
+            "engine_version": st.get("tts_engine_version", ""),
+            "model_version": st.get(
+                "tts_model_version", pack.get("model_version")),
+        }
+
+    def tts_apply(self, changes):
+        if not isinstance(changes, dict) or not changes:
+            return {"error": "No Read Aloud settings were provided."}
+        if any(key not in _TTS_SETTINGS for key in changes):
+            return {"error": "A Read Aloud setting is not supported."}
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            candidate = dict(cfg)
+            candidate.update(changes)
+            if candidate.get("tts_language") != "en-us":
+                return {"error": "The verified voice pack currently supports American English."}
+            from tts.voices import VOICES
+            if candidate.get("tts_voice") not in {v.voice_id for v in VOICES}:
+                return {"error": "Unknown local voice."}
+            try:
+                speed = float(candidate.get("tts_speed"))
+                volume = float(candidate.get("tts_volume"))
+                idle = int(candidate.get("tts_unload_after_idle_minutes"))
+            except (TypeError, ValueError):
+                return {"error": "Speed, volume, and idle timeout must be numbers."}
+            if not 0.6 <= speed <= 1.6:
+                return {"error": "Speech speed must be between 0.6 and 1.6."}
+            if not 0.0 <= volume <= 1.0:
+                return {"error": "Volume must be between 0 and 1."}
+            if not 0 <= idle <= 1440:
+                return {"error": "Idle timeout must be between 0 and 1440 minutes."}
+            if candidate.get("tts_readback_mode") not in (
+                    "off", "before", "after", "on_command"):
+                return {"error": "Unknown dictation read-back mode."}
+            from tts.playback import list_output_devices
+            valid_devices = {str(item[0]) for item in list_output_devices()}
+            if str(candidate.get("tts_output_device")) not in valid_devices:
+                return {"error": "The selected output device is unavailable."}
+            for key in (
+                    "tts_enabled", "tts_spoken_status_enabled",
+                    "tts_stop_when_dictation_starts",
+                    "tts_clipboard_fallback_enabled", "tts_preload_model"):
+                if key in candidate:
+                    candidate[key] = bool(candidate[key])
+            candidate["tts_speed"] = speed
+            candidate["tts_volume"] = volume
+            candidate["tts_unload_after_idle_minutes"] = idle
+            self._write(**{key: candidate[key] for key in changes})
+        return {"ok": True}
+
+    def tts_apply_hotkeys(self, values):
+        if not isinstance(values, dict):
+            return {"error": "Hotkey values are invalid."}
+        cfg = config_mod.load(self.config_path)
+        normalized = {}
+        occupied = {
+            normalize_combo(parse_chord(cfg.get("hotkey_ptt", ""))):
+                "Push-to-talk",
+            normalize_combo(parse_chord(cfg.get("hotkey_toggle", ""))):
+                "Toggle dictation",
+        }
+        occupied.pop("", None)
+        for key in _TTS_HOTKEYS:
+            value = str(values.get(key, "") or "").strip().lower()
+            if value:
+                parts = parse_chord(value)
+                if not 1 <= len(parts) <= 4:
+                    return {"error": "Each Read Aloud hotkey must contain 1 to 4 keys."}
+                value = normalize_combo(parts)
+                if value in occupied:
+                    return {"error": f"{value} conflicts with {occupied[value]}."}
+                occupied[value] = key
+            normalized[key] = value
+        self._write(**normalized)
+        return {"ok": True}
+
+    def tts_command(self, command, text=None, voice=None, speed=None):
+        from tts.ipc import send
+        payload = {"command": command}
+        if command in ("speak", "preview"):
+            payload.update(text=text, voice=voice, speed=speed)
+        return send(payload)
+
+    def tts_import_pack(self):
+        import webview
+        from tts import model_manager
+        if _WINDOW is None:
+            return {"error": "No Settings window is available."}
+        selected = _WINDOW.create_file_dialog(webview.FOLDER_DIALOG)
+        if not selected:
+            return {"cancelled": True}
+        source = selected if isinstance(selected, str) else selected[0]
+        try:
+            # Release worker file handles before atomic replacement.
+            self.tts_command("unload")
+            result = model_manager.install_pack(source)
+            self._write(tts_model_path=None)
+            result.pop("path", None)
+            return {"ok": True, "pack": result}
+        except Exception as exc:
+            return {"error": f"Voice pack was not installed: {exc}"}
+
+    def tts_remove_pack(self):
+        from tts import model_manager
+        try:
+            self.tts_command("unload")
+            removed = model_manager.remove_pack()
+            self._write(tts_model_path=None, tts_enabled=False)
+            return {"ok": True, "removed": removed}
+        except Exception as exc:
+            return {"error": f"Voice pack could not be removed: {exc}"}
 
     def get_home_state(self):
         """Safe composite of real local state for the Home dashboard. Every
@@ -701,6 +857,13 @@ class SettingsAPI:
         info["cpu_threads"] = st.get("cpu_threads")
         info["last_transcription_duration_ms"] = st.get("last_transcription_duration_ms")
         info["fallback_reason"] = st.get("fallback_reason")
+        for key in (
+                "tts_state", "tts_engine_version", "tts_model_status",
+                "tts_model_version", "tts_device", "tts_sample_rate",
+                "tts_error_category", "tts_last_elapsed_ms",
+                "tts_last_audio_duration_ms", "tts_last_first_audio_ms",
+                "tts_last_real_time_factor"):
+            info[key] = st.get(key)
         return {"report": diagnostics.format_report(info)}
 
     def safe_mode(self):
@@ -845,6 +1008,14 @@ def run_settings(smoke=False):
                         "document.getElementById('a-logo') ? 1 : 0")
                     has_diag = window.evaluate_js(
                         "document.getElementById('b-diag-copy') ? 1 : 0")
+                    tts_nav = window.evaluate_js(
+                        "(function(){var b=document.querySelector('.nav[data-s=\"readaloud\"]');"
+                        "if(!b||b.disabled)return 0; b.click();"
+                        "return document.getElementById('readaloud').classList.contains('active')?1:0;})()")
+                    has_tts_status = window.evaluate_js(
+                        "document.getElementById('tts-status') ? 1 : 0")
+                    has_tts_stop = window.evaluate_js(
+                        "document.getElementById('tts-stop-all') ? 1 : 0")
                     has_fmt = window.evaluate_js(
                         "document.getElementById('s-format') ? 1 : 0")
                     has_accel = window.evaluate_js(
@@ -867,6 +1038,8 @@ def run_settings(smoke=False):
                           f"profiles={has_profiles} "
                           f"updates={has_updates} credits={has_credits} "
                           f"ms={has_ms} logo={has_logo} diag={has_diag} "
+                          f"ttsnav={tts_nav} ttsstatus={has_tts_status} "
+                          f"ttsstop={has_tts_stop} "
                           f"fmt={has_fmt} accel={has_accel} themeok={theme_ok}",
                           flush=True)
                 finally:

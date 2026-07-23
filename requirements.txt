@@ -9,3 +9,4 @@ numpy==2.5.0
 pywebview==6.2.1
 pytest==9.1.1
 cryptography>=42
+uiautomation==2.0.29; sys_platform == "win32"

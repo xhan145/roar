@@ -5,7 +5,7 @@ import ast
 import pathlib
 
 BANNED = {"transcriber", "faster_whisper", "ctranslate2", "hardware_accel",
-          "torch", "onnxruntime", "numpy"}
+          "torch", "onnxruntime", "numpy", "kokoro", "misaki", "transformers"}
 
 
 def _top_level_imports(py):

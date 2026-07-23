@@ -132,6 +132,14 @@
     background: var(--field); border: 1px solid var(--border); border-radius: 8px;
     padding: 7px 10px; max-width: 320px; width: 100%;
   }
+  textarea, input[type="text"], input[type="number"] {
+    background: var(--field); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; width: 100%; color: var(--text);
+  }
+  textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
+  .control-label { display:block; margin-bottom:6px; font-weight:600; }
+  .button-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .status-text { color:var(--muted); }
   input[type="range"] { width: 100%; }
   .radio { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; cursor: pointer; }
   .radio input { margin-top: 4px; accent-color: var(--accent); }
@@ -232,6 +240,14 @@
     .home-mic { width: 92px; height: 92px; }
     .home-statusbar { font-size: 11px; }
   }
+  @media (forced-colors: active) {
+    .row, .nav, .btn, select, textarea, input, .toggle {
+      forced-color-adjust: auto; border: 1px solid CanvasText;
+    }
+    .nav[aria-current="true"], .toggle[aria-pressed="true"] {
+      outline: 2px solid Highlight; box-shadow: none;
+    }
+  }
 </style>
 </head>
 <body>
@@ -243,6 +259,7 @@
     <button class="nav" data-s="history"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>History</button>
     <button class="nav" data-s="dictionary"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M5 4h13v16H7a2 2 0 0 1-2-2z"/><path d="M8 8h7M8 12h7"/></svg>Dictionary</button>
     <button class="nav" data-s="hotkeys"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h.01M15 11h.01M7 14h10"/></svg>Hotkeys</button>
+    <button class="nav" data-s="readaloud"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>Read Aloud</button>
     <button class="nav" data-s="settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Settings</button>
     <button class="nav" data-s="about"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg>About</button>
   </aside>
@@ -383,6 +400,97 @@
       <div class="msg" id="m-voice"></div>
     </section>
 
+    <section id="readaloud">
+      <h1>ROAR Read Aloud</h1>
+      <div class="row">
+        <div>Read text aloud with a natural local voice. Speech is generated on this computer and is not sent to a cloud service.</div>
+        <div class="hint" style="margin-top:6px;">ROAR does not automatically read your clipboard or screen. Reading begins only when you request it.</div>
+      </div>
+      <div class="row flex">
+        <div>Enable ROAR Read Aloud<div class="hint">Included in ROAR Core</div></div>
+        <button class="toggle" id="tts-enabled" aria-pressed="false" aria-label="Enable ROAR Read Aloud"></button>
+      </div>
+      <div class="row" aria-labelledby="tts-status-label">
+        <div id="tts-status-label">Engine status</div>
+        <div id="tts-status" class="status-text" role="status" aria-live="polite">Checking local voice pack…</div>
+        <div id="tts-disk" class="hint">Approximate optional disk use: 314 MiB voice pack plus 1.7 GiB isolated runtime (~2.0 GiB total).</div>
+        <div class="button-row">
+          <button class="btn" id="tts-install" type="button" title="Locate and verify an offline ROAR Local Voice Pack">Install or locate local voice pack</button>
+          <button class="btn" id="tts-preload" type="button" title="Load the local model without speaking">Load model now</button>
+          <button class="btn" id="tts-remove" type="button" title="Remove only the local TTS model files">Remove local voice pack</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="control-label" for="tts-voice">Voice</label>
+        <select id="tts-voice" aria-describedby="tts-voice-help"></select>
+        <div class="hint" id="tts-voice-help">Only voices verified in the installed local catalog are shown.</div>
+        <label class="control-label" for="tts-language" style="margin-top:10px;">Language</label>
+        <select id="tts-language">
+          <option value="en-us">American English (en-us)</option>
+        </select>
+      </div>
+      <div class="row">
+        <label class="control-label" for="tts-speed">Speech speed: <output id="tts-speed-value">1.0</output></label>
+        <input type="range" id="tts-speed" min="0.6" max="1.6" step="0.05" aria-label="Read Aloud speech speed">
+        <label class="control-label" for="tts-volume" style="margin-top:10px;">Volume: <output id="tts-volume-value">100%</output></label>
+        <input type="range" id="tts-volume" min="0" max="1" step="0.05" aria-label="Read Aloud volume">
+        <label class="control-label" for="tts-output" style="margin-top:10px;">Output audio device</label>
+        <select id="tts-output"></select>
+        <button class="btn" id="tts-save-voice" type="button" style="margin-top:10px;">Save voice and playback settings</button>
+      </div>
+      <div class="row">
+        <label class="control-label" for="tts-sample">Voice preview text</label>
+        <textarea id="tts-sample" maxlength="1000">This is ROAR Read Aloud, speaking locally on your computer.</textarea>
+        <div class="button-row">
+          <button class="btn primary" id="tts-preview" type="button" title="Preview this voice without changing any other setting">Preview voice</button>
+          <button class="btn" id="tts-stop-preview" type="button" title="Stop preview immediately">Stop preview</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="control-label" for="tts-text">Text to read</label>
+        <textarea id="tts-text" maxlength="20000" placeholder="Enter text for ROAR to read aloud"></textarea>
+        <div class="button-row">
+          <button class="btn primary" id="tts-speak" type="button">Read typed text</button>
+          <button class="btn" id="tts-selected" type="button" title="Read only text explicitly selected in the focused application">Read selected text</button>
+          <button class="btn" id="tts-clipboard" type="button" title="Read clipboard text only for this explicit action">Read clipboard</button>
+          <button class="btn" id="tts-stop-all" type="button" title="Stop all speech immediately">Stop all speech</button>
+        </div>
+      </div>
+      <div class="row">
+        <label class="control-label" for="tts-readback">Dictation read-back</label>
+        <select id="tts-readback" aria-describedby="tts-readback-help">
+          <option value="off">Off</option>
+          <option value="before">Preview before insertion</option>
+          <option value="after">Read after insertion</option>
+          <option value="on_command">Only when I say “read that back”</option>
+        </select>
+        <div class="hint" id="tts-readback-help">Optionally hear your dictation before or after ROAR types it.</div>
+      </div>
+      <div class="row flex">
+        <div>Stop speech when dictation starts<div class="hint">Default policy prevents acoustic feedback</div></div>
+        <button class="toggle" id="tts-stop-dictation" aria-pressed="true" aria-label="Stop speech when dictation starts"></button>
+      </div>
+      <div class="row flex">
+        <div>Spoken status confirmations<div class="hint">Off by default; does not speak clipboard or screen content</div></div>
+        <button class="toggle" id="tts-status-spoken" aria-pressed="false" aria-label="Spoken status confirmations"></button>
+      </div>
+      <div class="row flex">
+        <div>Allow explicit selection copy fallback<div class="hint">Uses Ctrl+C only after Read selected text, restores text clipboard only when no newer clipboard change occurred</div></div>
+        <button class="toggle" id="tts-clipboard-fallback" aria-pressed="false" aria-label="Allow explicit selection clipboard fallback"></button>
+      </div>
+      <div class="row">
+        <div>Global Read Aloud hotkeys</div>
+        <div class="hint" style="margin-bottom:8px;">Optional. Leave blank to avoid claiming a shortcut. Conflicts with dictation are rejected.</div>
+        <label for="tts-hk-selected">Read selected text</label><input type="text" id="tts-hk-selected" placeholder="e.g. ctrl+windows+r">
+        <label for="tts-hk-clipboard" style="display:block;margin-top:7px;">Read clipboard</label><input type="text" id="tts-hk-clipboard">
+        <label for="tts-hk-pause" style="display:block;margin-top:7px;">Pause or resume</label><input type="text" id="tts-hk-pause">
+        <label for="tts-hk-stop" style="display:block;margin-top:7px;">Stop immediately</label><input type="text" id="tts-hk-stop">
+        <label for="tts-hk-repeat" style="display:block;margin-top:7px;">Repeat last explicitly spoken text</label><input type="text" id="tts-hk-repeat">
+        <button class="btn" id="tts-apply-hotkeys" type="button" style="margin-top:10px;">Apply Read Aloud hotkeys</button>
+      </div>
+      <div class="msg" id="m-tts" role="status" aria-live="polite"></div>
+    </section>
+
     <section id="transcription">
       <h1>Transcription</h1>
       <div class="row">
@@ -485,6 +593,7 @@
       <div class="row"><div class="hint" style="margin:0;">Local, private settings — grouped. Everything opens right here in this window.</div></div>
       <button class="homesub" data-section="general" style="margin-top:4px;">General</button>
       <button class="homesub" data-section="voice">Voice &amp; Mic</button>
+      <button class="homesub" data-section="readaloud">ROAR Read Aloud</button>
       <button class="homesub" data-section="transcription">Transcription</button>
       <button class="homesub" data-section="privacy">Privacy &amp; History controls</button>
       <button class="homesub" data-section="snippets">Snippets</button>
@@ -494,10 +603,16 @@
       <h1>Insights</h1>
       <div id="ins-empty" class="row locked" style="display:none;">Dictate a few times to build your profile.</div>
       <div id="ins-body">
-        <div style="display:flex;gap:10px;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <div class="row" style="flex:1;text-align:center;"><div class="hint">Dictations</div><div class="stat" id="st-dictations">0</div></div>
           <div class="row" style="flex:1;text-align:center;"><div class="hint">Words</div><div class="stat" id="st-words">0</div></div>
           <div class="row" style="flex:1;text-align:center;"><div class="hint">Avg length</div><div class="stat" id="st-avg">0</div></div>
+          <div class="row" style="flex:1;text-align:center;min-width:130px;"
+               title="Estimate compares measured dictation recording time with typing at 40 words per minute.">
+            <div class="hint">Est. time saved</div>
+            <div class="stat" id="st-time-saved">0 min</div>
+            <div class="hint">vs. typing at 40 WPM</div>
+          </div>
         </div>
         <div class="row" id="ms-block">
           <div style="display:flex;justify-content:space-between;align-items:baseline;">
@@ -669,6 +784,7 @@ function showSection(id) {
   if (id === "insights") renderInsights();
   if (id === "snippets") renderSnippets();
   if (id === "home") startHomePolling(); else stopHomePolling();
+  if (id === "readaloud" && state) refreshTTSState(false);
 }
 document.querySelectorAll(".nav[data-s]").forEach(b => b.addEventListener("click", () => {
   if (b.disabled) return;
@@ -773,6 +889,151 @@ function msg(id, text, cls) {
 function setToggle(el, on) { el.setAttribute("aria-pressed", on ? "true" : "false"); }
 function isOn(el) { return el.getAttribute("aria-pressed") === "true"; }
 
+/* ---- ROAR Read Aloud ---- */
+let ttsWired = false;
+function ttsStatusCopy(s) {
+  if (!s || !s.pack || !s.pack.valid) return "The local voice model is not installed. Dictation will continue to work normally.";
+  const labels = {
+    unavailable: "The local voice runtime is unavailable. Dictation will continue to work normally.",
+    unloaded: "Local voice pack ready. The model will load on first use.",
+    loading: "Loading the local voice model…",
+    ready: "Ready to read aloud locally.",
+    synthesizing: "Generating speech locally…",
+    playing: "Speaking.",
+    paused: "Speech paused.",
+    stopping: "Stopping speech…",
+    error: "Read Aloud encountered an error. Dictation is unaffected."
+  };
+  return labels[s.state] || "Local voice pack ready.";
+}
+async function refreshTTSState(announce) {
+  try {
+    const s = await api().tts_state();
+    state.tts = s;
+    const status = $("tts-status");
+    status.setAttribute("aria-live", announce ? "polite" : "off");
+    status.textContent = ttsStatusCopy(s);
+    const bytes = s.pack && s.pack.disk_bytes || 0;
+    $("tts-disk").textContent = bytes
+      ? "Installed voice pack: " + (bytes / 1048576).toFixed(1) + " MiB. Isolated runtime is approximately 1.7 GiB."
+      : "Approximate optional disk use: 314 MiB voice pack plus 1.7 GiB isolated runtime (~2.0 GiB total).";
+    $("tts-remove").disabled = !(s.pack && s.pack.installed);
+    $("tts-preload").disabled = !(s.pack && s.pack.valid);
+    const voices = $("tts-voice"), selected = voices.value || state.config.tts_voice;
+    voices.innerHTML = "";
+    (s.voices || []).forEach(v => {
+      const o = document.createElement("option");
+      o.value = v.voice_id;
+      o.textContent = v.display_name + " — " + v.locale + (v.installed ? "" : " (not installed)");
+      o.disabled = !v.installed;
+      if (v.voice_id === selected) o.selected = true;
+      voices.appendChild(o);
+    });
+  } catch (e) {
+    $("tts-status").textContent = "Read Aloud status is unavailable. Dictation is unaffected.";
+  }
+}
+function renderTTS() {
+  const c = state.config, s = state.tts || {};
+  setToggle($("tts-enabled"), !!c.tts_enabled);
+  setToggle($("tts-stop-dictation"), c.tts_stop_when_dictation_starts !== false);
+  setToggle($("tts-status-spoken"), !!c.tts_spoken_status_enabled);
+  setToggle($("tts-clipboard-fallback"), !!c.tts_clipboard_fallback_enabled);
+  $("tts-language").value = c.tts_language || "en-us";
+  $("tts-speed").value = c.tts_speed == null ? 1 : c.tts_speed;
+  $("tts-volume").value = c.tts_volume == null ? 1 : c.tts_volume;
+  $("tts-speed-value").textContent = Number($("tts-speed").value).toFixed(2);
+  $("tts-volume-value").textContent = Math.round(Number($("tts-volume").value) * 100) + "%";
+  $("tts-readback").value = c.tts_readback_mode || "off";
+  const out = $("tts-output"); out.innerHTML = "";
+  (s.output_devices || [["default","System default"]]).forEach(([idx,name]) => {
+    const o = document.createElement("option");
+    o.value = String(idx); o.textContent = name;
+    if (String(idx) === String(c.tts_output_device || "default")) o.selected = true;
+    out.appendChild(o);
+  });
+  const hk = {
+    "tts-hk-selected":"tts_hotkey_read_selected",
+    "tts-hk-clipboard":"tts_hotkey_read_clipboard",
+    "tts-hk-pause":"tts_hotkey_pause_resume",
+    "tts-hk-stop":"tts_hotkey_stop",
+    "tts-hk-repeat":"tts_hotkey_repeat"
+  };
+  Object.entries(hk).forEach(([id,key]) => { $(id).value = c[key] || ""; });
+  refreshTTSState(false);
+  if (ttsWired) return;
+  ttsWired = true;
+
+  function toggleSetting(id, key) {
+    $(id).addEventListener("click", async () => {
+      const value = !isOn($(id));
+      const r = await api().tts_apply({[key]: value});
+      if (r.ok) { setToggle($(id), value); state.config[key] = value; }
+      else msg("m-tts", r.error, "err");
+    });
+  }
+  toggleSetting("tts-enabled", "tts_enabled");
+  toggleSetting("tts-stop-dictation", "tts_stop_when_dictation_starts");
+  toggleSetting("tts-status-spoken", "tts_spoken_status_enabled");
+  toggleSetting("tts-clipboard-fallback", "tts_clipboard_fallback_enabled");
+  $("tts-speed").addEventListener("input", () => $("tts-speed-value").textContent = Number($("tts-speed").value).toFixed(2));
+  $("tts-volume").addEventListener("input", () => $("tts-volume-value").textContent = Math.round(Number($("tts-volume").value) * 100) + "%");
+  $("tts-save-voice").addEventListener("click", async () => {
+    const changes = {
+      tts_voice: $("tts-voice").value,
+      tts_language: $("tts-language").value,
+      tts_speed: Number($("tts-speed").value),
+      tts_volume: Number($("tts-volume").value),
+      tts_output_device: $("tts-output").value
+    };
+    const r = await api().tts_apply(changes);
+    if (r.ok) { Object.assign(state.config, changes); msg("m-tts", "Voice and playback settings saved.", "ok"); }
+    else msg("m-tts", r.error, "err");
+  });
+  $("tts-readback").addEventListener("change", async e => {
+    const r = await api().tts_apply({tts_readback_mode:e.target.value});
+    if (r.ok) state.config.tts_readback_mode = e.target.value;
+    else msg("m-tts", r.error, "err");
+  });
+  async function command(name, text) {
+    const r = await api().tts_command(name, text || null, $("tts-voice").value, Number($("tts-speed").value));
+    if (!r.ok) msg("m-tts", r.error, "err");
+    else { msg("m-tts", name === "stop" ? "Speech stopped." : "Read Aloud command sent.", "ok"); setTimeout(() => refreshTTSState(false), 250); }
+  }
+  $("tts-preview").addEventListener("click", () => command("preview", $("tts-sample").value));
+  $("tts-stop-preview").addEventListener("click", () => command("stop"));
+  $("tts-speak").addEventListener("click", () => command("speak", $("tts-text").value));
+  $("tts-selected").addEventListener("click", () => command("read_selected"));
+  $("tts-clipboard").addEventListener("click", () => command("read_clipboard"));
+  $("tts-stop-all").addEventListener("click", () => command("stop"));
+  $("tts-preload").addEventListener("click", () => command("preload"));
+  $("tts-install").addEventListener("click", async () => {
+    msg("m-tts", "Verifying the selected offline voice pack…", "");
+    const r = await api().tts_import_pack();
+    if (r.cancelled) { msg("m-tts", "", ""); return; }
+    if (!r.ok) msg("m-tts", r.error, "err");
+    else { msg("m-tts", "Local voice pack installed and verified.", "ok"); await refreshTTSState(true); }
+  });
+  $("tts-remove").addEventListener("click", async () => {
+    if (!confirm("Remove the local voice pack? Dictation models and Read Aloud settings are not deleted.")) return;
+    const r = await api().tts_remove_pack();
+    if (!r.ok) msg("m-tts", r.error, "err");
+    else { setToggle($("tts-enabled"), false); state.config.tts_enabled = false; msg("m-tts", "Local voice pack removed. Dictation is unchanged.", "ok"); await refreshTTSState(true); }
+  });
+  $("tts-apply-hotkeys").addEventListener("click", async () => {
+    const values = {
+      tts_hotkey_read_selected:$("tts-hk-selected").value,
+      tts_hotkey_read_clipboard:$("tts-hk-clipboard").value,
+      tts_hotkey_pause_resume:$("tts-hk-pause").value,
+      tts_hotkey_stop:$("tts-hk-stop").value,
+      tts_hotkey_repeat:$("tts-hk-repeat").value
+    };
+    const r = await api().tts_apply_hotkeys(values);
+    if (!r.ok) msg("m-tts", r.error, "err");
+    else { Object.assign(state.config, values); msg("m-tts", "Read Aloud hotkeys applied.", "ok"); }
+  });
+}
+
 /* sensitivity slider <-> threshold, log scale 0.001..0.02 */
 const LG_MIN = Math.log10(0.001), LG_MAX = Math.log10(0.02);
 const sliderToThreshold = s => +Math.pow(10, LG_MIN + (LG_MAX - LG_MIN) * (s / 100)).toFixed(5);
@@ -852,6 +1113,7 @@ async function init() {
   renderVocab();
   renderAppProfiles();
   renderSnippets();
+  renderTTS();
   startHomePolling();
 }
 window.addEventListener("pywebviewready", init);
@@ -945,6 +1207,10 @@ async function renderInsights() {
   $("ins-pace").textContent = d.pace.median_wpm
     ? d.pace.median_wpm + " WPM" + (d.pace.recent_wpm ? " (" + d.pace.recent_wpm + " this week)" : "")
     : "—";
+  const savedMinutes = d.time_saved ? d.time_saved.estimated_minutes : 0;
+  $("st-time-saved").textContent = savedMinutes >= 60
+    ? (savedMinutes / 60).toFixed(1) + " hr"
+    : savedMinutes + " min";
   const tw = $("ins-topwords"); tw.innerHTML = "";
   const wmax = d.top_words.length ? d.top_words[0][1] : 1;
   d.top_words.forEach(([w, c]) => {
