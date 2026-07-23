@@ -1,5 +1,26 @@
 # Known issues & caveats
 
+- **Read Aloud is an optional English MVP**: the main installer does not
+  contain the ~314 MiB voice pack or ~1.68 GiB isolated Python runtime.
+  Import the pack explicitly in Settings and provision the runtime with the
+  developer/release script. Additional languages need separate phonemizer,
+  quality, and redistribution review.
+- **Kokoro is CPU-only in the validated optional runtime**: the tested
+  `torch==2.7.1` worker is CPU-only even on an NVIDIA system. It generated
+  faster than real time after loading, but measured cold load was ~22.2 seconds
+  and peak worker memory was ~1.44 GiB.
+- **UI Automation selections vary by application**: ROAR refuses password
+  fields and any selection whose security state cannot be established. Some
+  editors and browsers do not expose a selection. The Ctrl+C fallback is
+  separately opt-in and refuses clipboard payloads it cannot faithfully
+  preserve.
+- **Voice-pack installer integration is not complete**: Settings can import and
+  remove a verified offline pack, but WiX does not yet expose a selectable
+  optional component. The release engineer must produce, sign, and test that
+  separate component before shipping it.
+- **Read Aloud packaging smoke remains required**: source/spec checks pass, but
+  a full PyInstaller + MSI rebuild was not run in this workspace because only
+  ~3 GiB was free and the release recipe requires 5–6 GiB.
 - **Backspace-undo precision**: apps that transform typed text (auto-indent or
   autocomplete in code editors, autocorrect) can make "scratch that" counts
   imprecise. Emoji/astral undo is best-effort — backspace granularity for

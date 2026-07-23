@@ -41,6 +41,17 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
   - No remote API required.
   - No telemetry or cloud processing.
 
+- **Local Read Aloud (optional)**
+  - Kokoro-82M reads typed text, explicit clipboard text, safe UI Automation
+    selections, or completed dictation at 24 kHz.
+  - Speech generation and playback are local; generated audio stays in memory.
+  - The verified voice pack and isolated Python 3.12 runtime are optional and
+    are not bundled in the main installer.
+  - English (`en-us`) is the supported MVP language. See
+    [Read Aloud setup](docs/READ_ALOUD_DEVELOPMENT.md),
+    [privacy](docs/TTS_PRIVACY.md), and
+    [troubleshooting](docs/TTS_TROUBLESHOOTING.md).
+
 - **Windows tray app**
   - Runs quietly in the background.
   - Settings window available from the tray.
@@ -65,6 +76,8 @@ It is designed for notes, messages, prompts, documents, coding workflows, suppor
 - **Insights**
   - Local usage analytics.
   - Dictation totals.
+  - Estimated dictation time saved using measured recordings and a disclosed
+    40 WPM typing baseline.
   - Activity patterns.
   - Word and phrase insights.
 
@@ -201,6 +214,12 @@ Installing: `scripts/build_msi.sh` produces `dist/ROAR-<version>.msi` plus
 `roar*.cab` files (an `.msi` file is capped at 2 GB, so the payload lives in
 external cabinets — keep them next to the msi). `scripts/build_setup.sh` then
 wraps all of it into a single double-clickable `dist/ROAR-Setup-<version>.exe`.
+
+The optional Read Aloud pack is kept separately under
+`%LOCALAPPDATA%\ROAR\tts`. Normal ROAR upgrades do not touch it. Uninstalling
+ROAR leaves that user data in place; remove it first from
+Settings -> Read Aloud if desired. The application itself never downloads the
+pack or runtime.
 
 ---
 

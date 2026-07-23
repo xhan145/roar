@@ -99,9 +99,10 @@ will occur in the app or worker.
 
 The pinned upstream is `hexgrad/Kokoro-82M`, model v1.0, revision
 `8542409da2986c0ab5d41b3cf0411f7a58caab38`. The manifest records every file's
-SHA-256, size, origin, and license. Removal deletes only the installed TTS pack,
-never dictation models or settings. The per-user voice-pack location survives
-normal MSI upgrades.
+SHA-256, size, origin, and license, including a complete Apache-2.0 text copied
+into the offline pack. Removal deletes only the installed TTS pack, never
+dictation models or settings. The per-user voice-pack location survives normal
+MSI upgrades.
 
 ## UI and command integration
 
@@ -111,8 +112,9 @@ removal, output devices, voice preview/stop, clipboard read, typed-text read,
 and stop-all commands without importing Kokoro/PyTorch.
 
 Text-bearing commands cross from Settings to the tray through a private,
-bounded, atomic request file with restrictive permissions and one-shot deletion.
-They are never written to status or diagnostics. Clipboard reading is explicit.
+authenticated per-user Windows named pipe with a bounded schema. No request
+content is written to disk, and there is no localhost network server. Commands
+are never written to status or diagnostics. Clipboard reading is explicit.
 Selected-text retrieval prefers Windows UI Automation and fails closed for
 password/protected/unknown fields. An optional explicit copy fallback uses
 clipboard sequence numbers and restores only if no newer clipboard write won

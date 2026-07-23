@@ -16,6 +16,8 @@ for pkg in (
     "nvidia.cudnn",
     "nvidia.cuda_nvrtc",
     "webview",          # pywebview (settings window)
+    "uiautomation",     # safe selected-text UI Automation + native helper DLL
+    "comtypes",         # uiautomation COM bridge
 ):
     d, b, h = collect_all(pkg)
     datas += d
@@ -26,8 +28,13 @@ for pkg in (
 # PyInstaller's static analysis can miss — pin it so the frozen build always has
 # it available for the opt-in path.
 hiddenimports += ["whispercpp_assets", "backends", "backends.whispercpp_vulkan"]
+hiddenimports += ["uiautomation", "comtypes"]
 
 datas += [("settings.html", ".")]
+datas += [("tts/worker.py", "tts"),
+          ("tts/assets/kokoro-model-manifest.json", "tts/assets"),
+          ("licenses", "licenses"),
+          ("THIRD_PARTY_NOTICES.md", ".")]
 
 import os as _os2
 if _os2.path.isdir("assets"):

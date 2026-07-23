@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased — Read Aloud
+
+- Added optional, fully local Kokoro-82M Read Aloud for Windows with typed
+  text, explicit clipboard/selected-text commands, voice previews, long-form
+  chunking, output-device selection, pause/resume/stop/repeat, configurable
+  hotkeys, and opt-in dictation read-back.
+- Added an isolated Python 3.12 worker over standard pipes so Kokoro/PyTorch
+  never load in the Python 3.14 tray or lightweight Settings process.
+- Added a hash-pinned, atomic local voice-pack manager; no runtime download,
+  network listener, telemetry, generated-audio file, or content-bearing
+  diagnostics/status/logging.
+- Added UI Automation selected-text retrieval with secure-field fail-closed
+  behavior and an explicit opt-in clipboard fallback with sequence-race
+  protection.
+- Insights now shows estimated dictation time saved using measured recording
+  durations and a clearly disclosed 40 WPM typing baseline.
+- Added offline integration tests, fake-engine lifecycle tests, accessibility
+  checks, a local benchmark, packaging checks, privacy tests, and operator
+  documentation.
+
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
