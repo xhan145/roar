@@ -49,3 +49,19 @@ def test_tts_settings_reject_invalid_ranges(tmp_path, monkeypatch):
         lambda: [("default", "System default")])
     assert "between" in api.tts_apply({"tts_speed": 3})["error"]
     assert "not supported" in api.tts_apply({"license": "pro"})["error"]
+
+
+def test_tts_runtime_state_is_content_free(tmp_path, monkeypatch):
+    api = SettingsAPI(str(make_config(tmp_path)))
+    monkeypatch.setattr("status.read_status", lambda: {
+        "tts_state": "loading",
+        "tts_engine_version": "0.9.4",
+        "text": "private",
+        "updated_at": __import__("time").time(),
+    })
+    assert api.tts_runtime_state() == {
+        "state": "loading",
+        "error_category": "",
+        "engine_version": "0.9.4",
+        "model_version": "",
+    }

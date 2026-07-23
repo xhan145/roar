@@ -31,35 +31,40 @@ def main():
     if bool(args.download) == bool(args.source):
         parser.error("choose exactly one of --download or --source")
 
-    if args.source:
-        source = os.path.abspath(args.source)
-        result = model_manager.install_pack(source, args.destination)
-    else:
+    source = os.path.abspath(args.source) if args.source else None
+    if args.download:
         from huggingface_hub import hf_hub_download
-        manifest = model_manager.canonical_manifest()
-        parent = os.path.dirname(os.path.abspath(args.destination))
-        os.makedirs(parent, exist_ok=True)
-        stage = tempfile.mkdtemp(prefix=".kokoro-download-", dir=parent)
-        try:
-            for index, entry in enumerate(manifest["files"], 1):
-                relative = entry["path"]
-                print(f"[{index}/{len(manifest['files'])}] {relative}")
+    manifest = model_manager.canonical_manifest()
+    parent = os.path.dirname(os.path.abspath(args.destination))
+    os.makedirs(parent, exist_ok=True)
+    stage = tempfile.mkdtemp(prefix=".kokoro-prepare-", dir=parent)
+    try:
+        for index, entry in enumerate(manifest["files"], 1):
+            relative = entry["path"]
+            print(f"[{index}/{len(manifest['files'])}] {relative}")
+            target = os.path.join(stage, *relative.split("/"))
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            if relative == "LICENSE-KOKORO-82M.txt":
+                source_file = paths.resource_path(
+                    os.path.join("licenses", "Apache-2.0.txt"))
+            elif args.download:
                 cached = hf_hub_download(
                     repo_id=manifest["upstream"],
                     filename=relative,
                     revision=manifest["revision"],
                 )
-                target = os.path.join(stage, *relative.split("/"))
-                os.makedirs(os.path.dirname(target), exist_ok=True)
-                shutil.copyfile(cached, target)
-            with open(os.path.join(stage, "manifest.json"), "w",
-                      encoding="utf-8") as handle:
-                json.dump(manifest, handle, indent=2)
-            model_manager.verify_pack(stage, verify_hashes=True)
-            result = model_manager.install_pack(stage, args.destination)
-        finally:
-            if os.path.isdir(stage):
-                shutil.rmtree(stage)
+                source_file = cached
+            else:
+                source_file = os.path.join(source, *relative.split("/"))
+            shutil.copyfile(source_file, target)
+        with open(os.path.join(stage, "manifest.json"), "w",
+                  encoding="utf-8") as handle:
+            json.dump(manifest, handle, indent=2)
+        model_manager.verify_pack(stage, verify_hashes=True)
+        result = model_manager.install_pack(stage, args.destination)
+    finally:
+        if os.path.isdir(stage):
+            shutil.rmtree(stage)
     result.pop("path", None)
     print(json.dumps(result, indent=2))
 

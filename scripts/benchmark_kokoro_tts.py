@@ -27,42 +27,6 @@ TEXTS = {
 }
 
 
-def _peak_worker_memory_bytes(engine):
-    """Best-effort peak RSS for the supervised worker on Windows."""
-    if os.name != "nt" or engine._process is None:
-        return None
-    import ctypes
-    from ctypes import wintypes
-
-    class ProcessMemoryCounters(ctypes.Structure):
-        _fields_ = [
-            ("cb", wintypes.DWORD),
-            ("PageFaultCount", wintypes.DWORD),
-            ("PeakWorkingSetSize", ctypes.c_size_t),
-            ("WorkingSetSize", ctypes.c_size_t),
-            ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-            ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-            ("PagefileUsage", ctypes.c_size_t),
-            ("PeakPagefileUsage", ctypes.c_size_t),
-        ]
-
-    process = ctypes.windll.kernel32.OpenProcess(
-        0x0400 | 0x0010, False, engine._process.pid)
-    if not process:
-        return None
-    try:
-        counters = ProcessMemoryCounters()
-        counters.cb = ctypes.sizeof(counters)
-        if not ctypes.windll.psapi.GetProcessMemoryInfo(
-                process, ctypes.byref(counters), counters.cb):
-            return None
-        return int(counters.PeakWorkingSetSize)
-    finally:
-        ctypes.windll.kernel32.CloseHandle(process)
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--pack", required=True,
@@ -113,7 +77,8 @@ def main():
                 "real_time_factor": (
                     round(elapsed / duration, 3) if duration else None),
             }
-        report["peak_worker_memory_bytes"] = _peak_worker_memory_bytes(engine)
+        report["peak_worker_memory_bytes"] = engine.metrics.get(
+            "peak_memory_bytes")
     finally:
         engine.unload()
     print(json.dumps(report, indent=2))

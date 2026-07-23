@@ -891,6 +891,7 @@ function isOn(el) { return el.getAttribute("aria-pressed") === "true"; }
 
 /* ---- ROAR Read Aloud ---- */
 let ttsWired = false;
+let ttsTrackGeneration = 0;
 function ttsStatusCopy(s) {
   if (!s || !s.pack || !s.pack.valid) return "The local voice model is not installed. Dictation will continue to work normally.";
   const labels = {
@@ -929,9 +930,32 @@ async function refreshTTSState(announce) {
       if (v.voice_id === selected) o.selected = true;
       voices.appendChild(o);
     });
+    return s;
   } catch (e) {
     $("tts-status").textContent = "Read Aloud status is unavailable. Dictation is unaffected.";
+    return null;
   }
+}
+function trackTTSUntilSettled() {
+  const generation = ++ttsTrackGeneration;
+  let attempts = 0;
+  const active = new Set(["loading", "synthesizing", "playing", "stopping"]);
+  async function tick() {
+    if (generation !== ttsTrackGeneration) return;
+    let live = null;
+    try { live = await api().tts_runtime_state(); } catch (e) {}
+    if (!live) return;
+    const merged = Object.assign({}, state.tts || {}, live);
+    $("tts-status").setAttribute("aria-live", "off");
+    $("tts-status").textContent = ttsStatusCopy(merged);
+    if (active.has(live.state) && attempts++ < 450) {
+      setTimeout(tick, 800);
+    } else {
+      $("tts-status").setAttribute("aria-live", "polite");
+      $("tts-status").textContent = ttsStatusCopy(merged);
+    }
+  }
+  setTimeout(tick, 250);
 }
 function renderTTS() {
   const c = state.config, s = state.tts || {};
@@ -998,7 +1022,10 @@ function renderTTS() {
   async function command(name, text) {
     const r = await api().tts_command(name, text || null, $("tts-voice").value, Number($("tts-speed").value));
     if (!r.ok) msg("m-tts", r.error, "err");
-    else { msg("m-tts", name === "stop" ? "Speech stopped." : "Read Aloud command sent.", "ok"); setTimeout(() => refreshTTSState(false), 250); }
+    else {
+      msg("m-tts", name === "stop" ? "Speech stopped." : "Read Aloud command sent.", "ok");
+      trackTTSUntilSettled();
+    }
   }
   $("tts-preview").addEventListener("click", () => command("preview", $("tts-sample").value));
   $("tts-stop-preview").addEventListener("click", () => command("stop"));

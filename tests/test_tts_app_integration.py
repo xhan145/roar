@@ -80,6 +80,17 @@ def test_all_speech_starting_commands_are_rejected_while_recording(monkeypatch):
     assert app.tts_service.spoken == []
 
 
+def test_hotkey_and_tray_dispatch_surface_calm_errors(monkeypatch):
+    app = minimal_app(monkeypatch)
+    app.state = app.RECORDING
+    notices = []
+    app.notify = notices.append
+    result = app._dispatch_tts_command(
+        {"command": "speak", "text": "hello"})
+    assert result["ok"] is False
+    assert notices == ["Stop dictation before starting Read Aloud."]
+
+
 def test_read_aloud_code_has_no_entitlement_gate():
     from pathlib import Path
     combined = "\n".join(

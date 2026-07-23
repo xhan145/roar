@@ -25,5 +25,7 @@ def test_verified_local_kokoro_pack_generates_audio_without_download():
         assert chunks
         assert all(chunk.sample_rate == 24000 for chunk in chunks)
         assert sum(chunk.samples.size for chunk in chunks) > 2400
+        if os.name == "nt":
+            assert engine.metrics["peak_memory_bytes"] > 100 * 1024 * 1024
     finally:
         engine.unload()

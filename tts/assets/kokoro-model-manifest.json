@@ -6,8 +6,15 @@
   "upstream": "hexgrad/Kokoro-82M",
   "revision": "8542409da2986c0ab5d41b3cf0411f7a58caab38",
   "sample_rate": 24000,
-  "approximate_disk_bytes": 329308292,
+  "approximate_disk_bytes": 329319649,
   "files": [
+    {
+      "path": "LICENSE-KOKORO-82M.txt",
+      "size": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "license": "Apache-2.0",
+      "origin": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+    },
     {
       "path": "config.json",
       "size": 2351,

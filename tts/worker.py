@@ -125,6 +125,7 @@ def main():
                         "real_time_factor": (
                             round(elapsed / (audio_samples / 24000), 3)
                             if audio_samples else None),
+                        "peak_memory_bytes": _peak_memory_bytes(),
                     })
             except Exception as exc:
                 emit({"type": "error", "id": request_id,
@@ -199,6 +200,45 @@ def _category(exc):
     if isinstance(exc, (ValueError, KeyError, TypeError)):
         return "invalid_request"
     return "worker_failure"
+
+
+def _peak_memory_bytes():
+    """Best-effort peak resident memory of the actual inference process."""
+    if os.name != "nt":
+        return None
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class ProcessMemoryCounters(ctypes.Structure):
+            _fields_ = [
+                ("cb", wintypes.DWORD),
+                ("PageFaultCount", wintypes.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        counters = ProcessMemoryCounters()
+        counters.cb = ctypes.sizeof(counters)
+        process = ctypes.windll.kernel32.GetCurrentProcess()
+        get_memory = ctypes.windll.kernel32.K32GetProcessMemoryInfo
+        get_memory.restype = wintypes.BOOL
+        get_memory.argtypes = [
+            wintypes.HANDLE,
+            ctypes.POINTER(ProcessMemoryCounters),
+            wintypes.DWORD,
+        ]
+        if get_memory(process, ctypes.byref(counters), counters.cb):
+            return int(counters.PeakWorkingSetSize)
+    except Exception:
+        pass
+    return None
 
 
 if __name__ == "__main__":

@@ -171,6 +171,21 @@ class SettingsAPI:
                 "tts_model_version", pack.get("model_version")),
         }
 
+    def tts_runtime_state(self):
+        """Cheap live state for bounded UI progress polling; no model I/O."""
+        import status as status_mod
+        import time as _time
+
+        st = status_mod.read_status()
+        live = bool(st.get("updated_at")
+                    and _time.time() - st["updated_at"] < 15)
+        return {
+            "state": st.get("tts_state") if live else "unavailable",
+            "error_category": st.get("tts_error_category", ""),
+            "engine_version": st.get("tts_engine_version", ""),
+            "model_version": st.get("tts_model_version", ""),
+        }
+
     def tts_apply(self, changes):
         if not isinstance(changes, dict) or not changes:
             return {"error": "No Read Aloud settings were provided."}

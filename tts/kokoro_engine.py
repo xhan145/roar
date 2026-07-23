@@ -182,9 +182,15 @@ class KokoroEngine:
         for candidate in candidates:
             try:
                 probe = subprocess.run(
-                    candidate + ["-c", "import kokoro, torch, misaki"],
+                    candidate + [
+                        "-c",
+                        "import importlib.util,sys;"
+                        "names=('kokoro','torch','misaki');"
+                        "sys.exit(0 if all(importlib.util.find_spec(n) "
+                        "for n in names) else 1)",
+                    ],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    timeout=30, check=False,
+                    timeout=10, check=False,
                     creationflags=(getattr(subprocess, "CREATE_NO_WINDOW", 0)
                                    if os.name == "nt" else 0),
                 )
@@ -271,6 +277,23 @@ class KokoroEngine:
     def _terminate(self):
         process = self._process
         if process is not None and process.poll() is None:
+            if os.name == "nt":
+                try:
+                    # A venv python.exe may be a launcher whose real Python
+                    # interpreter is its child. Kill the tree so a timed-out
+                    # model worker cannot survive ROAR.
+                    subprocess.run(
+                        ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=5,
+                        check=False,
+                        creationflags=getattr(
+                            subprocess, "CREATE_NO_WINDOW", 0),
+                    )
+                    return
+                except (OSError, subprocess.SubprocessError):
+                    pass
             try:
                 process.terminate()
                 process.wait(timeout=2)

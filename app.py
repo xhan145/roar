@@ -163,9 +163,8 @@ class ROARApp:
             "tts_voice": self.cfg.get("tts_voice", "af_heart"),
             "tts_language": self.cfg.get("tts_language", "en-us"),
             "tts_sample_rate": 24000,
+            "tts_error_category": fields.get("error_category", ""),
         }
-        if fields.get("error_category"):
-            payload["tts_error_category"] = fields["error_category"]
         metrics = getattr(getattr(self, "tts_service", None), "engine", None)
         metrics = getattr(metrics, "metrics", {}) or {}
         if metrics.get("engine_version"):
@@ -182,6 +181,10 @@ class ROARApp:
             if metrics.get(source) is not None:
                 payload[target] = metrics[source]
         status_mod.write_status(**payload)
+        if state.value == "error":
+            self.notify(
+                "Read Aloud could not complete that request. "
+                "Dictation is unaffected.")
 
     # -- state ------------------------------------------------------------
     def _set_state(self, state):
@@ -236,7 +239,7 @@ class ROARApp:
                         self.tts_service.stop()
                     else:
                         threading.Thread(
-                            target=self._handle_tts_command,
+                            target=self._dispatch_tts_command,
                             args=({"command": command},),
                             name=f"ROAR-TTS-hotkey-{command}",
                             daemon=True,
@@ -703,6 +706,14 @@ class ROARApp:
             self.log(f"tts.command.failed error_category={category}")
             return {"ok": False, "error": str(exc)}
 
+    def _dispatch_tts_command(self, message):
+        """Tray/hotkey adapter that surfaces calm failures to the user."""
+        result = self._handle_tts_command(message)
+        if not result.get("ok"):
+            self.notify(result.get(
+                "error", "Read Aloud is unavailable. Dictation is unaffected."))
+        return result
+
     @staticmethod
     def _foreground_hwnd():
         return window_focus.current_id()
@@ -785,15 +796,15 @@ class ROARApp:
                  checked=lambda item: self.cfg["paste_fallback"]),
             Item("Read Aloud", Menu(
                 Item("Read selected text",
-                     lambda: self._handle_tts_command({"command": "read_selected"})),
+                     lambda: self._dispatch_tts_command({"command": "read_selected"})),
                 Item("Read clipboard",
-                     lambda: self._handle_tts_command({"command": "read_clipboard"})),
+                     lambda: self._dispatch_tts_command({"command": "read_clipboard"})),
                 Item("Pause or resume",
-                     lambda: self._handle_tts_command({"command": "pause_resume"})),
+                     lambda: self._dispatch_tts_command({"command": "pause_resume"})),
                 Item("Repeat last",
-                     lambda: self._handle_tts_command({"command": "repeat"})),
+                     lambda: self._dispatch_tts_command({"command": "repeat"})),
                 Item("Stop speech",
-                     lambda: self._handle_tts_command({"command": "stop"})),
+                     lambda: self._dispatch_tts_command({"command": "stop"})),
             )),
             Item("Settings…", self._open_settings),
             Item("Open config", self._open_config),

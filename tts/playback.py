@@ -8,6 +8,8 @@ import sounddevice as sd
 
 from .types import AudioChunk, CancellationToken, TTSCancelled
 
+PLAYBACK_BLOCK_SAMPLES = 2_400  # 100 ms at Kokoro's 24 kHz sample rate
+
 
 def list_output_devices():
     devices = [("default", "System default")]
@@ -51,12 +53,6 @@ class TTSPlaybackController:
         selected = None if device == "default" else device
         try:
             for chunk in chunks:
-                if cancellation_token.cancelled or self._stopped.is_set():
-                    raise TTSCancelled()
-                while self._paused.is_set():
-                    if (cancellation_token.wait(0.03)
-                            or self._stopped.wait(0.03)):
-                        raise TTSCancelled()
                 if not isinstance(chunk, AudioChunk):
                     raise ValueError("playback received an invalid audio chunk")
                 samples = np.multiply(
@@ -77,7 +73,21 @@ class TTSPlaybackController:
                     started = True
                     if on_started:
                         on_started()
-                stream.write(samples)
+                for offset in range(0, len(samples), PLAYBACK_BLOCK_SAMPLES):
+                    if cancellation_token.cancelled or self._stopped.is_set():
+                        raise TTSCancelled()
+                    while self._paused.is_set():
+                        if (cancellation_token.wait(0.03)
+                                or self._stopped.wait(0.03)):
+                            raise TTSCancelled()
+                    try:
+                        stream.write(
+                            samples[offset:offset + PLAYBACK_BLOCK_SAMPLES])
+                    except Exception:
+                        if (cancellation_token.cancelled
+                                or self._stopped.is_set()):
+                            raise TTSCancelled()
+                        raise
         finally:
             self._close_stream()
 
