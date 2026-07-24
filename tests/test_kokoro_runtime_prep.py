@@ -13,22 +13,24 @@ def test_cpu_plan_is_empty():
     assert prep.torch_install_commands("py.exe", gpu=False) == []
 
 
-def test_gpu_plan_uninstalls_then_installs_cuda_wheel():
+def test_gpu_plan_force_reinstalls_cuda_wheel_in_one_step():
     cmds = prep.torch_install_commands("py.exe", gpu=True)
-    assert len(cmds) == 2
-    # first: force the CPU torch out so the CUDA build can take its place
-    assert cmds[0][:5] == ["py.exe", "-m", "pip", "uninstall", "-y"]
-    assert cmds[0][-1] == "torch"
-    # second: install the pinned torch from the CUDA index
-    assert prep.TORCH_PIN in cmds[1]
-    assert "--index-url" in cmds[1]
-    idx = cmds[1][cmds[1].index("--index-url") + 1]
+    # A SINGLE force-reinstall — never a separate uninstall, so a failed download
+    # can't leave the runtime torch-less.
+    assert len(cmds) == 1
+    cmd = cmds[0]
+    assert "uninstall" not in cmd
+    assert "--force-reinstall" in cmd
+    assert "--no-deps" in cmd
+    assert prep.TORCH_PIN in cmd
+    assert "--index-url" in cmd
+    idx = cmd[cmd.index("--index-url") + 1]
     assert idx == "https://download.pytorch.org/whl/cu126"
 
 
 def test_gpu_plan_honors_explicit_cuda_version():
-    cmds = prep.torch_install_commands("py.exe", gpu=True, cuda="cu128")
-    idx = cmds[1][cmds[1].index("--index-url") + 1]
+    cmd = prep.torch_install_commands("py.exe", gpu=True, cuda="cu128")[0]
+    idx = cmd[cmd.index("--index-url") + 1]
     assert idx == "https://download.pytorch.org/whl/cu128"
 
 

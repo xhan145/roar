@@ -49,18 +49,24 @@ def resolve_gpu(flag):
 def torch_install_commands(python, gpu, cuda=DEFAULT_CUDA):
     """pip argv lists to get the right torch build into the runtime.
 
-    GPU: uninstall any existing torch first (pip treats 2.7.1+cpu as satisfying
-    torch==2.7.1 and would NOT swap it for the CUDA build), then install the
-    pinned torch from the CUDA index. CPU: nothing — requirements-tts.txt pulls
-    the CPU wheel from PyPI as before.
+    GPU: force-reinstall the pinned torch from the CUDA index. --force-reinstall
+    is required because pip treats an installed 2.7.1+cpu as already satisfying
+    torch==2.7.1 and would otherwise not swap it. Crucially it is a SINGLE
+    operation: pip downloads the CUDA wheel BEFORE removing the current torch,
+    so a failed or out-of-space download leaves the existing (CPU) torch intact
+    rather than a torch-less, broken runtime. CPU: nothing — requirements-tts.txt
+    pulls the CPU wheel from PyPI as before.
     """
     if not gpu:
         return []
     index = CUDA_INDEX.format(cuda=cuda)
+    # --no-deps: only torch itself is swapped. Its deps (jinja2, sympy, filelock,
+    # networkx, fsspec, typing-extensions) are identical across the CPU/CUDA
+    # builds and already installed via requirements-tts.txt; the CUDA index does
+    # not host them, so a plain --force-reinstall would fail resolving them.
     return [
-        [python, "-m", "pip", "uninstall", "-y", "torch"],
         [python, "-m", "pip", "install", "--disable-pip-version-check",
-         TORCH_PIN, "--index-url", index],
+         "--force-reinstall", "--no-deps", TORCH_PIN, "--index-url", index],
     ]
 
 
