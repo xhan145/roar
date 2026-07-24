@@ -56,6 +56,19 @@ def main():
             repo_id="hexgrad/Kokoro-82M",
             model=model,
         )
+        # First CUDA inference pays a large one-time kernel-compile / autotune
+        # (~16s here) that would otherwise land on the user's FIRST Read Aloud.
+        # Warm it now with a throwaway phrase so "ready" means genuinely fast.
+        # GPU only (CPU's first inference is already quick); never fatal.
+        if device == "cuda":
+            try:
+                warm_voice = _safe_file(
+                    args.pack, "voices/af_heart.pt", prefix="voices")
+                for _ in pipeline("ROAR.", voice=warm_voice, speed=1.0,
+                                  split_pattern=None):
+                    pass
+            except Exception:
+                pass
         emit({
             "type": "ready",
             "backend": device,
