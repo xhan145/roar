@@ -24,7 +24,11 @@ from .types import (
 )
 from .voices import get_voice
 
-STARTUP_TIMEOUT_SECONDS = 90
+# Cold start = spawn py3.12 + import torch (~15s) + import kokoro (~40s) + load
+# the 319MB model + build the pipeline. Measured ~22s idle, but 80-90s under
+# machine load — a 90s ceiling killed the slow-but-working case and produced
+# "Read Aloud does nothing". Give the one-time cold load real headroom.
+STARTUP_TIMEOUT_SECONDS = 180
 MESSAGE_TIMEOUT_SECONDS = 120
 MAX_PROTOCOL_LINE = 16 * 1024 * 1024
 

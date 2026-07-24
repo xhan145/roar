@@ -345,6 +345,12 @@ class TTSService:
                     pass
 
     def _maybe_unload_idle(self):
+        # Preload means "keep it ready": don't tear the worker down on idle, or
+        # the next request pays the full ~20-90s cold load again (the "slow"
+        # half of the Read Aloud report). Users who want the memory back turn
+        # preload off, which restores idle unloading below.
+        if self.config.preload_model:
+            return
         minutes = self.config.unload_after_idle_minutes
         if (not self._loaded or minutes <= 0 or self.active
                 or time.monotonic() - self._last_active < minutes * 60):

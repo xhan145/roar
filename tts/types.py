@@ -38,15 +38,15 @@ class TTSConfig:
     volume: float = 1.0
     output_device: object = "default"
     model_path: Optional[str] = None
-    preload_model: bool = False
-    unload_after_idle_minutes: int = 10
+    preload_model: bool = True
+    unload_after_idle_minutes: int = 30
     persistent_cache_enabled: bool = False
 
     @classmethod
     def from_mapping(cls, raw: dict) -> "TTSConfig":
         speed = _bounded_float(raw.get("tts_speed"), 1.0, MIN_SPEED, MAX_SPEED)
         volume = _bounded_float(raw.get("tts_volume"), 1.0, 0.0, 1.0)
-        idle = _bounded_int(raw.get("tts_unload_after_idle_minutes"), 10, 0, 1440)
+        idle = _bounded_int(raw.get("tts_unload_after_idle_minutes"), 30, 0, 1440)
         model_path = raw.get("tts_model_path")
         if not isinstance(model_path, str) or not model_path.strip():
             model_path = None
@@ -74,7 +74,7 @@ class TTSConfig:
             volume=volume,
             output_device=output,
             model_path=model_path,
-            preload_model=bool(raw.get("tts_preload_model", False)),
+            preload_model=bool(raw.get("tts_preload_model", True)),
             unload_after_idle_minutes=idle,
             persistent_cache_enabled=bool(
                 raw.get("tts_persistent_cache_enabled", False)),
