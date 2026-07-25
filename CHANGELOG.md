@@ -30,6 +30,17 @@ exists are marked unreleased.
   nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
   plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
 
+## v0.24.0 — 2026-07-24
+- **Read Aloud (Kokoro TTS)** — ROAR can now speak selected or typed text
+  locally and offline using the Kokoro-82M voice model. Runs in an isolated
+  Python 3.12 worker; nothing leaves your machine. The model + runtime are
+  optional downloads (Settings -> Read Aloud), never bundled in the installer.
+- **GPU acceleration** — if an NVIDIA GPU is present, the runtime installs CUDA
+  torch and synthesis runs ~10x faster (~0.35s vs ~3.4s per sentence on an RTX
+  4060). CPU still works everywhere. A one-time warm-up keeps the first request
+  fast, and the model is preloaded + kept warm so speech starts promptly.
+- Read Aloud is off until you enable it; Core dictation is unchanged.
+
 ## v0.23.0 — 2026-07-17
 - **Paid editions now activate.** This build carries the production license key
   and runs in production mode, so a signed Pro/Developer/Supporter license
