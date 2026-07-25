@@ -1,0 +1,13 @@
+# Optional isolated ROAR Read Aloud worker. Install with Python 3.12 only.
+# The main ROAR Python 3.14 environment must not install these dependencies.
+kokoro==0.9.4
+misaki[en]==0.9.4
+torch==2.7.1
+transformers==4.53.2
+huggingface-hub==0.33.4
+loguru==0.7.3
+numpy==2.2.6
+# spaCy imports Click directly but its current metadata reaches it only through
+# older Typer releases; pin explicitly so future dependency resolution cannot
+# produce an import-incomplete offline worker.
+click==8.2.1

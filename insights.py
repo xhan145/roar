@@ -24,6 +24,7 @@ STOPWORDS = frozenset(
 
 _WORD_RE = re.compile(r"[a-zA-Z']+")
 DAY = 86400
+TYPING_BASELINE_WPM = 40
 
 
 def _words(text):
@@ -68,6 +69,23 @@ def compute_insights(rows, now=None, total_words=None, unlocks=None):
         "median_wpm": round(statistics.median(wpms)) if wpms else None,
         "recent_wpm": round(statistics.median(recent_wpms)) if recent_wpms else None,
     }
+    # Conservative local estimate using only rows with a measured recording
+    # duration. It compares recording time with a disclosed 40 WPM typing
+    # baseline; processing/injection latency is not historically stored.
+    timed_rows = [
+        r for r in rows
+        if r.get("duration_s") and r["duration_s"] > 0
+        and r.get("word_count", 0) > 0
+    ]
+    typed_minutes = (
+        sum(r["word_count"] for r in timed_rows) / TYPING_BASELINE_WPM)
+    dictated_minutes = sum(r["duration_s"] for r in timed_rows) / 60.0
+    time_saved = {
+        "estimated_minutes": round(
+            max(0.0, typed_minutes - dictated_minutes), 1),
+        "typing_baseline_wpm": TYPING_BASELINE_WPM,
+        "measured_dictations": len(timed_rows),
+    }
 
     counter = Counter()
     for r in rows:
@@ -97,6 +115,7 @@ def compute_insights(rows, now=None, total_words=None, unlocks=None):
         "totals": {"dictations": dictations, "words": words_total, "avg_words": avg_words},
         "activity": activity,
         "pace": pace,
+        "time_saved": time_saved,
         "top_words": top_words,
         "signature_words": signature_words,
         "profile_sentences": sentences,

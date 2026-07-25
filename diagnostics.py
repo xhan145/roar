@@ -21,6 +21,14 @@ SAFE_KEYS = frozenset({
     "last_injection_duration_ms",
     "acceleration_mode", "performance_preset", "backend", "compute_type",
     "fallback_reason", "cpu_threads",
+    "tts_enabled", "tts_engine", "tts_engine_version", "tts_state", "tts_model_status",
+    "tts_model_version", "tts_voice", "tts_language", "tts_device",
+    "tts_sample_rate", "tts_error_category", "tts_output_device",
+    "tts_readback_mode", "tts_stop_when_dictation_starts",
+    "tts_clipboard_fallback_enabled", "tts_preload_model",
+    "tts_unload_after_idle_minutes", "tts_last_elapsed_ms",
+    "tts_last_audio_duration_ms", "tts_last_first_audio_ms",
+    "tts_last_real_time_factor",
 })
 
 # Belt-and-braces on the ALLOWLISTED set only. Substrings must not collide with

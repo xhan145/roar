@@ -45,6 +45,28 @@ DEFAULTS = {
     "performance_preset": "balanced",  # fast | balanced | accurate
     "backend": "auto",                 # auto | ct2 | onnx_directml | whispercpp_vulkan
     "cpu_threads": 0,                  # 0 = auto (physical-core estimate); >0 = explicit
+    # --- ROAR Read Aloud (Core, local-only, privacy-sensitive defaults off) ---
+    "tts_enabled": False,
+    "tts_engine": "kokoro",
+    "tts_voice": "af_heart",
+    "tts_language": "en-us",
+    "tts_speed": 1.0,
+    "tts_volume": 1.0,
+    "tts_output_device": "default",
+    "tts_readback_mode": "off",       # off | before | after | on_command
+    "tts_spoken_status_enabled": False,
+    "tts_stop_when_dictation_starts": True,
+    "tts_clipboard_fallback_enabled": False,
+    "tts_model_path": None,
+    "tts_preload_model": False,
+    "tts_unload_after_idle_minutes": 10,
+    "tts_persistent_cache_enabled": False,
+    # Empty by default: never claim a global chord without user configuration.
+    "tts_hotkey_read_selected": "",
+    "tts_hotkey_read_clipboard": "",
+    "tts_hotkey_pause_resume": "",
+    "tts_hotkey_stop": "",
+    "tts_hotkey_repeat": "",
     # --- commercial ---
     # The active edition is NEVER stored here: only a signed license (see
     # license_service) is authoritative — a config key could simply be edited.
@@ -167,6 +189,54 @@ def load(path=None):
                             and isinstance(v, str) and v.startswith("https://")}
         elif key in ("prefer_low_latency", "max_vram_mode"):
             cfg[key] = bool(value)
+        elif key in (
+                "tts_enabled", "tts_spoken_status_enabled",
+                "tts_stop_when_dictation_starts",
+                "tts_clipboard_fallback_enabled", "tts_preload_model",
+                "tts_persistent_cache_enabled"):
+            cfg[key] = bool(value)
+        elif key == "tts_engine":
+            if value == "kokoro":
+                cfg[key] = value
+        elif key == "tts_language":
+            if value in ("en-us", "en-gb"):
+                cfg[key] = value
+        elif key == "tts_voice":
+            if isinstance(value, str) and value.strip():
+                cfg[key] = value.strip()[:40]
+        elif key in ("tts_speed", "tts_volume"):
+            try:
+                number = float(value)
+                if number == number and abs(number) != float("inf"):
+                    low, high = ((0.6, 1.6) if key == "tts_speed"
+                                 else (0.0, 1.0))
+                    cfg[key] = min(high, max(low, number))
+            except (TypeError, ValueError):
+                pass
+        elif key == "tts_output_device":
+            if value == "default":
+                cfg[key] = value
+            else:
+                try:
+                    cfg[key] = max(0, int(value))
+                except (TypeError, ValueError):
+                    pass
+        elif key == "tts_readback_mode":
+            if value in ("off", "before", "after", "on_command"):
+                cfg[key] = value
+        elif key == "tts_model_path":
+            cfg[key] = (value.strip() if isinstance(value, str)
+                        and value.strip() else None)
+        elif key == "tts_unload_after_idle_minutes":
+            try:
+                cfg[key] = min(1440, max(0, int(value)))
+            except (TypeError, ValueError):
+                pass
+        elif key in (
+                "tts_hotkey_read_selected", "tts_hotkey_read_clipboard",
+                "tts_hotkey_pause_resume", "tts_hotkey_stop",
+                "tts_hotkey_repeat"):
+            cfg[key] = value.strip().lower() if isinstance(value, str) else ""
         else:
             cfg[key] = value
     return cfg

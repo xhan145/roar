@@ -16,6 +16,11 @@ def test_empty_history():
     assert len(r["activity"]) == 14
     assert all(d["dictations"] == 0 for d in r["activity"])
     assert r["pace"] == {"median_wpm": None, "recent_wpm": None}
+    assert r["time_saved"] == {
+        "estimated_minutes": 0.0,
+        "typing_baseline_wpm": 40,
+        "measured_dictations": 0,
+    }
     assert r["top_words"] == [] and r["signature_words"] == []
     assert r["profile_sentences"] == []
 
@@ -70,6 +75,25 @@ def test_pace_median_and_recent():
     # tiny durations are excluded
     r2 = compute_insights([_row("hi there", NOW, dur=0.2)], now=NOW)
     assert r2["pace"]["median_wpm"] is None
+
+
+def test_time_saved_is_estimated_from_measured_rows_only():
+    rows = [
+        _row(" ".join(["word"] * 80), NOW, dur=60.0),
+        _row(" ".join(["word"] * 40), NOW, dur=None),
+    ]
+    saved = compute_insights(rows, now=NOW)["time_saved"]
+    assert saved == {
+        "estimated_minutes": 1.0,
+        "typing_baseline_wpm": 40,
+        "measured_dictations": 1,
+    }
+
+
+def test_time_saved_never_goes_negative():
+    row = _row(" ".join(["word"] * 10), NOW, dur=120.0)
+    assert compute_insights([row], now=NOW)[
+        "time_saved"]["estimated_minutes"] == 0.0
 
 
 def test_profile_sentences_thresholds():

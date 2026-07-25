@@ -21,6 +21,12 @@ ALLOWED = frozenset({
     "last_record_duration_ms", "last_transcription_duration_ms",
     "last_injection_duration_ms", "backend", "compute_type", "fallback_reason",
     "cpu_threads",
+    # Read Aloud operational facts. Never text, phonemes, clipboard, or audio.
+    "tts_state", "tts_engine", "tts_engine_version", "tts_model_status",
+    "tts_model_version",
+    "tts_voice", "tts_language", "tts_device", "tts_sample_rate",
+    "tts_error_category", "tts_last_elapsed_ms", "tts_last_audio_duration_ms",
+    "tts_last_first_audio_ms", "tts_last_real_time_factor",
 })
 
 
