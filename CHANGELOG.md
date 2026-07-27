@@ -30,6 +30,19 @@ exists are marked unreleased.
   nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
   plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
 
+## v0.25.0 — 2026-07-24
+- **Teach ROAR the words it mishears.** If a word comes out wrong every time,
+  fix it once and ROAR remembers. It rewrites that word in future dictations —
+  and adds what you meant to its vocabulary, so the recognizer is more likely to
+  hear it right in the first place.
+  - **From History:** press *Teach ROAR* on a past dictation, fix the word in
+    place, confirm. ROAR works out which word changed.
+  - **From Settings → Dictionary → Corrections:** type what it heard → what you
+    meant.
+  - Corrections are local, yours, and free in every edition. They never absorb
+    your punctuation — only the misheard word changes.
+- Landing page now covers Read Aloud and personal corrections.
+
 ## v0.24.0 — 2026-07-24
 - **Read Aloud (Kokoro TTS)** — ROAR can now speak selected or typed text
   locally and offline using the Kokoro-82M voice model. Runs in an isolated
