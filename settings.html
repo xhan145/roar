@@ -570,6 +570,21 @@
         </div>
         <div class="hint" id="vocab-auto-words" style="margin-top:6px;"></div>
       </div>
+
+      <div class="row">
+        <div>Corrections</div>
+        <div class="hint" style="margin-bottom:8px;">Teach ROAR the words it keeps getting wrong for you. It fixes them in future dictations — and listens for the right word next time.</div>
+        <div id="corr-list" style="margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input id="corr-heard" type="text" maxlength="80" placeholder="What ROAR heard"
+                 style="flex:1;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="What ROAR heard">
+          <span class="hint" aria-hidden="true">→</span>
+          <input id="corr-meant" type="text" maxlength="80" placeholder="What you meant"
+                 style="flex:1;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;" aria-label="What you meant">
+          <button class="btn" id="b-corr-add">Teach</button>
+        </div>
+        <div class="msg" id="m-corr"></div>
+      </div>
     </section>
 
     <section id="profiles">
@@ -1138,6 +1153,7 @@ async function init() {
   refreshStats();
   renderInsights();
   renderVocab();
+  renderCorrections();
   renderAppProfiles();
   renderSnippets();
   renderTTS();
@@ -1176,11 +1192,55 @@ async function renderHistory(query) {
     copy.onclick = () => navigator.clipboard.writeText(r.text);
     const del = document.createElement("button"); del.className = "btn"; del.textContent = "Delete";
     del.onclick = async () => { await api().history_delete(r.id); renderHistory($("history-search").value); refreshStats(); renderInsights(); };
-    actions.appendChild(copy); actions.appendChild(del);
+    // Teach ROAR: fix a misheard word right where you spotted it. ROAR works
+    // out which word changed and asks before remembering it.
+    const teach = document.createElement("button");
+    teach.className = "btn"; teach.textContent = "Teach ROAR";
+    teach.onclick = () => startTeach(card, txt, r.text);
+    actions.appendChild(copy); actions.appendChild(teach); actions.appendChild(del);
     card.appendChild(meta); card.appendChild(txt); card.appendChild(actions);
     box.appendChild(card);
   });
 }
+/* Inline "teach" editor on a history card: the user fixes the misheard word in
+   place; ROAR infers heard->meant and asks before remembering it. */
+function startTeach(card, txtEl, original) {
+  if (card.querySelector(".teach-box")) return;      // already open
+  const box = document.createElement("div");
+  box.className = "teach-box";
+  box.style.cssText = "margin-top:8px;padding:8px;background:var(--field);border:1px solid var(--border);border-radius:8px;";
+  const hint = document.createElement("div");
+  hint.className = "hint";
+  hint.textContent = "Fix the word ROAR got wrong, then Save the correction.";
+  const input = document.createElement("textarea");
+  input.value = original;
+  input.setAttribute("aria-label", "Corrected transcription");
+  input.style.cssText = "width:100%;min-height:60px;background:var(--bg);color:inherit;border:1px solid var(--border);border-radius:6px;padding:8px;margin:6px 0;font:inherit;";
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px;align-items:center;";
+  const save = document.createElement("button");
+  save.className = "btn"; save.textContent = "Save correction";
+  const cancel = document.createElement("button");
+  cancel.className = "btn"; cancel.textContent = "Cancel";
+  const note = document.createElement("span"); note.className = "hint";
+  cancel.onclick = () => box.remove();
+  save.onclick = async () => {
+    const proposal = await api().correction_learn(original, input.value);
+    if (proposal.error) { note.textContent = proposal.error; return; }
+    const saved = await api().correction_add(proposal.heard, proposal.meant);
+    if (saved.error) { note.textContent = saved.error; return; }
+    box.remove();
+    txtEl.textContent = input.value;
+    renderCorrections(); renderVocab();
+    msg("m-history", "Learned “" + proposal.heard + "” → “" + proposal.meant
+        + "” — ROAR will fix that from your next dictation", "ok");
+  };
+  row.append(save, cancel, note);
+  box.append(hint, input, row);
+  card.appendChild(box);
+  input.focus();
+}
+
 async function refreshStats() {
   const s = await api().privacy_stats();
   $("privacy-stats").textContent =
@@ -1309,6 +1369,49 @@ $("t-autovocab").addEventListener("click", async () => {
   const r = await api().set_value("auto_vocabulary", want);
   if (r.ok) renderVocab(); else msg("m-vocab", r.error, "err");
 });
+
+/* ---- personal corrections ("teach ROAR") ---- */
+async function renderCorrections() {
+  const d = await api().corrections_get();
+  const list = $("corr-list"); list.innerHTML = "";
+  if (!d.pairs.length) {
+    const e = document.createElement("div"); e.className = "hint";
+    e.textContent = "Nothing taught yet. Add a pair below, or fix a word in History and choose “Teach ROAR”.";
+    list.appendChild(e);
+    return;
+  }
+  d.pairs.forEach(p => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:6px;";
+    const heard = document.createElement("span");
+    heard.style.cssText = "color:var(--muted);text-decoration:line-through;";
+    heard.textContent = p.heard;
+    const arrow = document.createElement("span");
+    arrow.className = "hint"; arrow.textContent = "→"; arrow.setAttribute("aria-hidden", "true");
+    const meant = document.createElement("span");
+    meant.style.cssText = "flex:1;font-weight:600;";
+    meant.textContent = p.meant;
+    const x = document.createElement("button");
+    x.textContent = "×"; x.setAttribute("aria-label", "remove correction " + p.heard + " to " + p.meant);
+    x.style.cssText = "background:none;border:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:16px;";
+    x.onclick = async () => { await api().correction_remove(p.heard); renderCorrections(); };
+    row.append(heard, arrow, meant, x);
+    list.appendChild(row);
+  });
+}
+async function correctionAdd() {
+  const heard = $("corr-heard").value, meant = $("corr-meant").value;
+  if (!heard.trim() || !meant.trim()) return;
+  const r = await api().correction_add(heard, meant);
+  if (r.error) { msg("m-corr", r.error, "err"); return; }
+  $("corr-heard").value = ""; $("corr-meant").value = "";
+  msg("m-corr", "Taught — ROAR will fix that from your next dictation", "ok");
+  renderCorrections();
+  renderVocab();   // the intended word is mirrored into vocabulary
+}
+$("b-corr-add").addEventListener("click", correctionAdd);
+["corr-heard", "corr-meant"].forEach(id =>
+  $(id).addEventListener("keydown", e => { if (e.key === "Enter") correctionAdd(); }));
 
 /* ---- app profiles ---- */
 async function renderAppProfiles() {

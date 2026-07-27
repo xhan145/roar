@@ -687,6 +687,64 @@ class SettingsAPI:
             self._write(custom_vocabulary=custom)
         return {"ok": True, "custom": custom}
 
+    # -- personal corrections ("teach ROAR") --------------------------------
+    def corrections_get(self):
+        cfg = config_mod.load(self.config_path)
+        pairs = cfg.get("corrections", {}) or {}
+        return {"pairs": [{"heard": k, "meant": v}
+                          for k, v in sorted(pairs.items())]}
+
+    def correction_add(self, heard, meant):
+        """Teach a correction. Also adds the intended word to custom
+        vocabulary so the recognizer is biased toward it next time."""
+        import corrections as corr
+        import vocabulary
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            pairs = dict(cfg.get("corrections", {}) or {})
+            err = corr.validate(heard, meant, pairs)
+            if err:
+                return {"error": err}
+            key = corr.normalize_heard(heard)
+            fix = " ".join(str(meant).split())
+            pairs[key] = fix
+            # mirror the intended phrase into custom vocabulary (best effort:
+            # a duplicate or an invalid hotword must not block the correction)
+            custom = [str(w) for w in cfg.get("custom_vocabulary", [])]
+            if not vocabulary.validate_entry(fix, custom):
+                custom.append(vocabulary.normalize_entry(fix))
+            self._write(corrections=pairs, custom_vocabulary=custom)
+        return {"ok": True, "pairs": [{"heard": k, "meant": v}
+                                      for k, v in sorted(pairs.items())]}
+
+    def correction_remove(self, heard):
+        """Remove a correction. The mirrored vocabulary word is left alone —
+        it is harmless, and the user may have added it deliberately."""
+        import corrections as corr
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            key = corr.normalize_heard(heard)
+            pairs = {k: v for k, v in (cfg.get("corrections", {}) or {}).items()
+                     if corr.normalize_heard(k) != key}
+            self._write(corrections=pairs)
+        return {"ok": True, "pairs": [{"heard": k, "meant": v}
+                                      for k, v in sorted(pairs.items())]}
+
+    def correction_learn(self, heard_text, corrected_text):
+        """Infer a correction from a transcript the user edited by hand.
+        Returns the proposed pair for confirmation — never saves silently."""
+        import corrections as corr
+        pair = corr.learn(heard_text, corrected_text)
+        if not pair:
+            return {"error": "Change one word or short phrase to teach a "
+                             "correction."}
+        heard, meant = pair
+        cfg = config_mod.load(self.config_path)
+        err = corr.validate(heard, meant, cfg.get("corrections", {}) or {})
+        if err:
+            return {"error": err}
+        return {"ok": True, "heard": heard, "meant": meant}
+
     # -- app profiles -------------------------------------------------------
     def app_profiles_get(self):
         cfg = config_mod.load(self.config_path)
@@ -1033,6 +1091,11 @@ def run_settings(smoke=False):
                         "document.getElementById('tts-stop-all') ? 1 : 0")
                     has_fmt = window.evaluate_js(
                         "document.getElementById('s-format') ? 1 : 0")
+                    has_corr = window.evaluate_js(
+                        "(document.getElementById('corr-list') && "
+                        "document.getElementById('corr-heard') && "
+                        "document.getElementById('corr-meant') && "
+                        "document.getElementById('b-corr-add')) ? 1 : 0")
                     has_accel = window.evaluate_js(
                         "(document.getElementById('s-preset') && "
                         "document.getElementById('s-accel') && "
@@ -1055,7 +1118,8 @@ def run_settings(smoke=False):
                           f"ms={has_ms} logo={has_logo} diag={has_diag} "
                           f"ttsnav={tts_nav} ttsstatus={has_tts_status} "
                           f"ttsstop={has_tts_stop} "
-                          f"fmt={has_fmt} accel={has_accel} themeok={theme_ok}",
+                          f"fmt={has_fmt} accel={has_accel} corr={has_corr} "
+                          f"themeok={theme_ok}",
                           flush=True)
                 finally:
                     window.destroy()

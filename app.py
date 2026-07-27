@@ -12,6 +12,7 @@ import pystray
 from pystray import Menu, MenuItem as Item
 
 import commands
+import corrections
 import config as config_mod
 import context
 import editing
@@ -76,7 +77,9 @@ def diff_config(old: dict, new: dict):
     if old["input_device"] != new["input_device"]:
         actions.append(("set_device", new["input_device"]))
     if (old["custom_vocabulary"] != new["custom_vocabulary"]
-            or old["auto_vocabulary"] != new["auto_vocabulary"]):
+            or old["auto_vocabulary"] != new["auto_vocabulary"]
+            # a new correction adds its intended word as a hotword
+            or old.get("corrections") != new.get("corrections")):
         actions.append(("rebuild_hotwords", None))
     if any(old.get(key) != new.get(key)
            for key in set(old) | set(new) if key.startswith("tts_")):
@@ -559,6 +562,10 @@ class ROARApp:
                 if eff["discourse"] else False),
             capitalize=prof.get("capitalize", True),
             mode=eff["mode"])
+        # Personal corrections last: they fix words the recognizer misheard, so
+        # they must apply to the final text (after cleanup/replacements) and
+        # never absorb the sentence's punctuation. Free in every edition.
+        text = corrections.apply(text, self.cfg.get("corrections"))
         if not text:
             self.log("empty transcript — nothing injected")
             return
@@ -863,8 +870,14 @@ class ROARApp:
                 from insights import compute_insights
                 signature = compute_insights(
                     self.history.list(limit=5000))["signature_words"]
+            # What the user MEANT in each correction is also a hotword: biasing
+            # the recognizer toward it attacks the cause, not just the symptom.
+            # Free in every edition, like custom_vocabulary.
+            intended = [str(v) for v in
+                        (self.cfg.get("corrections") or {}).values() if v]
             self.transcriber.hotwords = vocabulary.merge_hotwords(
-                self.cfg.get("custom_vocabulary", []), signature)
+                list(self.cfg.get("custom_vocabulary", [])) + intended,
+                signature)
         except Exception as e:
             self.log(f"hotwords rebuild failed: {e}")
 

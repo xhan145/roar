@@ -23,6 +23,9 @@ DEFAULTS = {
     "audio_retention_days": 0,
     "custom_vocabulary": [],
     "auto_vocabulary": True,
+    # Personal corrections: what ROAR heard -> what you meant. Taught by the
+    # user (Dictionary, or by fixing a history entry); see corrections.py.
+    "corrections": {},
     "overlay_enabled": True,
     "streaming_preview": True,
     "snippets": {},
@@ -112,6 +115,13 @@ def load(path=None):
                 cfg["replacements"].update(
                     {k: v for k, v in value.items()
                      if isinstance(k, str) and isinstance(v, str)})
+        elif key == "corrections":
+            # Replace (not merge): corrections are wholly user-owned, so a
+            # removal in the file must actually remove it.
+            if isinstance(value, dict):
+                cfg["corrections"] = {
+                    k: v for k, v in value.items()
+                    if isinstance(k, str) and isinstance(v, str) and k.strip()}
         elif key == "language":
             if valid_language(value):
                 cfg[key] = value
