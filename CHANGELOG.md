@@ -30,6 +30,13 @@ exists are marked unreleased.
   nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
   plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
 
+## v0.27.0 — 2026-07-27
+- **Point & Speak now works everywhere.** In apps that don't expose their
+  selection to accessibility tools (browsers, PDF viewers, Electron apps), the
+  gesture copies your selection with Ctrl+C — only after you trigger it — and
+  restores your clipboard afterward, including images and copied files. If
+  nothing is selected you get a calm notice; no whole-page reads.
+
 ## v0.26.0 — 2026-07-27
 - **Point & Speak** — highlight text in any application and **Ctrl +
   Right-click** to hear it read aloud immediately; the same gesture stops it.
