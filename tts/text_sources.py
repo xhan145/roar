@@ -133,7 +133,16 @@ def _copy_selection_with_restore(*, timeout, _api=None):
             "sleep": time.sleep,
             "backup": clipboard_guard.snapshot,
             "restore": clipboard_guard.restore,
+            "modifiers_clear": _modifiers_released,
         }
+    # The trigger may itself be a modifier chord (Ctrl+Right-click, a Ctrl
+    # hotkey). Sending Ctrl+C while the user still physically holds Ctrl makes
+    # the OS see our synthetic release with the key still down, and the target
+    # app receives a malformed chord — the copy silently produces nothing.
+    # Wait briefly for a clean keyboard state first.
+    wait_clear = _api.get("modifiers_clear")
+    if wait_clear:
+        wait_clear(timeout=0.8)
     before_sequence = _api["sequence"]()
     had_text = _api["has_text"]()
     # Full-fidelity Win32 backup (text/images/copied files) when available, so
@@ -162,7 +171,8 @@ def _copy_selection_with_restore(*, timeout, _api=None):
             break
         _api["sleep"](0.02)
     if copied_sequence == before_sequence:
-        raise TextSourceError("The application did not copy selected text")
+        raise TextSourceError(
+            "Nothing was copied — select some text first, then try again")
     try:
         selected = _api["get"]()
     except Exception as exc:
@@ -178,7 +188,31 @@ def _copy_selection_with_restore(*, timeout, _api=None):
                     _api["set"](previous)
                 except Exception:
                     pass
+    if not isinstance(selected, str) or not selected.strip():
+        raise TextSourceError(
+            "The copied selection came back empty — try selecting again")
     return _validate_source_text(selected)
+
+
+def _modifiers_released(timeout=0.8, poll=0.02):
+    """Block until Ctrl/Shift/Alt are physically up (or timeout). Windows-only;
+    a no-op elsewhere. Returns True if the keyboard came clear in time."""
+    if not platform_id.is_windows():
+        return True
+    try:
+        user32 = ctypes.windll.user32
+        VK_CONTROL, VK_SHIFT, VK_MENU = 0x11, 0x10, 0x12
+        deadline = time.monotonic() + max(0.0, float(timeout))
+        while time.monotonic() < deadline:
+            held = any(user32.GetAsyncKeyState(vk) & 0x8000
+                       for vk in (VK_CONTROL, VK_SHIFT, VK_MENU))
+            if not held:
+                time.sleep(0.03)   # let the app settle after the release
+                return True
+            time.sleep(poll)
+        return False
+    except Exception:
+        return True
 
 
 def _validate_source_text(text):

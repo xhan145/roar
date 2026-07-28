@@ -30,6 +30,13 @@ exists are marked unreleased.
   nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
   plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
 
+## v0.29.0 — 2026-07-28
+- **Point & Speak reliability in browsers.** The copy now waits for you to let
+  go of Ctrl before it runs — sending Ctrl+C while the gesture's own modifier is
+  still held produced a malformed chord and a silent empty copy. Failure
+  messages are also specific now ("Nothing was copied — select some text first"
+  vs "The copied selection came back empty"), so a miss says what happened.
+
 ## v0.28.0 — 2026-07-28
 - **Point & Speak now works in browsers, PDF viewers and Electron apps.** Two
   fixes: the Ctrl+Right-click gesture is now consumed by ROAR, so the app's
