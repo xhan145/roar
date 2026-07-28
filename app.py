@@ -688,10 +688,16 @@ class ROARApp:
                     read_clipboard_explicit(), source="clipboard")
             elif command == "read_selected":
                 from tts.text_sources import read_selected_text
+                # Point & Speak is itself an explicit opt-in to "read whatever I
+                # click on, anywhere", so its gesture uses the Ctrl+C fallback
+                # even when the global fallback toggle is off — that fallback is
+                # the only thing that works in apps (browsers, PDFs) whose
+                # focused control exposes no UIA selection.
+                use_fallback = (
+                    self.cfg.get("tts_clipboard_fallback_enabled", False)
+                    or bool(message.get("force_fallback")))
                 self.tts_service.speak(
-                    read_selected_text(
-                        clipboard_fallback=self.cfg.get(
-                            "tts_clipboard_fallback_enabled", False)),
+                    read_selected_text(clipboard_fallback=use_fallback),
                     source="selected")
             elif command == "pause_resume":
                 if not self.tts_service.pause_resume():
@@ -742,9 +748,14 @@ class ROARApp:
     def _on_pointer_gesture(self):
         """Called from the hook callback — must stay cheap. Hands off to a
         thread; gesture during speech stops it, otherwise reads the selection."""
-        command = "stop" if self.tts_service.active else "read_selected"
+        if self.tts_service.active:
+            message = {"command": "stop"}
+        else:
+            # the gesture reads arbitrary selections, so force the Ctrl+C
+            # fallback that works in apps with no exposed UIA selection
+            message = {"command": "read_selected", "force_fallback": True}
         threading.Thread(
-            target=self._dispatch_tts_command, args=({"command": command},),
+            target=self._dispatch_tts_command, args=(message,),
             name="ROAR-pointer-speak", daemon=True).start()
 
     @staticmethod

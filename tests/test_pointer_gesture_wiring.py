@@ -66,7 +66,7 @@ def test_gesture_reads_selection_when_idle(monkeypatch):
         if a._dispatched:
             break
         time.sleep(0.01)
-    assert a._dispatched == [{"command": "read_selected"}]
+    assert a._dispatched == [{"command": "read_selected", "force_fallback": True}]
 
 
 def test_gesture_stops_when_speaking():

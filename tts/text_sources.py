@@ -60,6 +60,12 @@ def _read_uia_selection() -> str:
                 "The focused field's security status is unknown") from exc
         if is_password:
             raise TextSourceError("Password fields cannot be read aloud")
+        # Focused control ONLY. Walking ancestors and calling GetSelection on a
+        # document container can return the WHOLE document as a degenerate
+        # "selection" — reading an entire page aloud when nothing is highlighted.
+        # Apps whose focused control has no usable selection fall through to the
+        # clipboard fallback (a real Ctrl+C copies exactly what IS selected, or
+        # nothing), which is the reliable everywhere-path.
         pattern = control.GetPattern(auto.PatternId.TextPattern)
         if pattern is None:
             raise TextSourceError(
@@ -81,6 +87,7 @@ def _copy_selection_with_restore(*, timeout, _api=None):
     if _api is None:
         import keyboard
         import pyperclip
+        from tts import clipboard_guard
         user32 = ctypes.windll.user32
         _api = {
             "sequence": lambda: int(user32.GetClipboardSequenceNumber()),
@@ -90,19 +97,25 @@ def _copy_selection_with_restore(*, timeout, _api=None):
             "set": pyperclip.copy,
             "send": lambda: keyboard.send("ctrl+c"),
             "sleep": time.sleep,
+            "backup": clipboard_guard.snapshot,
+            "restore": clipboard_guard.restore,
         }
     before_sequence = _api["sequence"]()
     had_text = _api["has_text"]()
+    # Full-fidelity Win32 backup (text/images/copied files) when available, so
+    # a screenshot or copied files on the clipboard no longer blocks reading.
+    backup = _api["backup"]() if "backup" in _api else None
     try:
         previous = _api["get"]() if had_text else ""
     except Exception as exc:
         raise TextSourceError(
             "ROAR could not preserve the existing clipboard") from exc
-    # Refuse to destroy a non-text clipboard payload that pyperclip cannot
-    # faithfully restore.
+    # Refuse to destroy a clipboard payload we cannot faithfully restore:
+    # non-text content with no restorable backup (e.g. app-private formats).
     format_count = _api.get(
         "format_count", lambda: 1 if before_sequence else 0)()
-    if not had_text and format_count:
+    if (not had_text and format_count
+            and not (backup is not None and backup.formats)):
         raise TextSourceError(
             "Clipboard fallback cannot preserve the current non-text clipboard")
 
@@ -123,10 +136,14 @@ def _copy_selection_with_restore(*, timeout, _api=None):
     finally:
         # Restore only if no user/app clipboard write occurred after Ctrl+C.
         if _api["sequence"]() == copied_sequence:
-            try:
-                _api["set"](previous)
-            except Exception:
-                pass
+            restored = False
+            if backup is not None and backup.formats and "restore" in _api:
+                restored = bool(_api["restore"](backup))
+            if not restored:
+                try:
+                    _api["set"](previous)
+                except Exception:
+                    pass
     return _validate_source_text(selected)
 
 

@@ -62,3 +62,9 @@ that is by design. Windows does not allow reading selections from
 administrator-elevated windows (UIPI) or secure surfaces; those produce the
 normal calm "no selection" notice. If the gesture stops responding, toggle it
 off and on in Settings.
+
+To work in every app — including browsers and PDF viewers that don't expose a
+selection to accessibility tools — Point & Speak copies the selection with
+Ctrl+C (only after your gesture) and restores your clipboard afterward,
+including images and copied files. If nothing is selected, nothing is copied
+and you get the calm "no selection" notice.
