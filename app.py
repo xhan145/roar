@@ -126,6 +126,7 @@ class ROARApp:
         self.icon = pystray.Icon("ROAR", tray_icons.make_icon(self.LOADING),
                                  "ROAR", menu=self._build_menu())
         self.worker = threading.Thread(target=self._worker, daemon=True)
+        self._pointer_hook = None  # Point & Speak (Ctrl+Right-click); lazy
         self.tts_service = self._build_tts_service(cfg)
         from tts.ipc import TTSCommandServer
         self._tts_command_server = TTSCommandServer(self._handle_tts_command)
@@ -721,6 +722,31 @@ class ROARApp:
                 "error", "Read Aloud is unavailable. Dictation is unaffected."))
         return result
 
+    # -- Point & Speak (Ctrl+Right-click) ---------------------------------
+    def _sync_pointer_gesture(self):
+        """Install/remove the global mouse hook to match config. The hook runs
+        only while BOTH Read Aloud and the gesture toggle are on."""
+        want = bool(self.cfg.get("tts_pointer_gesture_enabled")
+                    and self.cfg.get("tts_enabled"))
+        if want and self._pointer_hook is None:
+            import mouse_hook
+            self._pointer_hook = mouse_hook.PointerGestureHook(
+                self._on_pointer_gesture, on_error=self.notify)
+            self._pointer_hook.start()
+            self.log("Point & Speak on (Ctrl+Right-click)")
+        elif not want and self._pointer_hook is not None:
+            hook, self._pointer_hook = self._pointer_hook, None
+            hook.stop()
+            self.log("Point & Speak off")
+
+    def _on_pointer_gesture(self):
+        """Called from the hook callback — must stay cheap. Hands off to a
+        thread; gesture during speech stops it, otherwise reads the selection."""
+        command = "stop" if self.tts_service.active else "read_selected"
+        threading.Thread(
+            target=self._dispatch_tts_command, args=({"command": command},),
+            name="ROAR-pointer-speak", daemon=True).start()
+
     @staticmethod
     def _foreground_hwnd():
         return window_focus.current_id()
@@ -920,6 +946,10 @@ class ROARApp:
                             from tts.types import TTSConfig
                             self.tts_service.update_config(
                                 TTSConfig.from_mapping(self.cfg))
+                            try:
+                                self._sync_pointer_gesture()
+                            except Exception as e:
+                                self.log(f"Point & Speak sync failed: {e}")
             except OSError:
                 pass  # config briefly missing/locked — retry next tick
             # Home-dashboard remote controls (flagged off by default). Only
@@ -942,6 +972,11 @@ class ROARApp:
     # -- lifecycle -------------------------------------------------------------
     def _quit(self):
         self._stop_watch.set()
+        if self._pointer_hook is not None:
+            try:
+                self._pointer_hook.stop()
+            except Exception:
+                pass
         try:
             self._tts_command_server.stop()
         except Exception:
@@ -968,6 +1003,10 @@ class ROARApp:
     def _on_tray_ready(self, icon):
         icon.visible = True
         self.log("tray ready")
+        try:
+            self._sync_pointer_gesture()
+        except Exception as e:
+            self.log(f"Point & Speak unavailable: {e}")
         if self.smoke:
             def stop_after_load():
                 self.model_ready.wait(timeout=240)

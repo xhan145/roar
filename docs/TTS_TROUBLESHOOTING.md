@@ -52,3 +52,13 @@ Safe Diagnostics may contain engine version, model status/version, voice ID,
 language, output-device ID, sample rate, latency, and error category. It never
 contains text, phonemes, clipboard/selection content, generated audio, or a
 full private model path.
+
+## Point & Speak (Ctrl + Right-click)
+
+Enable it in Settings -> Read Aloud. Highlight text anywhere and
+Ctrl + Right-click to hear it; the same gesture stops playback. The gesture
+never consumes the click, so the application's own context menu still opens —
+that is by design. Windows does not allow reading selections from
+administrator-elevated windows (UIPI) or secure surfaces; those produce the
+normal calm "no selection" notice. If the gesture stops responding, toggle it
+off and on in Settings.

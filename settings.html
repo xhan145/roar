@@ -410,6 +410,10 @@
         <div>Enable ROAR Read Aloud<div class="hint">Included in ROAR Core</div></div>
         <button class="toggle" id="tts-enabled" aria-pressed="false" aria-label="Enable ROAR Read Aloud"></button>
       </div>
+      <div class="row flex">
+        <div>Point &amp; Speak<div class="hint">Ctrl + Right-click any highlighted text, anywhere, to hear it. The same gesture stops it. Normal right-click is untouched.</div></div>
+        <button class="toggle" id="tts-pointer-gesture" aria-pressed="false" aria-label="Speak selection on Ctrl and Right-click"></button>
+      </div>
       <div class="row" aria-labelledby="tts-status-label">
         <div id="tts-status-label">Engine status</div>
         <div id="tts-status" class="status-text" role="status" aria-live="polite">Checking local voice pack…</div>
@@ -975,6 +979,7 @@ function trackTTSUntilSettled() {
 function renderTTS() {
   const c = state.config, s = state.tts || {};
   setToggle($("tts-enabled"), !!c.tts_enabled);
+  setToggle($("tts-pointer-gesture"), !!c.tts_pointer_gesture_enabled);
   setToggle($("tts-stop-dictation"), c.tts_stop_when_dictation_starts !== false);
   setToggle($("tts-status-spoken"), !!c.tts_spoken_status_enabled);
   setToggle($("tts-clipboard-fallback"), !!c.tts_clipboard_fallback_enabled);
@@ -1012,6 +1017,7 @@ function renderTTS() {
     });
   }
   toggleSetting("tts-enabled", "tts_enabled");
+  toggleSetting("tts-pointer-gesture", "tts_pointer_gesture_enabled");
   toggleSetting("tts-stop-dictation", "tts_stop_when_dictation_starts");
   toggleSetting("tts-status-spoken", "tts_spoken_status_enabled");
   toggleSetting("tts-clipboard-fallback", "tts_clipboard_fallback_enabled");

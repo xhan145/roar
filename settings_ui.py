@@ -50,6 +50,7 @@ _TTS_SETTINGS = {
     "tts_output_device", "tts_readback_mode", "tts_spoken_status_enabled",
     "tts_stop_when_dictation_starts", "tts_clipboard_fallback_enabled",
     "tts_preload_model", "tts_unload_after_idle_minutes",
+    "tts_pointer_gesture_enabled",
 }
 _TTS_HOTKEYS = (
     "tts_hotkey_read_selected", "tts_hotkey_read_clipboard",
@@ -1091,6 +1092,8 @@ def run_settings(smoke=False):
                         "document.getElementById('tts-stop-all') ? 1 : 0")
                     has_fmt = window.evaluate_js(
                         "document.getElementById('s-format') ? 1 : 0")
+                    has_ptr = window.evaluate_js(
+                        "document.getElementById('tts-pointer-gesture') ? 1 : 0")
                     has_corr = window.evaluate_js(
                         "(document.getElementById('corr-list') && "
                         "document.getElementById('corr-heard') && "
@@ -1118,7 +1121,7 @@ def run_settings(smoke=False):
                           f"ms={has_ms} logo={has_logo} diag={has_diag} "
                           f"ttsnav={tts_nav} ttsstatus={has_tts_status} "
                           f"ttsstop={has_tts_stop} "
-                          f"fmt={has_fmt} accel={has_accel} corr={has_corr} "
+                          f"fmt={has_fmt} accel={has_accel} corr={has_corr} ptr={has_ptr} "
                           f"themeok={theme_ok}",
                           flush=True)
                 finally:

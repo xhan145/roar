@@ -32,3 +32,4 @@ def test_settings_smoke():
     assert "fmt=1" in out
     assert "accel=1" in out
     assert "corr=1" in out  # personal corrections UI
+    assert "ptr=1" in out   # Point & Speak toggle

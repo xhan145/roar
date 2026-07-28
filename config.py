@@ -70,6 +70,10 @@ DEFAULTS = {
     "tts_hotkey_pause_resume": "",
     "tts_hotkey_stop": "",
     "tts_hotkey_repeat": "",
+    # Point & Speak: Ctrl+Right-click any highlighted text -> speak it.
+    # Off by default; modifier stored for future configurability (v1: ctrl).
+    "tts_pointer_gesture_enabled": False,
+    "tts_pointer_gesture_modifier": "ctrl",
     # --- commercial ---
     # The active edition is NEVER stored here: only a signed license (see
     # license_service) is authoritative — a config key could simply be edited.
