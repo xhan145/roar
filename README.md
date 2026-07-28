@@ -1,7 +1,7 @@
 # ROAR
 
 <!-- ROAR-VERSION -->
-**Version:** v0.27.0
+**Version:** v0.28.0
 <!-- /ROAR-VERSION -->
 
 

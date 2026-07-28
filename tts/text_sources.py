@@ -37,9 +37,43 @@ def read_selected_text(*, clipboard_fallback=False, timeout=0.6) -> str:
     try:
         return _read_uia_selection()
     except TextSourceError:
+        # Lazy-accessibility apps (browsers, Electron) expose nothing until
+        # asked. Nudge, then retry once before falling back.
+        try:
+            if enable_accessibility_for_foreground():
+                return _read_uia_selection()
+        except TextSourceError:
+            pass
         if not clipboard_fallback:
             raise
     return _copy_selection_with_restore(timeout=timeout)
+
+
+def enable_accessibility_for_foreground(wait_s=0.12):
+    """Ask the focused app to expose its accessibility tree, then let it build.
+
+    Chromium-based apps (Chrome, Edge, Electron) and some others build their
+    a11y tree LAZILY: until a client asks, there is no UIA text pattern to read
+    and the selection looks invisible. Sending WM_GETOBJECT/OBJID_CLIENT is the
+    documented signal that turns it on. Best-effort and never raises; if the app
+    still exposes nothing, the caller drops to the clipboard fallback.
+    """
+    if not platform_id.is_windows():
+        return False
+    try:
+        user32 = ctypes.windll.user32
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd:
+            return False
+        WM_GETOBJECT, OBJID_CLIENT, SMTO_ABORTIFHUNG = 0x003D, 0xFFFFFFFC, 0x0002
+        result = ctypes.c_size_t(0)
+        user32.SendMessageTimeoutW(
+            hwnd, WM_GETOBJECT, 0, ctypes.c_size_t(OBJID_CLIENT),
+            SMTO_ABORTIFHUNG, 250, ctypes.byref(result))
+        time.sleep(max(0.0, float(wait_s)))   # let the tree materialize
+        return True
+    except Exception:
+        return False
 
 
 def _read_uia_selection() -> str:

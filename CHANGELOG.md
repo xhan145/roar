@@ -30,6 +30,14 @@ exists are marked unreleased.
   nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
   plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
 
+## v0.28.0 — 2026-07-28
+- **Point & Speak now works in browsers, PDF viewers and Electron apps.** Two
+  fixes: the Ctrl+Right-click gesture is now consumed by ROAR, so the app's
+  context menu no longer opens and steal the focus the capture needs (plain
+  right-click is untouched); and ROAR asks lazily-accessible apps like Chrome
+  and Edge to expose their text, retrying before falling back to the clipboard.
+  Verified end-to-end against a real Edge selection.
+
 ## v0.27.0 — 2026-07-27
 - **Point & Speak now works everywhere.** In apps that don't expose their
   selection to accessibility tools (browsers, PDF viewers, Electron apps), the

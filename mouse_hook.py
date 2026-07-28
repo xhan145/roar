@@ -39,6 +39,21 @@ def should_trigger(msg, ctrl_down, enabled, now, last_fire,
     return (now - last_fire) >= debounce_s
 
 
+def should_suppress(msg, ctrl_down, enabled) -> bool:
+    """True when this event belongs to OUR gesture and must not reach the app.
+
+    Ctrl+Right-click is consumed on purpose. Letting it through opens the
+    application's context menu, and an open menu takes keyboard focus — so the
+    Ctrl+C the capture fallback sends lands in the MENU instead of the page,
+    which is exactly why the gesture failed in browsers and PDF viewers.
+
+    Both DOWN and UP are suppressed so the app never sees an orphaned
+    button-down. PLAIN right-click (no Ctrl) is never touched.
+    """
+    return bool(enabled and ctrl_down
+                and msg in (WM_RBUTTONDOWN, WM_RBUTTONUP))
+
+
 class PointerGestureHook:
     """Owns the WH_MOUSE_LL hook on a dedicated message-pump thread.
 
@@ -121,18 +136,23 @@ class PointerGestureHook:
             ctypes.wintypes.LPARAM)
 
         def _callback(n_code, w_param, l_param):
-            # OBSERVE ONLY. No I/O, no capture; always pass the event on.
+            # No I/O and no capture here — Windows drops slow LL hooks.
+            # Ctrl+Right-click is CONSUMED (returns 1) so no context menu opens
+            # to steal the focus our capture needs; everything else passes on.
             try:
-                if n_code >= 0 and w_param == WM_RBUTTONUP:
+                if n_code >= 0 and w_param in (WM_RBUTTONDOWN, WM_RBUTTONUP):
                     ctrl = bool(user32.GetAsyncKeyState(VK_CONTROL) & 0x8000)
-                    now = time.monotonic()
-                    if should_trigger(WM_RBUTTONUP, ctrl, self._running,
-                                      now, self._last_fire):
-                        self._last_fire = now
-                        try:
-                            self._on_gesture()
-                        except Exception:
-                            pass
+                    if should_suppress(w_param, ctrl, self._running):
+                        if w_param == WM_RBUTTONUP:
+                            now = time.monotonic()
+                            if should_trigger(WM_RBUTTONUP, ctrl, self._running,
+                                              now, self._last_fire):
+                                self._last_fire = now
+                                try:
+                                    self._on_gesture()
+                                except Exception:
+                                    pass
+                        return 1   # consume: the app never sees this click
             except Exception:
                 pass
             return user32.CallNextHookEx(self._hook, n_code, w_param, l_param)

@@ -56,9 +56,8 @@ full private model path.
 ## Point & Speak (Ctrl + Right-click)
 
 Enable it in Settings -> Read Aloud. Highlight text anywhere and
-Ctrl + Right-click to hear it; the same gesture stops playback. The gesture
-never consumes the click, so the application's own context menu still opens —
-that is by design. Windows does not allow reading selections from
+Ctrl + Right-click to hear it; the same gesture stops playback. Ctrl+Right-click is consumed by ROAR (no context menu appears) so the capture
+can reach the page; plain right-click is untouched everywhere. Windows does not allow reading selections from
 administrator-elevated windows (UIPI) or secure surfaces; those produce the
 normal calm "no selection" notice. If the gesture stops responding, toggle it
 off and on in Settings.

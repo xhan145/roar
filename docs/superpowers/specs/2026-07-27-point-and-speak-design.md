@@ -12,6 +12,14 @@ while speech is playing stops it.
 
 - **Trigger:** global low-level mouse hook, **Ctrl + right-click** (modifier
   configurable later; stored in config now).
+- **The gesture click is CONSUMED** (revised 2026-07-28). Passing it through
+  opened the app's context menu, and an open menu holds keyboard focus — so the
+  capture's Ctrl+C landed in the MENU, not the page. That is why the gesture
+  failed in browsers/PDF viewers. Only Ctrl+Right-click is consumed; plain
+  right-click is never touched.
+- **Lazy-accessibility nudge:** Chromium/Electron build their UIA tree on
+  demand, so a WM_GETOBJECT/OBJID_CLIENT ping + one retry precedes the
+  clipboard fallback.
 - **No popup menu:** the gesture IS the command ("one pass autonomously").
 - **Toggle:** gesture during active speech = stop, not re-capture.
 - **Off by default:** opt-in toggle in Settings → Read Aloud.
