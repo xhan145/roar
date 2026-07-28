@@ -142,12 +142,28 @@ class ROARApp:
         except Exception:
             pass
 
+    @staticmethod
+    def _tts_mapping(cfg):
+        """Config for the TTS service, with one runtime override.
+
+        Point & Speak is an instant gesture: a cold voice load takes tens of
+        seconds (115s was measured on a loaded machine), which reads as "nothing
+        happened". So when the gesture is on, the voice preloads and stays warm
+        regardless of a stale `tts_preload_model: false` left in an existing
+        config by an older version — those users would otherwise never pick up
+        the newer default, because the key is already present.
+        """
+        mapping = dict(cfg)
+        if mapping.get("tts_pointer_gesture_enabled"):
+            mapping["tts_preload_model"] = True
+        return mapping
+
     def _build_tts_service(self, cfg):
         from tts.kokoro_engine import KokoroEngine
         from tts.service import TTSService
         from tts.types import TTSConfig
         return TTSService(
-            KokoroEngine(), TTSConfig.from_mapping(cfg),
+            KokoroEngine(), TTSConfig.from_mapping(self._tts_mapping(cfg)),
             listener=self._on_tts_state, logger=self._tts_log)
 
     def _tts_log(self, event, fields):
@@ -956,7 +972,8 @@ class ROARApp:
                         elif action == "reload_tts_config":
                             from tts.types import TTSConfig
                             self.tts_service.update_config(
-                                TTSConfig.from_mapping(self.cfg))
+                                TTSConfig.from_mapping(
+                                    self._tts_mapping(self.cfg)))
                             try:
                                 self._sync_pointer_gesture()
                             except Exception as e:

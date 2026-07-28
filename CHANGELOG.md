@@ -30,6 +30,14 @@ exists are marked unreleased.
   nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
   plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
 
+## v0.30.0 — 2026-07-28
+- **Point & Speak responds instantly.** With the gesture enabled, the voice now
+  loads in the background at startup instead of on your first click. Existing
+  installs were hit hardest: their config still held `tts_preload_model: false`
+  from an older version, so the newer default never applied and the first
+  gesture waited on a cold load (115s measured here) — which just read as
+  nothing happening.
+
 ## v0.29.0 — 2026-07-28
 - **Point & Speak reliability in browsers.** The copy now waits for you to let
   go of Ctrl before it runs — sending Ctrl+C while the gesture's own modifier is
