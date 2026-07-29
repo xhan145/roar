@@ -32,3 +32,10 @@ roar_license.json
 # Source-run license/grant artifacts (per-user data written at repo root when run from source)
 legacy_grant.json
 license.json
+
+# Payment / checkout secrets. There is no server today (Stripe Payment Links
+# need none), but if one ever appears its env file must never be committed.
+# See docs/WEBSITE_IMPLEMENTATION.md.
+.env
+.env.*
+!.env.example
