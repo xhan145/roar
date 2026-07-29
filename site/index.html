@@ -94,9 +94,12 @@
   .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;align-items:start}
   .tier{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:26px;display:flex;flex-direction:column;height:100%}
   .tier.best{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 12px 40px -12px rgba(167,139,250,.35);position:relative}
+  .tier.pick{position:relative}
   .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
     background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;
     padding:4px 10px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+  /* Quieter second recommendation — a label, not a competing highlight. */
+  .badge.quiet{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
   .tier h3{margin:0 0 4px;font-size:18px;font-weight:700}
   .tier .who{color:var(--muted);font-size:14px;min-height:40px;margin:0 0 14px}
   .price{font-size:38px;font-weight:700;letter-spacing:-.03em;
@@ -239,65 +242,77 @@
 
       <div class="tiers">
         <div class="tier">
-          <h3>Core</h3>
-          <p class="who">Private local dictation, free to use.</p>
-          <div class="price">Free<small> forever</small></div>
+          <h3>ROAR Core</h3>
+          <p class="who">Fast, private Windows dictation that runs on your machine.</p>
+          <div class="price">Free</div>
           <ul>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Push-to-talk + hands-free dictation</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Local transcription, fully offline</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Multilingual + live preview</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>"Scratch that" undo</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>All privacy &amp; deletion controls</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Local push-to-talk dictation</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Hands-free dictation</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Streaming preview</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Multilingual transcription</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Local history</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Privacy and deletion controls</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Basic vocabulary</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No account required</li>
           </ul>
-          <a class="btn" id="tier-download" href="#">Download free</a>
+          <a class="btn" id="tier-download" href="#">Download ROAR</a>
         </div>
 
         <div class="tier best">
-          <span class="badge">Most popular</span>
-          <h3>Pro</h3>
-          <p class="who">Smarter dictation and productivity.</p>
-          <div class="price">$29<small> once</small></div>
+          <span class="badge">Best for most people</span>
+          <h3>ROAR Pro</h3>
+          <p class="who">Smarter formatting and workflow tools for everyday writing.</p>
+          <div class="price">$19<small> once</small></div>
           <ul>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Everything in Core</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Smart formatting modes</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Snippets + variables</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Advanced cleanup</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Snippet packs and variables</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Vocabulary suggestions</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Advanced cleanup, insights &amp; history filters</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Advanced history filters</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Settings import and export</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>All v1.x updates included</li>
           </ul>
-          <a class="btn primary" id="buy-pro" href="#">Buy ROAR Pro</a>
+          <a class="btn primary" id="buy-pro" data-edition="pro" href="#">Get ROAR Pro</a>
         </div>
 
-        <div class="tier">
-          <h3>Developer</h3>
-          <p class="who">Pro, plus code-aware workflows.</p>
-          <div class="price">$49<small> once</small></div>
+        <div class="tier pick">
+          <span class="badge quiet">Best for developers</span>
+          <h3>ROAR Developer</h3>
+          <p class="who">A local, code-aware voice layer for technical work.</p>
+          <div class="price">$29<small> once</small></div>
           <ul>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Everything in Pro</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Code Mode — verbatim in editors</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Code mode</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Spoken programming symbols</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Per-app profiles &amp; language</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>App profiles</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Per-app formatting and language</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Project vocabulary</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Developer snippet packs and file tagging</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>All v1.x updates included</li>
           </ul>
-          <a class="btn" id="buy-developer" href="#">Buy ROAR Developer</a>
+          <a class="btn" id="buy-developer" data-edition="developer" href="#">Get ROAR Developer</a>
         </div>
 
         <div class="tier">
-          <h3>Supporter</h3>
-          <p class="who">Everything in Developer — and it keeps the lights on.</p>
-          <div class="price">$99<small> once</small></div>
+          <h3>ROAR Supporter</h3>
+          <p class="who">Everything in Developer, with extra support for ROAR's continued development.</p>
+          <div class="price">$49<small> once</small></div>
           <ul>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Everything in Developer</li>
-            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Supporter badge on your licence screen</li>
-            <li class="plain">No exclusive features — it's a thank-you, not a better tier. Buy this only if you want to fund the work.</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Same Developer feature access</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Supports independent development</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>All v1.x updates included</li>
+            <li class="plain">No exclusive features — it's the same product as Developer. Buy this only if you want to fund the work.</li>
           </ul>
-          <a class="btn" id="buy-supporter" href="#">Support ROAR</a>
+          <a class="btn" id="buy-supporter" data-edition="supporter" href="#">Support ROAR</a>
         </div>
       </div>
 
-      <p class="fineprint">
-        Buy once and keep the version you purchased. All v1.x updates are included. A future
-        major version may be offered as an optional paid upgrade — the version you bought
-        keeps working either way.
-      </p>
+      <p class="fineprint"><strong>One payment. No subscription.</strong><br>
+        No account required · No cloud transcription · No telemetry ·
+        Offline license verification · Your purchased version keeps working ·
+        Includes all v1.x updates · Optional paid major upgrades may happen later.</p>
     </div>
   </section>
 
