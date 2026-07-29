@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Purchase received — ROAR</title>
+<meta name="robots" content="noindex">
+<meta name="description" content="Your ROAR purchase was received.">
+<style>
+  :root{
+    --bg:#0B0B10; --surface:#14141C; --text:#EDEDEF; --muted:#9BA1AC;
+    --border:#2A2A38; --accent:#A78BFA; --accent-ink:#0B0B10; --r:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;
+    min-height:100dvh;display:grid;place-items:center;padding:24px;
+    font:400 16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .card{width:100%;max-width:560px;background:var(--surface);
+    border:1px solid var(--border);border-radius:var(--r);padding:40px}
+  h1{margin:0 0 14px;font-size:28px;line-height:1.2;letter-spacing:-.02em}
+  p{margin:0 0 16px;color:var(--muted)}
+  a{color:var(--accent)}
+  .links{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:24px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;
+    min-height:44px;padding:12px 22px;border-radius:10px;font-weight:600;
+    text-decoration:none;background:var(--accent);color:var(--accent-ink)}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Purchase received</h1>
+    <p>Thank you. Your ROAR license will be delivered using the fulfillment
+      process connected to this checkout.</p>
+    <p>Licenses are issued by hand right now, so please allow a little time. You
+      don't need an account, and ROAR keeps working offline while you wait.</p>
+    <div class="links">
+      <a href="https://github.com/xhan145/roar/releases/latest">Download ROAR</a>
+      <a href="../index.html#faq">How to activate a license</a>
+      <a href="mailto:gregm@joincollective.net">Contact support</a>
+    </div>
+    <a class="btn" href="../index.html">Back to ROAR</a>
+  </main>
+</body>
+</html>
