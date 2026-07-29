@@ -25,7 +25,7 @@ Everything in Core plus advanced milestones, smart formatting, snippet packs and
 extended snippet variables, vocabulary suggestions, history filters/tags,
 advanced cleanup controls, and settings import/export.
 
-**What does Developer Pack include?**
+**What does ROAR Developer include?**
 Everything in Pro plus code mode, symbol dictation, app profiles, per-app
 language, project vocabulary, file tagging, and developer snippet packs.
 

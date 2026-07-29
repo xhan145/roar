@@ -26,7 +26,7 @@ tiers monetise **new users only** until new Pro/Developer capabilities are built
 
 ## Matrix
 
-Prices are one-time: **Core free · Pro $29 · Developer Pack $49 · Supporter $99.**
+Prices are one-time: **Core free · Pro $19 · Developer $29 · Supporter $49.**
 No subscription, no account, no cloud transcription, no telemetry.
 
 | Feature | Core (free) | Pro | Developer | Supporter |

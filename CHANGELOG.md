@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased — Pricing
+
+- **New pricing.** ROAR Pro is now $19 once, ROAR Developer $29 once, and ROAR
+  Supporter $49 once (was $29 / $49 / $99). Core stays free and unchanged. No
+  subscription, no account. Existing licenses keep working, and no feature moved
+  between editions.
+- Prices now live in one place — `PRICING` in `commercial_config.py`. The
+  in-app upgrade copy, the settings screen, the docs, and the website all derive
+  from it, and tests fail if any of them drift.
+- Renamed "Developer Pack" to **ROAR Developer** in customer-facing copy.
+- Rebuilt the website pricing section: four cards, honest trust copy, and buy
+  buttons that carry an edition id rather than a price. Added
+  `site/purchase/success.html` for a future Stripe redirect — it says a license
+  *will be* delivered, and never claims one was sent.
+- Added `docs/STRIPE_SETUP.md` (Stripe Payment Links, plus the warning that a
+  completed payment is not a delivered license) and
+  `docs/WEBSITE_IMPLEMENTATION.md` (the server-side contract, if the site ever
+  gets a backend).
+- Added `fulfillment.py`: the boundary where automated license delivery would
+  live. It validates a request and then refuses, because the signing key is
+  deliberately offline.
+
 ## Unreleased — Read Aloud
 
 - Added optional, fully local Kokoro-82M Read Aloud for Windows with typed

@@ -16,9 +16,12 @@ development **without** compromising the privacy promise.
 | Edition | Price | Positioning |
 |---|---|---|
 | ROAR Core | Free | Private local dictation |
-| ROAR Pro | $29 one-time | Smarter local dictation |
-| ROAR Developer Pack | $49 one-time | Code-aware voice layer |
-| Supporter License | $99 one-time | Everything in Developer, and supports development |
+| ROAR Pro | $19 one-time | Smarter local dictation |
+| ROAR Developer | $29 one-time | Code-aware voice layer |
+| ROAR Supporter | $49 one-time | Everything in Developer, and supports development |
+
+Prices come from `PRICING` in `commercial_config.py` — the single source of
+truth. Never restate a price anywhere without a test that checks it.
 
 Paid editions unlock **workflow power** — not basic dignity. See
 [FEATURE_MATRIX.md](FEATURE_MATRIX.md).

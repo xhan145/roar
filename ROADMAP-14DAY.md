@@ -16,14 +16,15 @@ small, reviewable steps.
 | Edition | Price | Positioning |
 |---|---|---|
 | ROAR Core | Free | Private local dictation |
-| ROAR Pro | **$29 one-time** | Smarter local dictation |
-| ROAR Developer Pack | **$49 one-time** | Code-aware voice layer |
-| Supporter License | **$99 one-time** | Everything in Developer, supports development |
+| ROAR Pro | **$19 one-time** | Smarter local dictation |
+| ROAR Developer | **$29 one-time** | Code-aware voice layer |
+| ROAR Supporter | **$49 one-time** | Everything in Developer, supports development |
 
-> **Code sync — DONE:** `commercial_config.py` `*_PRICE_USD` constants and
-> `tests/test_commercial_config.py` are now at 29/49/99, matching the docs. The
-> derived surfaces (`settings_ui.license_info`, `upgrade_prompts`) update
-> automatically. Gates remain OFF — no behavior change beyond displayed prices.
+> **Code sync — DONE:** `PRICING` in `commercial_config.py` is the single source
+> of truth at 0/19/29/49, and the `*_PRICE_USD` constants derive from it. The
+> derived surfaces (`settings_ui.license_info`, `upgrade_prompts`, the website)
+> follow automatically, and tests fail if any of them drift. Gates remain OFF —
+> no behavior change beyond displayed prices.
 
 ## Day-by-day
 
