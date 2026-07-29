@@ -13,20 +13,60 @@ release. See docs/COMMERCIAL_READINESS_CHECKLIST.md.
 DEFAULT_EDITION = "core"
 CURRENT_MAJOR_VERSION = 1
 
+# ---------------------------------------------------------------------------
+# CANONICAL PRICING — the single source of truth for what ROAR costs.
+#
 # One-time prices, USD. Buy once, use forever; no subscription.
-PRO_PRICE_USD = 29
-DEVELOPER_PRICE_USD = 49
-SUPPORTER_PRICE_USD = 99
-
-# Where "Buy" goes. These point at ROAR's own pricing page (published from
-# site/ by .github/workflows/pages.yml), which currently hands off to a
-# pre-order email — the manual fulfillment path in docs/CHECKOUT_SETUP.md.
-# Swap them for real checkout links (Polar / Paddle / …) when one exists; the
-# app needs no other change, and site/index.html has the matching config block.
+#
+# Edition IDs (the dict keys) are stable and machine-readable. A PRICE IS NEVER
+# AN ENTITLEMENT IDENTIFIER — what each edition unlocks lives in entitlements.py.
+#
+# `purchase_url` points at ROAR's own pricing page (published from site/ by
+# .github/workflows/pages.yml), never at a payment processor: the website owns
+# checkout, so links can change without shipping a new app build. See
+# docs/STRIPE_SETUP.md.
+# ---------------------------------------------------------------------------
 _SITE = "https://xhan145.github.io/roar/"
-PURCHASE_URL_PRO = _SITE + "#pricing"
-PURCHASE_URL_DEVELOPER = _SITE + "#pricing"
-PURCHASE_URL_SUPPORTER = _SITE + "#pricing"
+
+PRICING = {
+    "core": {
+        "display_name": "ROAR Core",
+        "price_usd": 0,
+        "price_label": "Free",
+        "purchase_url": None,  # free: there is nothing to buy
+    },
+    "pro": {
+        "display_name": "ROAR Pro",
+        "price_usd": 19,
+        "price_label": "$19 once",
+        "purchase_url": _SITE + "#pricing",
+    },
+    "developer": {
+        "display_name": "ROAR Developer",
+        "price_usd": 29,
+        "price_label": "$29 once",
+        "purchase_url": _SITE + "#pricing",
+    },
+    "supporter": {
+        "display_name": "ROAR Supporter",
+        "price_usd": 49,
+        "price_label": "$49 once",
+        "purchase_url": _SITE + "#pricing",
+    },
+}
+
+# The editions a customer can actually buy. `core` is deliberately absent.
+PAID_EDITIONS = ("pro", "developer", "supporter")
+
+# Derived — kept so existing consumers (upgrade_prompts.py, the settings
+# bridge) need no change and cannot drift from PRICING.
+PRO_PRICE_USD = PRICING["pro"]["price_usd"]
+DEVELOPER_PRICE_USD = PRICING["developer"]["price_usd"]
+SUPPORTER_PRICE_USD = PRICING["supporter"]["price_usd"]
+
+PURCHASE_URL_PRO = PRICING["pro"]["purchase_url"]
+PURCHASE_URL_DEVELOPER = PRICING["developer"]["purchase_url"]
+PURCHASE_URL_SUPPORTER = PRICING["supporter"]["purchase_url"]
 
 # Published support / pre-order mailbox. Buyers reach this from the pricing page
 # and the in-app License screen; it's where manual license fulfilment happens.
