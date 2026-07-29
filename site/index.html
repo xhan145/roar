@@ -309,6 +309,10 @@
         </div>
       </div>
 
+      <p class="fineprint" id="checkout-note">Card checkout is coming soon. Until
+        then the buy buttons open a pre-order email, and licenses are issued and
+        sent by hand — usually within a day.</p>
+
       <p class="fineprint"><strong>One payment. No subscription.</strong><br>
         No account required · No cloud transcription · No telemetry ·
         Offline license verification · Your purchased version keeps working ·
@@ -386,10 +390,15 @@
 const ROAR = {
   // Where "Download" goes: always the newest published release.
   downloadUrl: "https://github.com/xhan145/roar/releases/latest",
-  // Checkout links per edition. Empty string => the button falls back to
-  // an email pre-order (which is exactly how manual fulfillment works).
+  // Stripe PAYMENT LINKS, one per paid edition. These are PUBLIC by design:
+  // the amount is fixed inside Stripe, so a visitor cannot tamper with the
+  // price. NEVER put a secret key or a webhook secret here — this page is
+  // static and world-readable. See docs/STRIPE_SETUP.md.
+  //
+  // Empty string => the button offers the pre-order email instead of silently
+  // doing nothing (that email IS the current manual fulfillment path).
   purchase: {
-    pro: "",          // e.g. "https://buy.polar.sh/roar-pro"
+    pro: "",          // e.g. "https://buy.stripe.com/xxxxxxxxxxxx"
     developer: "",
     supporter: "",
   },
@@ -403,26 +412,33 @@ for (const id of ["nav-download", "hero-download", "tier-download"]) {
 }
 document.getElementById("foot-support").href = "mailto:" + ROAR.supportEmail;
 
-// Until a checkout exists, a Buy button opens a pre-order email rather than
-// pretending to be a store. Honest, and it's the manual fulfillment path.
+// A paid edition is buyable only when its Payment Link is configured. Nothing
+// here is hardcoded true — flip a link on and the button becomes a real one.
 const EDITIONS = {
-  pro: {label: "Pro", price: 29},
-  developer: {label: "Developer", price: 49},
-  supporter: {label: "Supporter", price: 99},
+  pro: {label: "Pro", price: 19},
+  developer: {label: "Developer", price: 29},
+  supporter: {label: "Supporter", price: 49},
 };
+ROAR.checkoutReady = Object.fromEntries(
+  Object.entries(ROAR.purchase).map(([id, url]) => [id, Boolean(url)]));
+
+// Until a Payment Link exists, a Buy button opens a pre-order email rather
+// than pretending to be a store. Honest, and it's the manual fulfillment path.
 for (const [key, {label, price}] of Object.entries(EDITIONS)) {
-  const el = document.getElementById("buy-" + key);
-  const url = ROAR.purchase[key];
-  if (url) {
-    el.href = url;
-  } else {
-    const subject = encodeURIComponent(`ROAR ${label} ($${price}) — licence request`);
-    const body = encodeURIComponent(
-      `Hi — I'd like to buy ROAR ${label} ($${price} one-time).\n\n` +
-      `Name (for the licence):\n`);
-    el.href = `mailto:${ROAR.supportEmail}?subject=${subject}&body=${body}`;
-    el.textContent = key === "supporter" ? "Support ROAR" : `Request ${label} licence`;
+  const el = document.querySelector(`[data-edition="${key}"]`);
+  if (!el) continue;
+  if (ROAR.checkoutReady[key]) {
+    el.href = ROAR.purchase[key];   // straight to Stripe-hosted checkout
+    continue;
   }
+  const subject = encodeURIComponent(`ROAR ${label} ($${price}) — licence request`);
+  const body = encodeURIComponent(
+    `Hi — I'd like to buy ROAR ${label} ($${price} one-time).\n\n` +
+    `Name (for the licence):\n`);
+  el.href = `mailto:${ROAR.supportEmail}?subject=${subject}&body=${body}`;
+  el.textContent = key === "supporter" ? "Support ROAR" : `Request ${label} licence`;
+  el.setAttribute("aria-describedby", "checkout-note");
+  el.title = "Checkout coming soon — this opens a pre-order email";
 }
 </script>
 </body>
