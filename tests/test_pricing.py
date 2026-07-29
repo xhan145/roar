@@ -46,3 +46,18 @@ def test_purchase_urls_are_our_own_page_not_a_processor():
         url = cc.PRICING[edition]["purchase_url"]
         assert url.startswith("https://xhan145.github.io/roar/"), edition
         assert "stripe" not in url.lower(), edition
+
+
+def test_settings_bridge_reports_canonical_prices():
+    """The in-app License screen renders whatever the bridge hands it, so the
+    bridge must never invent a price of its own."""
+    import license_service
+    import settings_ui
+
+    info = settings_ui.SettingsAPI().license_info()
+    assert info["prices"] == {e: cc.PRICING[e]["price_usd"]
+                              for e in cc.PAID_EDITIONS}
+    assert info["purchase_urls"] == {e: cc.PRICING[e]["purchase_url"]
+                                     for e in cc.PAID_EDITIONS}
+    assert info["edition_names"]["developer"] == "ROAR Developer"
+    assert license_service  # imported for the side-effect-free status call

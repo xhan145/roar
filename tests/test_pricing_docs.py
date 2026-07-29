@@ -67,6 +67,9 @@ def test_website_implementation_doc_records_the_server_contract():
 
 
 def test_docs_never_leak_a_secret_key():
+    # Assembled at runtime so this file doesn't itself trip the repo-wide
+    # private-key scanner in tests/test_commercial_packaging.py.
+    pem_marker = "BEGIN " + "PRIVATE KEY"
     paths = list(CUSTOMER_FACING) + [
         pathlib.Path("docs/STRIPE_SETUP.md"),
         pathlib.Path("docs/WEBSITE_IMPLEMENTATION.md"),
@@ -77,4 +80,4 @@ def test_docs_never_leak_a_secret_key():
         text = path.read_text(encoding="utf-8")
         assert "sk_live" not in text, path
         assert "sk_test" not in text, path
-        assert "BEGIN PRIVATE KEY" not in text, path
+        assert pem_marker not in text, path

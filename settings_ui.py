@@ -462,12 +462,13 @@ class SettingsAPI:
             "customer_name": s["customer_name"],
             "valid_for_major": s["valid_for_major"],
             "validation": "Local/offline",
-            "prices": {"pro": cc.PRO_PRICE_USD,
-                       "developer": cc.DEVELOPER_PRICE_USD,
-                       "supporter": cc.SUPPORTER_PRICE_USD},
-            "purchase_urls": {"pro": cc.PURCHASE_URL_PRO,
-                              "developer": cc.PURCHASE_URL_DEVELOPER,
-                              "supporter": cc.PURCHASE_URL_SUPPORTER},
+            # Straight from the canonical PRICING table, so the License screen
+            # can never show a price the website has moved on from.
+            "prices": {e: cc.PRICING[e]["price_usd"] for e in cc.PAID_EDITIONS},
+            "purchase_urls": {e: cc.PRICING[e]["purchase_url"]
+                              for e in cc.PAID_EDITIONS},
+            "edition_names": {e: cc.PRICING[e]["display_name"]
+                              for e in cc.PRICING},
             "upgrades": upgrade_prompts.all_copy(),
         }
 

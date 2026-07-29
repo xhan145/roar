@@ -164,11 +164,13 @@ private key + fixtures out); prohibited-language scan.
 
 ## 9. Divergences from the brief (deliberate, with rationale)
 
-1. **Pricing — brief says $19/$29/$49; repo keeps $29/$49/$99.**
-   The brief's table is **stale**: the owner explicitly set 29/49/99 on
-   2026-07-07 ("bump commercial_config prices to 29/49/99 and update the test"),
-   and `tests/test_commercial_config.py` asserts it. Confirmed with the owner on
-   2026-07-11: **repo pricing wins**; no price change.
+1. ~~**Pricing — brief says $19/$29/$49; repo keeps $29/$49/$99.**~~
+   **RESOLVED 2026-07-28.** The owner adopted $19/$29/$49 (Core free). Pricing
+   now lives in one place, `PRICING` in `commercial_config.py`, with the
+   `*_PRICE_USD` constants derived from it; docs, in-app copy, and the website
+   all follow, guarded by `tests/test_pricing.py`,
+   `tests/test_site_pricing.py`, and `tests/test_pricing_docs.py`. "Developer
+   Pack" is now "ROAR Developer" in customer-facing copy.
 2. **Unknown features fail OPEN, not closed.**
    The brief requires fail-closed. `entitlements.allowed` deliberately allows +
    warns for unregistered features, guarded by `KNOWN_FEATURES` + a registration

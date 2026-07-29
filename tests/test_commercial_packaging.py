@@ -69,12 +69,13 @@ def test_purchase_urls_and_prices_are_configured_constants():
         assert isinstance(price, int) and price > 0
 
 
-def test_repo_pricing_is_the_agreed_29_49_99():
-    """The commercial brief's $19/$29/$49 table is stale — 29/49/99 was set
-    explicitly by the owner and re-confirmed. See docs/commercial/
-    REPOSITORY_COMMERCIAL_AUDIT.md divergence #1."""
+def test_repo_pricing_is_the_agreed_19_29_49():
+    """Pricing settled on 2026-07-28: Core free, Pro $19, Developer $29,
+    Supporter $49. See docs/commercial/REPOSITORY_COMMERCIAL_AUDIT.md
+    divergence #1 (now resolved) and docs/PRICING.md."""
     assert (cc.PRO_PRICE_USD, cc.DEVELOPER_PRICE_USD,
-            cc.SUPPORTER_PRICE_USD) == (29, 49, 99)
+            cc.SUPPORTER_PRICE_USD) == (19, 29, 49)
+    assert cc.PRICING["core"]["price_usd"] == 0
 
 
 def _signed(priv, **extra):
