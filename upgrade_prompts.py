@@ -16,23 +16,33 @@ import entitlements
 _COPY = {
     "pro": {
         "title": "Unlock ROAR Pro",
-        "body": f"${cc.PRO_PRICE_USD} once. No subscription. No account. "
-                "No cloud transcription.",
+        "body": f"${cc.PRICING['pro']['price_usd']} once. No subscription. "
+                "No account. No cloud transcription.",
         "url": cc.PURCHASE_URL_PRO,
     },
     "developer": {
-        "title": "Unlock Developer Pack",
-        "body": f"${cc.DEVELOPER_PRICE_USD} once. Code-aware dictation, symbol "
-                "dictation, and app profiles.",
+        "title": "Unlock ROAR Developer",
+        "body": f"${cc.PRICING['developer']['price_usd']} once. Code-aware "
+                "dictation, symbol dictation, and app profiles. "
+                "No subscription.",
         "url": cc.PURCHASE_URL_DEVELOPER,
     },
     "supporter": {
         "title": "Support ROAR",
-        "body": f"${cc.SUPPORTER_PRICE_USD} once. Includes Developer features and "
-                "supports continued development.",
+        "body": f"${cc.PRICING['supporter']['price_usd']} once. Everything in "
+                "ROAR Developer, and it supports continued independent "
+                "development. No subscription.",
         "url": cc.PURCHASE_URL_SUPPORTER,
     },
 }
+
+
+def _price_for_edition(edition):
+    """Canonical price for an edition id, or None when it isn't purchasable."""
+    entry = cc.PRICING.get(edition)
+    if not entry or entry["price_usd"] == 0:
+        return None
+    return entry["price_usd"]
 
 
 def copy_for(edition):
@@ -105,8 +115,7 @@ def prompt_for(feature):
         "required_edition": required,
         "required_edition_name": "ROAR " + required.title(),
         "headline": f"{name} is included with ROAR {required.title()}.",
-        "price_usd": {"pro": cc.PRO_PRICE_USD,
-                      "developer": cc.DEVELOPER_PRICE_USD}.get(required),
+        "price_usd": _price_for_edition(required),
         "terms": "No subscription. No account required. No cloud transcription.",
         "purchase_url": copy["url"],
         "buttons": [f"Buy ROAR {required.title()}", "Enter License", "Not Now"],

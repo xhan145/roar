@@ -1,6 +1,7 @@
 """Applied gates: paid features resolve DOWN when unentitled, Core promises hold
 absolutely, paid config is preserved, and the upgrade prompt only ever appears
 for genuinely gated features."""
+import commercial_config as cc
 import entitlements as ent
 import legacy_grant as lg
 import upgrade_prompts as up
@@ -26,7 +27,7 @@ def test_prompt_for_pro_feature():
     assert p["required_edition"] == PRO
     assert p["feature_name"] == "ROAR Snippets"
     assert "ROAR Pro" in p["headline"]
-    assert p["price_usd"] == 29                     # repo pricing
+    assert p["price_usd"] == cc.PRICING["pro"]["price_usd"]
     assert p["purchase_url"]
     assert "Not Now" in p["buttons"]
 
@@ -35,7 +36,7 @@ def test_prompt_for_developer_feature():
     p = up.prompt_for("code.mode")
     assert p["required_edition"] == DEVELOPER
     assert p["feature_name"] == "Code Mode"
-    assert p["price_usd"] == 49
+    assert p["price_usd"] == cc.PRICING["developer"]["price_usd"]
     assert "ROAR Developer" in p["headline"]
 
 
