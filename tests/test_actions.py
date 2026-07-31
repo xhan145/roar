@@ -85,27 +85,36 @@ def test_copy_uses_param_text_when_given():
 
 # -- trust gate -------------------------------------------------------------
 
-@pytest.mark.parametrize("action,params", [
+SCRIPTED_CASES = [
     ("run_script", {"path": "C:/x.ps1"}),
     ("webhook", {"url": "https://example.com/hook"}),
-])
+    ("osc", {"target": "127.0.0.1:53000/cue/go"}),
+]
+
+
+@pytest.mark.parametrize("action,params", SCRIPTED_CASES)
 def test_scripted_actions_need_trusted_flag(action, params):
     deps = FakeDeps(entitled=True)
     result = actions.execute(desc(action, params, trusted=False), deps)
     assert result.startswith("skipped")
-    assert not any(c[0] in ("run_script", "webhook") for c in deps.calls)
+    assert not any(c[0] in ("run_script", "webhook", "osc") for c in deps.calls)
     assert deps.notices  # user is told why nothing happened
 
 
-@pytest.mark.parametrize("action,params", [
-    ("run_script", {"path": "C:/x.ps1"}),
-    ("webhook", {"url": "https://example.com/hook"}),
-])
+@pytest.mark.parametrize("action,params", SCRIPTED_CASES)
 def test_scripted_actions_need_entitlement(action, params):
     deps = FakeDeps(entitled=False)
     result = actions.execute(desc(action, params, trusted=True), deps)
     assert result.startswith("skipped")
-    assert not any(c[0] in ("run_script", "webhook") for c in deps.calls)
+    assert not any(c[0] in ("run_script", "webhook", "osc") for c in deps.calls)
+
+
+def test_osc_action_sends_target_and_utterance():
+    deps = FakeDeps(entitled=True)
+    d = desc("osc", {"target": "127.0.0.1:53000/cue/go"}, trusted=True,
+             utterance="lights up")
+    assert actions.execute(d, deps) == "ok"
+    assert ("osc", "127.0.0.1:53000/cue/go", "lights up") in deps.calls
 
 
 def test_trusted_and_entitled_scripted_action_fires_with_a_toast():

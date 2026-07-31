@@ -21,7 +21,7 @@ def test_flow_get_shape(tmp_path):
     assert state["rules"] == []
     assert state["notes_path"] == ""
     assert "open_app" in state["actions"]
-    assert state["scripted_actions"] == ["run_script", "webhook"]
+    assert state["scripted_actions"] == ["osc", "run_script", "webhook"]
     assert isinstance(state["can_rules"], bool)
 
 

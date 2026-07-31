@@ -1484,10 +1484,12 @@ const FLOW_PARAM_HINT = {
   copy: "Text to copy (empty = the dictation itself)",
   run_script: "Script path — runs code. Trusted rules only.",
   webhook: "URL to POST the text to. Trusted rules only.",
+  osc: "Show control — host:port/address, e.g. 127.0.0.1:53000/cue/go. Trusted rules only.",
 };
 const FLOW_PARAM_KEY = {
   open_app: "target", open_url: "url", hotkey: "keys", snippet: "name",
   speak: "text", copy: "text", run_script: "path", webhook: "url",
+  osc: "target",
 };
 let flowScripted = ["run_script", "webhook"];
 function flowActionChanged() {

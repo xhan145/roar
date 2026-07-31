@@ -100,8 +100,8 @@ FEATURE_COPY = {
                       "Send one dictation to extra places: clipboard, a "
                       "running notes file, or spoken back aloud."),
     "automations.scripted": ("Scripted actions",
-                             "Let trusted Flow rules run a script or call a "
-                             "webhook."),
+                             "Let trusted Flow rules run a script, call a "
+                             "webhook, or send OSC to show-control gear."),
     "capture.system_audio": ("Meeting capture",
                              "Transcribe what your PC is playing — calls and "
                              "meetings — into local history, live."),

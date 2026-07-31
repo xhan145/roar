@@ -19,12 +19,12 @@ from dataclasses import dataclass, field
 # Every action the engine may reference. actions.py implements exactly these;
 # validate_rule refuses anything else so stored configs can't drift ahead.
 KNOWN_ACTIONS = ("open_app", "open_url", "hotkey", "snippet", "speak", "copy",
-                 "run_script", "webhook")
+                 "run_script", "webhook", "osc")
 
 # Actions that execute code or leave the machine — allowed only on rules the
 # user explicitly marked trusted AND when the edition allows it (actions.py
 # enforces; this set is the single definition).
-SCRIPTED_ACTIONS = {"run_script", "webhook"}
+SCRIPTED_ACTIONS = {"run_script", "webhook", "osc"}
 
 MAX_PHRASE = 60
 
@@ -37,6 +37,7 @@ _REQUIRED_PARAM = {
     "speak": "text",
     "run_script": "path",
     "webhook": "url",
+    "osc": "target",
 }
 # copy: params optional (empty => copies the utterance itself)
 
@@ -141,6 +142,12 @@ def validate_rule(rule, existing) -> "str | None":
         if action in ("open_url", "webhook") and not str(value).startswith(
                 ("http://", "https://")):
             return "URLs must start with http:// or https://."
+        if action == "osc":
+            import osc as osc_mod  # pure encoder module, no sockets
+            try:
+                osc_mod.parse_target(str(value))
+            except ValueError as exc:
+                return str(exc)
     norm = normalize(phrase)
     for other in existing or []:
         if other is rule:

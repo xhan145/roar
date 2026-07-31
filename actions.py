@@ -67,6 +67,9 @@ def execute(desc, deps) -> str:
             deps.copy(params.get("text") or desc.get("utterance", ""))
         elif action == "run_script":
             deps.run_script(params["path"])
+        elif action == "osc":
+            deps.osc(params["target"],
+                     params.get("value") or desc.get("utterance", ""))
         elif action == "webhook":
             import datetime
             payload = {"text": desc.get("utterance", ""),
@@ -128,6 +131,20 @@ def build_deps(app):
                          creationflags=getattr(subprocess,
                                                "CREATE_NEW_CONSOLE", 0))
 
+    def osc_send(target, value):
+        """One UDP datagram to a show-control box on the local network.
+        Trusted-rule gated like every scripted action; fire-and-forget."""
+        import socket
+
+        import osc as osc_mod
+        host, port, address = osc_mod.parse_target(target)
+        message = osc_mod.encode_message(address, [value] if value else [])
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            sock.sendto(message, (host, port))
+        finally:
+            sock.close()
+
     def webhook(url, payload):
         def _post():
             import json
@@ -145,4 +162,4 @@ def build_deps(app):
         can=access.can, notify=app.notify, log=app.log,
         open_app=open_app, open_url=open_url, hotkey=hotkey,
         snippet=snippet, speak=speak, copy=copy,
-        run_script=run_script, webhook=webhook)
+        run_script=run_script, webhook=webhook, osc=osc_send)

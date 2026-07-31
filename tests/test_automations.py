@@ -119,6 +119,15 @@ def test_validate_requires_action_params():
 
 
 def test_scripted_actions_set():
-    assert au.SCRIPTED_ACTIONS == {"run_script", "webhook"}
+    # everything that runs code or leaves the machine needs the trust gate
+    assert au.SCRIPTED_ACTIONS == {"run_script", "webhook", "osc"}
     for a in au.SCRIPTED_ACTIONS:
         assert a in au.KNOWN_ACTIONS
+
+
+def test_validate_osc_target():
+    assert au.validate_rule(
+        rule(action="osc", params={"target": "127.0.0.1:53000/cue/go"}),
+        []) is None
+    assert au.validate_rule(
+        rule(action="osc", params={"target": "not-a-target"}), []) is not None
