@@ -1,6 +1,7 @@
 faster-whisper==1.2.1
 ctranslate2==4.8.0
 sounddevice==0.5.5
+PyAudioWPatch==0.2.12.8  # WASAPI loopback for Flow meeting capture (Windows only)
 keyboard==0.13.5
 pystray==0.19.5
 Pillow==12.3.0

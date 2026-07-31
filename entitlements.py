@@ -34,6 +34,7 @@ _PRO = frozenset({
     "snippets.variables_extended", "vocabulary.suggestions",
     "history.filters", "cleanup.advanced", "settings.import_export",
     "automations.rules", "routing.multi",     # ROAR Flow
+    "capture.system_audio",                   # Flow meeting capture
 })
 
 _DEVELOPER = frozenset({

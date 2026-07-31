@@ -118,6 +118,7 @@ class ROARApp:
         # ROAR Flow: session-only output routes (never persisted — they always
         # start off, so a forgotten notes-log can't survive a restart).
         self._routes = {"clipboard": False, "notes": False, "speak": False}
+        self._listen_session = None  # Flow meeting capture (loopback)
         self._detector = gestures.TapToggleDetector(
             double_tap_s=cfg.get("double_tap_ms", 400) / 1000)
         self._gesture_lock = threading.Lock()
@@ -944,6 +945,8 @@ class ROARApp:
                 Item("Stop speech",
                      lambda: self._dispatch_tts_command({"command": "stop"})),
             )),
+            Item("Meeting capture (system audio)", self._toggle_listen,
+                 checked=lambda item: self._listen_session is not None),
             Item("Flow routes", Menu(
                 Item("Also copy to clipboard",
                      lambda: self._toggle_route("clipboard"),
@@ -971,6 +974,50 @@ class ROARApp:
 
     def _toggle_route(self, name):
         self._apply_route_command((name, not self._routes[name]))
+
+    # -- ROAR Flow: meeting capture (system-audio loopback) ----------------
+
+    def _toggle_listen(self):
+        if self._listen_session is not None:
+            session, self._listen_session = self._listen_session, None
+            threading.Thread(target=session.stop, daemon=True).start()
+            self.notify("Meeting capture off.")
+            return
+        if not access.can("capture.system_audio"):
+            self.notify("Meeting capture is part of ROAR Pro.")
+            return
+        if not self.model_ready.is_set():
+            self.notify("The model is still loading — try again in a moment.")
+            return
+        import listen_mode
+
+        def on_text(text):
+            self.history.record(text, model=listen_mode.MODEL_TAG)
+            if self._routes.get("notes"):
+                try:
+                    import datetime
+                    routing.append_notes(
+                        self._notes_path(),
+                        routing.notes_line(text, datetime.datetime.now()))
+                except OSError as exc:
+                    self.log(f"listen notes append failed: {exc}")
+
+        try:
+            session = listen_mode.ListenSession(
+                transcribe=lambda chunk: self.transcriber.transcribe(chunk),
+                on_text=on_text,
+                threshold=self.cfg["silence_rms_threshold"],
+                log=self.log)
+            session.start()
+        except Exception as exc:
+            self.log(f"listen: could not start loopback capture: {exc}")
+            self.notify("Meeting capture couldn't start — no WASAPI loopback "
+                        "device was available.")
+            return
+        self._listen_session = session
+        self.notify("Meeting capture on — transcribing what this PC plays "
+                    "into History (Live view). Recording people may require "
+                    "their consent.")
 
     def _copy_last(self):
         import pyperclip
@@ -1092,6 +1139,12 @@ class ROARApp:
     # -- lifecycle -------------------------------------------------------------
     def _quit(self):
         self._stop_watch.set()
+        if self._listen_session is not None:
+            try:
+                self._listen_session.stop()
+            except Exception:
+                pass
+            self._listen_session = None
         if self._pointer_hook is not None:
             try:
                 self._pointer_hook.stop()

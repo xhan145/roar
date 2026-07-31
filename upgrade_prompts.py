@@ -102,6 +102,9 @@ FEATURE_COPY = {
     "automations.scripted": ("Scripted actions",
                              "Let trusted Flow rules run a script or call a "
                              "webhook."),
+    "capture.system_audio": ("Meeting capture",
+                             "Transcribe what your PC is playing — calls and "
+                             "meetings — into local history, live."),
 }
 
 
