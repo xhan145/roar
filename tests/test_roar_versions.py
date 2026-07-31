@@ -83,3 +83,18 @@ def test_no_canonical_version_means_no_release_opinion():
 def test_every_component_declares_its_github_repo():
     for c in rv.COMPONENTS:
         assert c.get("github"), c["name"]
+
+
+def test_site_and_readme_prose_carry_the_app_version():
+    """The website hero and README prose are managed echo targets — they must
+    always match paths.APP_VERSION (roar_versions --fix rewrites them)."""
+    import pathlib
+    import re
+
+    import paths
+    html = pathlib.Path("site/index.html").read_text(encoding="utf-8")
+    m = re.search(r'id="roar-version">v([0-9.]+)<', html)
+    assert m and m.group(1) == paths.APP_VERSION
+    readme = pathlib.Path("README.md").read_text(encoding="utf-8")
+    m = re.search(r"Current app version: `([0-9.]+)`", readme)
+    assert m and m.group(1) == paths.APP_VERSION

@@ -57,6 +57,11 @@ COMPONENTS = [
         "echo": [
             ("tests/test_paths.py", r'APP_VERSION == "([0-9.]+)"'),
             ("tests/test_settings_bridge.py", r's\["version"\] == "([0-9.]+)"'),
+            # README prose (the badge is handled separately)
+            ("README.md", r"Current app version: `([0-9.]+)`"),
+            # the public site shows the latest release version in the hero
+            ("site/index.html",
+             r'id="roar-version">v([0-9]+\.[0-9]+\.[0-9]+)<'),
         ],
         "readme": "README.md",
         "github": "xhan145/roar",
