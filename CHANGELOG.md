@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.31.0 — 2026-07-31 — ROAR Flow
+
+- **Voice automations.** Say a trigger phrase at the start of a dictation and
+  ROAR acts on it: open an app, open a URL, press a hotkey chord, insert a
+  snippet, speak a reply, or copy text. Rules are managed under
+  Settings → Settings → Flow, and never fire mid-sentence.
+- **Trusted rules.** Script and webhook actions exist but only run on rules
+  you explicitly mark trusted (ROAR Developer feature), and ROAR shows a toast
+  naming the rule when one fires. Everything the microphone hears can speak a
+  trigger phrase — the gate exists so that fact can't run code by surprise.
+- **Multi-channel output routing.** One dictation can now also go to the
+  clipboard, a timestamped local notes file, and/or be spoken back — on top of
+  normal typing, never instead of it. Toggle by voice ("roar route notes on",
+  "roar routes off") or from the new tray "Flow routes" menu. Extra routes
+  always start OFF when ROAR starts, and a failing route can never block
+  typing.
+- Privacy: everything is local. The notes file is opt-in, plain text, at a
+  path you choose. A webhook is the only possible network call, exists only
+  inside a rule you marked trusted, and sends only that utterance's text, the
+  rule name, and a timestamp.
+
 ## Unreleased — Pricing
 
 - **New pricing.** ROAR Pro is now $19 once, ROAR Developer $29 once, and ROAR

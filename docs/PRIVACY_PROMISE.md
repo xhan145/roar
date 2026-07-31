@@ -17,3 +17,18 @@ ROAR is built so your words stay yours.
 These are enforced in code and covered by tests (`tests/test_commercial_privacy.py`,
 `tests/test_network_hygiene.py`). Privacy controls and deleting history/audio are
 **free in every edition**, including Core.
+
+## ROAR Flow (v0.31+)
+
+Flow adds two places your text can go — both entirely under your control:
+
+- **Notes route (opt-in, off at every start).** When you turn it on, each
+  dictation is also appended, timestamped, to ONE plain-text file at a path you
+  chose. It lives on your machine and you can delete it like any file.
+- **Webhook action (trusted rules only).** The only way ROAR can ever make an
+  outbound network call with your text is a Flow rule that YOU created, YOU
+  marked trusted, pointing at a URL YOU chose. It sends only that one
+  utterance's text, the rule's name, and a timestamp — never history, audio,
+  vocabulary, or settings. No rule ships with ROAR; nothing is on by default.
+  The network scan in `tests/test_network_hygiene.py` pins this as the single
+  outbound call site.

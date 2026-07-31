@@ -1,8 +1,9 @@
 """Red-team invariant: ROAR never touches the network on its own.
 
-The ONLY permitted network call site is settings_ui.check_updates (click-only).
-A static source scan is deliberate — it fails loudly the moment anyone adds a
-new urlopen/requests/socket call anywhere else.
+Permitted network call sites are enumerated below, each behind an explicit
+user decision (a click, an opt-in download, or a trusted Flow rule). A static
+source scan is deliberate — it fails loudly the moment anyone adds a new
+urlopen/requests/socket call anywhere else.
 """
 import os
 import re
@@ -21,13 +22,18 @@ def _src(name):
 
 
 def test_only_check_updates_touches_the_network():
-    # Sanctioned network sites, each inbound-only and never in the dictation
-    # path (no user data ever leaves the machine):
-    #   settings_ui.py     — check_updates, click-only
+    # Sanctioned network sites, each opt-in and never implicit (no user data
+    # ever leaves the machine without an explicit user decision):
+    #   settings_ui.py     — check_updates, click-only, inbound-only
     #   whispercpp_assets.py — one-time, OPT-IN download of the Vulkan GPU
     #                          binary/model (like faster-whisper's model fetch),
     #                          only after the user enables the GPU backend
-    allowed = {"settings_ui.py", "whispercpp_assets.py"}
+    #   actions.py         — Flow webhook action: OUTBOUND, but reachable only
+    #                        through a rule the user created AND marked trusted
+    #                        AND a Developer entitlement (gate tested in
+    #                        tests/test_actions.py); sends only that
+    #                        utterance's text + rule name + timestamp
+    allowed = {"settings_ui.py", "whispercpp_assets.py", "actions.py"}
     offenders = {}
     for name in FIRST_PARTY:
         hits = NET_CALL.findall(_src(name))
@@ -38,6 +44,9 @@ def test_only_check_updates_touches_the_network():
     assert _src("settings_ui.py").count("urlopen(") == 1
     # whispercpp_assets only downloads (urlopen); it never opens raw sockets
     assert "socket.socket" not in _src("whispercpp_assets.py")
+    # actions.py: exactly one urlopen (the webhook POST), inside build_deps
+    assert _src("actions.py").count("urlopen(") == 1
+    assert "socket.socket" not in _src("actions.py")
 
 
 def test_startup_path_never_calls_update_check():

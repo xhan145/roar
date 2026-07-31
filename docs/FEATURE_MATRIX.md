@@ -49,6 +49,9 @@ No subscription, no account, no cloud transcription, no telemetry.
 | History filters/tags | — | ✅ | ✅ | ✅ |
 | Advanced cleanup controls | — | ✅ | ✅ | ✅ |
 | Settings import/export | — | ✅ | ✅ | ✅ |
+| Flow automation rules | — | ✅ | ✅ | ✅ |
+| Multi-output routing (clipboard/notes/speak) | — | ✅ | ✅ | ✅ |
+| Flow scripted actions (run script / webhook) | — | — | ✅ | ✅ |
 | Code mode / symbol dictation | — | — | ✅ | ✅ |
 | App profiles / per-app language | — | — | ✅ | ✅ |
 | Project vocabulary / file tagging | — | — | ✅ | ✅ |
