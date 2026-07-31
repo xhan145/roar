@@ -719,6 +719,72 @@ class SettingsAPI:
         return {"ok": True, "pairs": [{"heard": k, "meant": v}
                                       for k, v in sorted(pairs.items())]}
 
+    # -- ROAR Flow: automation rules + notes path --------------------------
+
+    def flow_get(self):
+        """Everything the Flow section renders: persisted rules, the notes-file
+        path, entitlement state, and the action vocabulary for the form."""
+        import access
+        import automations
+        cfg = config_mod.load(self.config_path)
+        return {
+            "rules": list(cfg.get("automation_rules") or []),
+            "notes_path": cfg.get("flow_notes_path", ""),
+            "actions": list(automations.KNOWN_ACTIONS),
+            "scripted_actions": sorted(automations.SCRIPTED_ACTIONS),
+            "can_rules": access.can("automations.rules"),
+            "can_scripted": access.can("automations.scripted"),
+        }
+
+    def flow_add_rule(self, rule):
+        import automations
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            rules = list(cfg.get("automation_rules") or [])
+            clean = {
+                "phrase": str(rule.get("phrase", "")).strip(),
+                "action": rule.get("action"),
+                "params": {k: str(v) for k, v in
+                           (rule.get("params") or {}).items()},
+                "enabled": bool(rule.get("enabled", True)),
+                "trusted": bool(rule.get("trusted", False)),
+                "consume": bool(rule.get("consume", True)),
+            }
+            err = automations.validate_rule(clean, rules)
+            if err:
+                return {"error": err}
+            rules.append(clean)
+            self._write(automation_rules=rules)
+        return {"ok": True, "rules": rules}
+
+    def flow_delete_rule(self, index):
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            rules = list(cfg.get("automation_rules") or [])
+            try:
+                rules.pop(int(index))
+            except (IndexError, TypeError, ValueError):
+                return {"error": "No such rule."}
+            self._write(automation_rules=rules)
+        return {"ok": True, "rules": rules}
+
+    def flow_toggle_rule(self, index, enabled):
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            rules = list(cfg.get("automation_rules") or [])
+            try:
+                rules[int(index)]["enabled"] = bool(enabled)
+            except (IndexError, TypeError, ValueError):
+                return {"error": "No such rule."}
+            self._write(automation_rules=rules)
+        return {"ok": True, "rules": rules}
+
+    def flow_set_notes_path(self, path):
+        path = str(path or "").strip()
+        with self._cfg_lock:
+            self._write(flow_notes_path=path)
+        return {"ok": True, "notes_path": path}
+
     def correction_remove(self, heard):
         """Remove a correction. The mirrored vocabulary word is left alone —
         it is harmless, and the user may have added it deliberately."""
@@ -1100,6 +1166,18 @@ def run_settings(smoke=False):
                         "document.getElementById('corr-heard') && "
                         "document.getElementById('corr-meant') && "
                         "document.getElementById('b-corr-add')) ? 1 : 0")
+                    has_flow = window.evaluate_js(
+                        "(document.getElementById('flow-list') && "
+                        "document.getElementById('flow-phrase') && "
+                        "document.getElementById('flow-action') && "
+                        "document.getElementById('flow-notes-path') && "
+                        "document.getElementById('b-flow-add')) ? 1 : 0")
+                    flow_nav = window.evaluate_js(
+                        "(function(){var s=document.querySelector('.nav[data-s=\"settings\"]');"
+                        "if(!s)return 0; s.click();"
+                        "var b=document.querySelector('#settings [data-section=\"flow\"]');"
+                        "if(!b)return 0; b.click();"
+                        "return document.getElementById('flow').classList.contains('active')?1:0;})()")
                     has_accel = window.evaluate_js(
                         "(document.getElementById('s-preset') && "
                         "document.getElementById('s-accel') && "
@@ -1123,6 +1201,7 @@ def run_settings(smoke=False):
                           f"ttsnav={tts_nav} ttsstatus={has_tts_status} "
                           f"ttsstop={has_tts_stop} "
                           f"fmt={has_fmt} accel={has_accel} corr={has_corr} ptr={has_ptr} "
+                          f"flow={has_flow} flownav={flow_nav} "
                           f"themeok={theme_ok}",
                           flush=True)
                 finally:

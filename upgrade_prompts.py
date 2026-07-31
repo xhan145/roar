@@ -93,6 +93,15 @@ FEATURE_COPY = {
                                  "Shareable snippet packs for code workflows."),
     "files.tagging": ("Developer tagging",
                       "Tag dictations by file or project."),
+    "automations.rules": ("Flow automations",
+                          "Say a trigger phrase and ROAR acts — open an app, "
+                          "press a hotkey, speak a reply."),
+    "routing.multi": ("Multi-output routing",
+                      "Send one dictation to extra places: clipboard, a "
+                      "running notes file, or spoken back aloud."),
+    "automations.scripted": ("Scripted actions",
+                             "Let trusted Flow rules run a script or call a "
+                             "webhook."),
 }
 
 

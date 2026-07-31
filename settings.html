@@ -616,6 +616,55 @@
       <button class="homesub" data-section="transcription">Transcription</button>
       <button class="homesub" data-section="privacy">Privacy &amp; History controls</button>
       <button class="homesub" data-section="snippets">Snippets</button>
+      <button class="homesub" data-section="flow">Flow — automations &amp; routing</button>
+    </section>
+
+    <section id="flow">
+      <h1>Flow</h1>
+      <div class="row">
+        <div class="hint" style="margin:0;">
+          Say a trigger phrase at the <b>start</b> of a dictation and ROAR acts on it —
+          open an app, press a hotkey, speak a reply. Rules never fire mid-sentence.
+          Routing sends one dictation to extra places: say
+          <b>"roar route notes on"</b>, <b>"roar route clipboard on"</b>,
+          <b>"roar route speak on"</b>, or <b>"roar routes off"</b> — or use the
+          tray menu. Extra routes always start OFF when ROAR starts.
+        </div>
+      </div>
+      <div class="row">
+        <div style="margin-bottom:8px;">Automation rules</div>
+        <div id="flow-list" style="margin-bottom:8px;"></div>
+        <input id="flow-phrase" type="text" maxlength="60" placeholder="Trigger phrase — e.g. open terminal"
+               style="width:100%;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;color:var(--text);box-sizing:border-box;"
+               aria-label="Trigger phrase">
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <select id="flow-action" aria-label="Action"
+                  style="background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);"></select>
+          <input id="flow-param" type="text" placeholder="Target"
+                 style="flex:1;min-width:180px;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);"
+                 aria-label="Action parameter">
+        </div>
+        <label id="flow-trusted-row" style="display:none;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;color:var(--muted);">
+          <input id="flow-trusted" type="checkbox" aria-label="Mark rule trusted">
+          I trust this rule to run code on my machine. Anything the microphone hears
+          — including other people and playing audio — can speak a trigger phrase.
+        </label>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="b-flow-add">Add rule</button>
+        </div>
+        <div class="msg" id="m-flow"></div>
+      </div>
+      <div class="row">
+        <div style="margin-bottom:8px;">Notes route file</div>
+        <div class="hint" style="margin-bottom:8px;">When the notes route is on, every
+          dictation is also appended here with a timestamp. Plain text, local, yours to
+          delete.</div>
+        <input id="flow-notes-path" type="text" placeholder="Documents\ROAR Notes.md (default)"
+               style="width:100%;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;color:var(--text);box-sizing:border-box;"
+               aria-label="Notes file path">
+        <button class="btn" id="b-flow-notes-save">Save path</button>
+        <div class="msg" id="m-flow-notes"></div>
+      </div>
     </section>
 
     <section id="insights">
@@ -1162,6 +1211,7 @@ async function init() {
   renderCorrections();
   renderAppProfiles();
   renderSnippets();
+  renderFlow();
   renderTTS();
   startHomePolling();
 }
@@ -1418,6 +1468,96 @@ async function correctionAdd() {
 $("b-corr-add").addEventListener("click", correctionAdd);
 ["corr-heard", "corr-meant"].forEach(id =>
   $(id).addEventListener("keydown", e => { if (e.key === "Enter") correctionAdd(); }));
+
+/* ---- ROAR Flow: automation rules + notes route ---- */
+const FLOW_PARAM_HINT = {
+  open_app: "Program to open — e.g. wt.exe or C:\\Tools\\app.exe",
+  open_url: "URL — https://…",
+  hotkey: "Key chord — e.g. ctrl+shift+t",
+  snippet: "Snippet name — e.g. sig",
+  speak: "What ROAR should say",
+  copy: "Text to copy (empty = the dictation itself)",
+  run_script: "Script path — runs code. Trusted rules only.",
+  webhook: "URL to POST the text to. Trusted rules only.",
+};
+const FLOW_PARAM_KEY = {
+  open_app: "target", open_url: "url", hotkey: "keys", snippet: "name",
+  speak: "text", copy: "text", run_script: "path", webhook: "url",
+};
+let flowScripted = ["run_script", "webhook"];
+function flowActionChanged() {
+  const a = $("flow-action").value;
+  $("flow-param").placeholder = FLOW_PARAM_HINT[a] || "Value";
+  $("flow-trusted-row").style.display =
+    flowScripted.includes(a) ? "flex" : "none";
+}
+async function renderFlow() {
+  const d = await api().flow_get();
+  flowScripted = d.scripted_actions;
+  const sel = $("flow-action");
+  if (!sel.options.length) {
+    d.actions.forEach(a => {
+      const o = document.createElement("option");
+      o.value = a; o.textContent = a.replace("_", " ");
+      sel.appendChild(o);
+    });
+    sel.addEventListener("change", flowActionChanged);
+    flowActionChanged();
+  }
+  $("flow-notes-path").value = d.notes_path || "";
+  const list = $("flow-list"); list.innerHTML = "";
+  if (!d.rules.length) {
+    const e = document.createElement("div"); e.className = "hint";
+    e.textContent = "No rules yet. Try: phrase “open terminal”, action “open app”, target wt.exe.";
+    list.appendChild(e);
+    return;
+  }
+  d.rules.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:6px;";
+    const phrase = document.createElement("span");
+    phrase.style.cssText = "font-weight:600;";
+    phrase.textContent = "“" + r.phrase + "”";
+    const what = document.createElement("span");
+    what.className = "hint"; what.style.cssText = "flex:1;margin:0;";
+    const pv = Object.values(r.params || {})[0] || "";
+    what.textContent = "→ " + r.action.replace("_", " ") + " " + pv
+      + (r.trusted ? " · trusted" : "");
+    const en = document.createElement("button");
+    en.textContent = r.enabled ? "On" : "Off";
+    en.setAttribute("aria-label", (r.enabled ? "disable" : "enable") + " rule " + r.phrase);
+    en.style.cssText = "background:none;border:1px solid var(--border);border-radius:6px;color:" +
+      (r.enabled ? "var(--text)" : "var(--muted)") + ";cursor:pointer;padding:2px 10px;";
+    en.onclick = async () => { await api().flow_toggle_rule(i, !r.enabled); renderFlow(); };
+    const x = document.createElement("button");
+    x.textContent = "×"; x.setAttribute("aria-label", "delete rule " + r.phrase);
+    x.style.cssText = "background:none;border:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:16px;";
+    x.onclick = async () => { await api().flow_delete_rule(i); renderFlow(); };
+    row.append(phrase, what, en, x);
+    list.appendChild(row);
+  });
+}
+async function flowAdd() {
+  const action = $("flow-action").value;
+  const params = {};
+  if ($("flow-param").value.trim())
+    params[FLOW_PARAM_KEY[action]] = $("flow-param").value.trim();
+  const r = await api().flow_add_rule({
+    phrase: $("flow-phrase").value, action, params,
+    trusted: flowScripted.includes(action) && $("flow-trusted").checked,
+  });
+  if (r.error) { msg("m-flow", r.error, "err"); return; }
+  $("flow-phrase").value = ""; $("flow-param").value = "";
+  $("flow-trusted").checked = false;
+  msg("m-flow", "Rule added — say the phrase at the start of a dictation", "ok");
+  renderFlow();
+}
+$("b-flow-add").addEventListener("click", flowAdd);
+$("b-flow-notes-save").addEventListener("click", async () => {
+  const r = await api().flow_set_notes_path($("flow-notes-path").value);
+  if (r.error) { msg("m-flow-notes", r.error, "err"); return; }
+  msg("m-flow-notes", "Saved", "ok");
+});
 
 /* ---- app profiles ---- */
 async function renderAppProfiles() {
