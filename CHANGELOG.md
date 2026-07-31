@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.32.0 — 2026-07-31 — Live transcript, meeting capture, OSC, Translate
+
+- **Live transcript view.** History gains a Live toggle — a chat-style local
+  view that refreshes every 2 s — and an Export button that writes the current
+  (searchable) view to a timestamped text file in Documents.
+- **Meeting capture (system audio).** A tray toggle transcribes whatever the
+  PC is playing — calls, meetings, videos — via WASAPI loopback, in ~8 s
+  chunks, into local history (watch it in the Live view; it also feeds the
+  notes route). It never types into apps and never touches the clipboard.
+  Captured people may need to consent to being recorded where you live; ROAR
+  says so when you turn it on. (ROAR Pro)
+- **OSC show control.** A new trusted-rule action sends OSC messages to
+  lighting desks, QLab, Resolume, or TouchDesigner ("lights up" → your cue).
+  Same trust gate as scripts and webhooks. MIDI is future work. (Developer)
+- **Translate mode.** Settings → Transcription → "Translate to English":
+  dictate in any language and ROAR types English, using Whisper's built-in
+  translate task on a multilingual model. Free in every edition.
+
 ## v0.31.0 — 2026-07-31 — ROAR Flow
 
 - **Voice automations.** Say a trigger phrase at the start of a dictation and
