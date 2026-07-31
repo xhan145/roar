@@ -752,6 +752,11 @@
       <input id="history-search" type="search" placeholder="Search dictations…"
              style="width:100%;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:10px;color:var(--text);"
              aria-label="Search dictations">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <button class="btn" id="b-history-live" aria-pressed="false">Live view: off</button>
+        <button class="btn" id="b-history-export">Export view</button>
+        <span class="hint" id="m-history-live" style="margin:0;"></span>
+      </div>
       <div id="history-list"></div>
       <div class="msg" id="m-history"></div>
       <button class="btn" id="b-clear-all" style="margin-top:6px;">Clear all history</button>
@@ -1557,6 +1562,29 @@ $("b-flow-notes-save").addEventListener("click", async () => {
   const r = await api().flow_set_notes_path($("flow-notes-path").value);
   if (r.error) { msg("m-flow-notes", r.error, "err"); return; }
   msg("m-flow-notes", "Saved", "ok");
+});
+
+/* ---- Live transcript view: History that refreshes itself ---- */
+let liveTimer = null;
+$("b-history-live").addEventListener("click", () => {
+  const on = liveTimer === null;
+  if (on) {
+    liveTimer = setInterval(
+      () => renderHistory($("history-search").value), 2000);
+    renderHistory($("history-search").value);
+  } else {
+    clearInterval(liveTimer); liveTimer = null;
+  }
+  const b = $("b-history-live");
+  b.textContent = "Live view: " + (on ? "on" : "off");
+  b.setAttribute("aria-pressed", String(on));
+  $("m-history-live").textContent =
+    on ? "Refreshing every 2 s — new dictations appear at the top." : "";
+});
+$("b-history-export").addEventListener("click", async () => {
+  const r = await api().history_export($("history-search").value || null);
+  if (r.error) { msg("m-history", r.error, "err"); return; }
+  msg("m-history", "Exported " + r.count + " dictations to " + r.path, "ok");
 });
 
 /* ---- app profiles ---- */

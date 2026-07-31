@@ -581,6 +581,25 @@ class SettingsAPI:
     def history_list(self, limit=100, query=None):
         return self._history.list(limit=limit, query=query or None)
 
+    def history_export(self, query=None):
+        """Write the current transcript view (newest first, timestamped) to a
+        plain-text file in Documents and return its path. Local file only —
+        nothing leaves the machine."""
+        import datetime
+        rows = self._history.list(limit=5000, query=query or None)
+        if not rows:
+            return {"error": "Nothing to export."}
+        stamp = datetime.datetime.now()
+        out = os.path.join(os.path.expanduser("~"), "Documents",
+                           f"ROAR Transcript {stamp:%Y-%m-%d %H%M}.txt")
+        lines = []
+        for r in rows:
+            ts = datetime.datetime.fromtimestamp(r["ts_utc"])
+            lines.append(f"[{ts:%Y-%m-%d %H:%M}] {r['text']}")
+        with open(out, "w", encoding="utf-8", newline="") as fh:
+            fh.write("\n".join(lines) + "\n")
+        return {"ok": True, "path": out, "count": len(rows)}
+
     def history_delete(self, rid):
         self._history.delete(int(rid))
         return {"ok": True}
