@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.33.0 — 2026-07-31 — The mic fob
+
+- **The dictation pill is now a fob** — like ROAR Android. Idle, it collapses
+  to a small round mic button that's always on screen. **Tap** it to start or
+  stop hands-free dictation (same as double-tapping the hotkey). **Drag** it
+  anywhere — ROAR remembers the spot across restarts, and a position left on
+  an unplugged monitor safely resets. **Right-click** for quick actions:
+  Scratch that, Read selected text, Open Settings, Hide fob.
+- While dictating, the familiar waveform pill expands around wherever the fob
+  sits, clamped so it never grows off-screen.
+- Clicking the fob **never steals keyboard focus** from the app you're
+  dictating into (WS_EX_NOACTIVATE). If Windows refuses the style, the fob
+  turns display-only rather than risk typing into the wrong window.
+- On by default; turn it off with its right-click menu, the tray's "Show mic
+  fob", or Settings → Voice & Mic. Hiding the fob restores exactly the old
+  pill-only behavior.
+
 ## v0.32.0 — 2026-07-31 — Live transcript, meeting capture, OSC, Translate
 
 - **Live transcript view.** History gains a Live toggle — a chat-style local
