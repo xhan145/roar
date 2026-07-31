@@ -33,12 +33,14 @@ _PRO = frozenset({
     "milestones.advanced", "formatting.smart", "snippets.packs",
     "snippets.variables_extended", "vocabulary.suggestions",
     "history.filters", "cleanup.advanced", "settings.import_export",
+    "automations.rules", "routing.multi",     # ROAR Flow
 })
 
 _DEVELOPER = frozenset({
     "profiles.apps", "profiles.per_app_language", "code.mode",
     "code.symbols", "vocabulary.project", "snippets.developer_packs",
     "files.tagging",
+    "automations.scripted",                   # Flow run_script/webhook actions
 })
 
 _BY_EDITION = {

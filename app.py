@@ -11,6 +11,9 @@ import time
 import pystray
 from pystray import Menu, MenuItem as Item
 
+import access
+import actions as actions_mod
+import automations
 import commands
 import corrections
 import config as config_mod
@@ -24,6 +27,7 @@ import injector
 import ipc_commands as ipc_cmd
 import paths
 import recorder as recorder_mod
+import routing
 import single_instance
 import status as status_mod
 import tray_icons
@@ -111,6 +115,9 @@ class ROARApp:
         self._last_cmd_ts = 0.0  # Home-dashboard remote controls (flagged)
         self._dictation_count = 0
         self._inject_stack = editing.InjectionStack()
+        # ROAR Flow: session-only output routes (never persisted — they always
+        # start off, so a forgotten notes-log can't survive a restart).
+        self._routes = {"clipboard": False, "notes": False, "speak": False}
         self._detector = gestures.TapToggleDetector(
             double_tap_s=cfg.get("double_tap_ms", 400) / 1000)
         self._gesture_lock = threading.Lock()
@@ -586,12 +593,83 @@ class ROARApp:
         if not text:
             self.log("empty transcript — nothing injected")
             return
+        # ROAR Flow — spoken routing toggles consume the whole utterance.
+        route_cmd = routing.parse_route_command(raw)
+        if route_cmd is not None:
+            self._apply_route_command(route_cmd)
+            return
+        # ROAR Flow — automation rules fire before any text is delivered.
+        if access.can("automations.rules"):
+            matched = automations.match(
+                text, self.cfg.get("automation_rules") or [])
+            if matched.actions:
+                deps = actions_mod.build_deps(self)
+                for action in matched.actions:
+                    result = actions_mod.execute(action, deps)
+                    self.log(f"flow rule '{action.get('phrase')}' -> {result}")
+                text = matched.remaining_text
+                if not text:
+                    return
         target = getattr(self, "_target_hwnd", None)
         if (self.cfg.get("tts_enabled", False)
                 and self.cfg.get("tts_readback_mode") == "before"):
+            # Preview path routes to injection only (the preview IS the extra
+            # output moment); notes/clipboard/speak apply on the direct path.
             self._preview_before_insert(text, audio, tr_ms, target)
             return
-        self._inject_final(text, audio, tr_ms, target)
+        self._deliver(text, audio, tr_ms, target)
+
+    # -- ROAR Flow: multi-channel delivery ---------------------------------
+
+    def _notes_path(self):
+        p = (self.cfg.get("flow_notes_path") or "").strip()
+        return p or os.path.join(os.path.expanduser("~"), "Documents",
+                                 "ROAR Notes.md")
+
+    def _apply_route_command(self, route_cmd):
+        """Handle a spoken 'roar route …' toggle (session state only)."""
+        if not access.can("routing.multi"):
+            self.notify("Multi-output routing is part of ROAR Pro.")
+            return
+        if route_cmd == "all_off":
+            self._routes = {k: False for k in self._routes}
+            self.notify("Flow: all extra routes off.")
+            return
+        name, on = route_cmd
+        self._routes[name] = on
+        if name == "notes" and on:
+            self.notify(f"Flow: notes route on → {self._notes_path()}")
+        else:
+            self.notify(f"Flow: {name} route {'on' if on else 'off'}.")
+
+    def _deliver(self, text, audio, tr_ms, target):
+        """Deliver final text to every active output. Injection is always the
+        first output and keeps all its existing side effects (history,
+        milestones, scratch stack); extra routes are strictly additive."""
+        route_cfg = ({f"route_{k}": v for k, v in self._routes.items()}
+                     if access.can("routing.multi") else {})
+        outputs = routing.active_outputs(route_cfg)
+        if outputs == ("inject",):
+            self._inject_final(text, audio, tr_ms, target)
+            return
+        import datetime
+
+        import pyperclip
+
+        handlers = {
+            "inject": lambda t: self._inject_final(t, audio, tr_ms, target),
+            "clipboard": pyperclip.copy,
+            "notes": lambda t: routing.append_notes(
+                self._notes_path(),
+                routing.notes_line(t, datetime.datetime.now())),
+            "speak": lambda t: self.tts_service.speak(
+                t, source="flow_route", remember=False),
+        }
+        status = routing.deliver(text, outputs, handlers, self.log)
+        if str(status.get("notes", "")).startswith("error"):
+            self._routes["notes"] = False
+            self.notify("Notes file couldn't be written — notes route "
+                        "turned off.")
 
     def _inject_final(self, text, audio, tr_ms, target):
         with self.state_lock:
@@ -866,6 +944,17 @@ class ROARApp:
                 Item("Stop speech",
                      lambda: self._dispatch_tts_command({"command": "stop"})),
             )),
+            Item("Flow routes", Menu(
+                Item("Also copy to clipboard",
+                     lambda: self._toggle_route("clipboard"),
+                     checked=lambda item: self._routes["clipboard"]),
+                Item("Also append to notes file",
+                     lambda: self._toggle_route("notes"),
+                     checked=lambda item: self._routes["notes"]),
+                Item("Also speak it back",
+                     lambda: self._toggle_route("speak"),
+                     checked=lambda item: self._routes["speak"]),
+            )),
             Item("Settings…", self._open_settings),
             Item("Open config", self._open_config),
             Menu.SEPARATOR,
@@ -879,6 +968,9 @@ class ROARApp:
             app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                     "app.py")
             subprocess.Popen([sys.executable, app_path, "--settings"])
+
+    def _toggle_route(self, name):
+        self._apply_route_command((name, not self._routes[name]))
 
     def _copy_last(self):
         import pyperclip

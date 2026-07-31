@@ -18,11 +18,8 @@ OUTPUTS = ("inject", "clipboard", "notes", "speak")
 
 _TOGGLEABLE = ("clipboard", "notes", "speak")
 
-_ROUTE_RE = re.compile(
-    r"^\s*roar\s+routes?\s+(clipboard|notes|speak)\s+(on|off)\s*[.!?]?\s*$",
-    re.IGNORECASE)
-_ALL_OFF_RE = re.compile(r"^\s*roar\s+routes?\s+off\s*[.!?]?\s*$",
-                         re.IGNORECASE)
+_ROUTE_RE = re.compile(r"^roar routes? (clipboard|notes|speak) (on|off)$")
+_ALL_OFF_RE = re.compile(r"^roar routes? off$")
 
 
 def active_outputs(cfg) -> tuple:
@@ -73,12 +70,15 @@ def parse_route_command(text):
     """Parse a spoken routing toggle. Returns (output, on) for
     'roar route <name> on/off', 'all_off' for 'roar routes off', else None.
     Must match the WHOLE utterance — routing commands are never embedded in
-    dictation."""
+    dictation. Punctuation-tolerant, because the recognizer loves commas
+    ('Roar, route notes on.')."""
     if not isinstance(text, str):
         return None
-    if _ALL_OFF_RE.match(text):
+    norm = re.sub(r"[^\w\s]", " ", text.lower())
+    norm = re.sub(r"\s+", " ", norm).strip()
+    if _ALL_OFF_RE.match(norm):
         return "all_off"
-    m = _ROUTE_RE.match(text)
+    m = _ROUTE_RE.match(norm)
     if not m:
         return None
-    return (m.group(1).lower(), m.group(2).lower() == "on")
+    return (m.group(1), m.group(2) == "on")

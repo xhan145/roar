@@ -100,3 +100,8 @@ def test_parse_route_command(text, expected):
 ])
 def test_parse_route_command_rejects(text):
     assert routing.parse_route_command(text) is None
+
+
+def test_parse_route_command_tolerates_recognizer_commas():
+    assert routing.parse_route_command("Roar, route notes on.") == ("notes", True)
+    assert routing.parse_route_command("Roar, routes off!") == "all_off"

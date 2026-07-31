@@ -26,6 +26,10 @@ DEFAULTS = {
     # Personal corrections: what ROAR heard -> what you meant. Taught by the
     # user (Dictionary, or by fixing a history entry); see corrections.py.
     "corrections": {},
+    # ROAR Flow: voice-automation rules (persisted) and the notes-route file.
+    # Live route on/off switches are SESSION state in the tray app, never here.
+    "automation_rules": [],
+    "flow_notes_path": "",
     "overlay_enabled": True,
     "streaming_preview": True,
     "snippets": {},
@@ -150,6 +154,18 @@ def load(path=None):
                         and k.strip()
                         and v.strip().lower() in context.PROFILE_NAMES)
                 }
+        elif key == "automation_rules":
+            # Type safety here; full shape rules are enforced where entries are
+            # CREATED (the Flow bridge uses automations.validate_rule). An
+            # unknown action survives load but actions.execute skips it.
+            if isinstance(value, list):
+                cfg[key] = [r for r in value
+                            if isinstance(r, dict)
+                            and isinstance(r.get("phrase"), str)
+                            and r.get("phrase").strip()]
+        elif key == "flow_notes_path":
+            if isinstance(value, str):
+                cfg[key] = value.strip()
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()
