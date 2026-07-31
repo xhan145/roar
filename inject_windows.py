@@ -27,3 +27,8 @@ class WindowsInjector:
         import keyboard
         for _ in range(n):
             keyboard.send("backspace")
+
+    def send_hotkey(self, keys):
+        """Send a chord like 'ctrl+shift+t' (Flow hotkey action)."""
+        import keyboard
+        keyboard.send(keys)

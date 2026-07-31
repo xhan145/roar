@@ -57,3 +57,14 @@ def send_backspaces(n) -> bool:
     except Exception as e:
         print(f"ROAR: send_backspaces failed ({e})", flush=True)
         return False
+
+
+def send_hotkey(keys) -> bool:
+    """Send a key chord ('ctrl+shift+t') for Flow's hotkey action. Raises
+    RuntimeError on platforms whose backend has no chord support — callers
+    (actions.execute) isolate the failure."""
+    backend_send = getattr(_BACKEND, "send_hotkey", None)
+    if backend_send is None:
+        raise RuntimeError("hotkey chords are not supported on this platform")
+    backend_send(keys)
+    return True
