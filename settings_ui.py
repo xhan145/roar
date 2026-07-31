@@ -44,7 +44,7 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "milestones_enabled", "milestone_notifications",
                 "context_aware", "appearance", "format_mode",
                 "acceleration_mode", "performance_preset", "compute_type",
-                "backend", "translate_to_english"}
+                "backend", "translate_to_english", "fob_enabled"}
 _TTS_SETTINGS = {
     "tts_enabled", "tts_voice", "tts_language", "tts_speed", "tts_volume",
     "tts_output_device", "tts_readback_mode", "tts_spoken_status_enabled",
@@ -556,7 +556,7 @@ class SettingsAPI:
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
                    "milestones_enabled", "milestone_notifications",
-                   "context_aware", "translate_to_english"):
+                   "context_aware", "translate_to_english", "fob_enabled"):
             value = bool(value)
         self._write(**{key: value})
         if key == "audio_retention_days":
@@ -1191,6 +1191,8 @@ def run_settings(smoke=False):
                         "document.getElementById('flow-action') && "
                         "document.getElementById('flow-notes-path') && "
                         "document.getElementById('b-flow-add')) ? 1 : 0")
+                    has_fob = window.evaluate_js(
+                        "document.getElementById('t-fob') ? 1 : 0")
                     flow_nav = window.evaluate_js(
                         "(function(){var s=document.querySelector('.nav[data-s=\"settings\"]');"
                         "if(!s)return 0; s.click();"
@@ -1221,6 +1223,7 @@ def run_settings(smoke=False):
                           f"ttsstop={has_tts_stop} "
                           f"fmt={has_fmt} accel={has_accel} corr={has_corr} ptr={has_ptr} "
                           f"flow={has_flow} flownav={flow_nav} "
+                          f"fob={has_fob} "
                           f"themeok={theme_ok}",
                           flush=True)
                 finally:

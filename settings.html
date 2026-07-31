@@ -359,6 +359,10 @@
         <button class="toggle" id="t-overlay" aria-pressed="true" aria-label="Show dictation pill"></button>
       </div>
       <div class="row flex">
+        <div>Show the mic fob<div class="hint">Always-visible round mic button. Tap it to start/stop hands-free dictation, drag it anywhere (it remembers), right-click for quick actions.</div></div>
+        <button class="toggle" id="t-fob" aria-pressed="true" aria-label="Show mic fob"></button>
+      </div>
+      <div class="row flex">
         <div>Live text preview<div class="hint">Your words appear in the pill while you speak; the final text is typed when you release</div></div>
         <button class="toggle" id="t-streamprev" aria-pressed="true" aria-label="Live text preview"></button>
       </div>
@@ -1206,6 +1210,7 @@ async function init() {
   $("a-config").textContent = state.config_path;
   $("a-log").textContent = state.log_path;
   setToggle($("t-overlay"), c.overlay_enabled);
+  setToggle($("t-fob"), c.fob_enabled);
   setToggle($("t-streamprev"), c.streaming_preview);
   setToggle($("t-milestones"), c.milestones_enabled);
   setToggle($("t-ms-notify"), c.milestone_notifications);
@@ -1758,6 +1763,11 @@ $("t-overlay").addEventListener("click", async () => {
   const want = !isOn($("t-overlay"));
   const r = await api().set_value("overlay_enabled", want);
   if (r.ok) setToggle($("t-overlay"), want); else msg("m-general", r.error, "err");
+});
+$("t-fob").addEventListener("click", async () => {
+  const want = !isOn($("t-fob"));
+  const r = await api().set_value("fob_enabled", want);
+  if (r.ok) setToggle($("t-fob"), want); else msg("m-general", r.error, "err");
 });
 $("t-streamprev").addEventListener("click", async () => {
   const want = !isOn($("t-streamprev"));

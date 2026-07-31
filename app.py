@@ -90,6 +90,9 @@ def diff_config(old: dict, new: dict):
     if any(old.get(key) != new.get(key)
            for key in set(old) | set(new) if key.startswith("tts_")):
         actions.append(("reload_tts_config", None))
+    if (old.get("fob_enabled") != new.get("fob_enabled")
+            or old.get("fob_pos") != new.get("fob_pos")):
+        actions.append(("set_fob", None))
     return actions
 
 
@@ -947,6 +950,10 @@ class ROARApp:
                 Item("Stop speech",
                      lambda: self._dispatch_tts_command({"command": "stop"})),
             )),
+            Item("Show mic fob",
+                 lambda: self._set_fob_enabled(
+                     not self.cfg.get("fob_enabled", True)),
+                 checked=lambda item: self.cfg.get("fob_enabled", True)),
             Item("Meeting capture (system audio)", self._toggle_listen,
                  checked=lambda item: self._listen_session is not None),
             Item("Flow routes", Menu(
@@ -976,6 +983,35 @@ class ROARApp:
 
     def _toggle_route(self, name):
         self._apply_route_command((name, not self._routes[name]))
+
+    # -- the movable mic fob ----------------------------------------------
+
+    def _on_fob_menu(self, action):
+        """Right-click menu on the fob (called from the overlay's Tk thread;
+        every branch is thread-safe or hops threads itself)."""
+        if action == "scratch":
+            self._scratch()
+        elif action == "read_selected":
+            self._dispatch_tts_command({"command": "read_selected"})
+        elif action == "settings":
+            self._open_settings()
+        elif action == "hide":
+            self._set_fob_enabled(False)
+            self.notify("Fob hidden — re-enable it in Settings → Voice & Mic "
+                        "or the tray menu.")
+
+    def _on_fob_moved(self, x, y):
+        """Drag finished: persist the dot position."""
+        with self.cfg_lock:
+            self.cfg["fob_pos"] = [int(x), int(y)]
+            config_mod.save(self.cfg)
+
+    def _set_fob_enabled(self, enabled):
+        with self.cfg_lock:
+            self.cfg["fob_enabled"] = bool(enabled)
+            config_mod.save(self.cfg)
+        if self.overlay is not None:
+            self.overlay.set_fob(enabled, self.cfg.get("fob_pos"))
 
     # -- ROAR Flow: meeting capture (system-audio loopback) ----------------
 
@@ -1110,6 +1146,11 @@ class ROARApp:
                             self.recorder.device = arg
                         elif action == "rebuild_hotwords":
                             self._rebuild_hotwords()
+                        elif action == "set_fob":
+                            if self.overlay is not None:
+                                self.overlay.set_fob(
+                                    self.cfg.get("fob_enabled", True),
+                                    self.cfg.get("fob_pos"))
                         elif action == "reload_tts_config":
                             from tts.types import TTSConfig
                             self.tts_service.update_config(
@@ -1195,8 +1236,13 @@ class ROARApp:
         # Ignore any command file left over from a previous run.
         self._last_cmd_ts = time.time()
         import overlay as overlay_mod
-        self.overlay = overlay_mod.Overlay()
+        self.overlay = overlay_mod.Overlay(
+            on_tap=self._on_toggle,
+            on_menu=self._on_fob_menu,
+            on_move=self._on_fob_moved)
         self.overlay.start()
+        self.overlay.set_fob(self.cfg.get("fob_enabled", True),
+                             self.cfg.get("fob_pos"))
         self.worker.start()
         try:
             self._tts_command_server.start()

@@ -33,6 +33,10 @@ DEFAULTS = {
     # Translate mode: dictate in any language, type English (Whisper's native
     # translate task; forces a multilingual model when the picker is on auto).
     "translate_to_english": False,
+    # The movable mic fob (the idle form of the dictation pill). fob_pos is
+    # the dot's top-left [x, y] on the virtual screen; null = bottom-center.
+    "fob_enabled": True,
+    "fob_pos": None,
     "overlay_enabled": True,
     "streaming_preview": True,
     "snippets": {},
@@ -174,8 +178,16 @@ def load(path=None):
                 cfg[key] = value.strip()
         elif key in ("cleanup_enabled", "remove_discourse_fillers",
                      "milestones_enabled", "milestone_notifications",
-                     "context_aware", "translate_to_english"):
+                     "context_aware", "translate_to_english", "fob_enabled"):
             cfg[key] = bool(value)
+        elif key == "fob_pos":
+            # [x, y] ints or null; anything else falls back to default (null).
+            # May legitimately be negative on multi-monitor virtual screens.
+            if value is None:
+                cfg[key] = None
+            elif (isinstance(value, list) and len(value) == 2
+                    and all(isinstance(v, int) for v in value)):
+                cfg[key] = value
         elif key == "format_mode":
             if value in ("raw", "clean", "code"):
                 cfg[key] = value
