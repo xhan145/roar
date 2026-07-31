@@ -44,7 +44,7 @@ INSTANT_KEYS = {"tones_enabled", "paste_fallback", "silence_rms_threshold",
                 "milestones_enabled", "milestone_notifications",
                 "context_aware", "appearance", "format_mode",
                 "acceleration_mode", "performance_preset", "compute_type",
-                "backend"}
+                "backend", "translate_to_english"}
 _TTS_SETTINGS = {
     "tts_enabled", "tts_voice", "tts_language", "tts_speed", "tts_volume",
     "tts_output_device", "tts_readback_mode", "tts_spoken_status_enabled",
@@ -556,7 +556,7 @@ class SettingsAPI:
                    "overlay_enabled", "streaming_preview",
                    "cleanup_enabled", "remove_discourse_fillers",
                    "milestones_enabled", "milestone_notifications",
-                   "context_aware"):
+                   "context_aware", "translate_to_english"):
             value = bool(value)
         self._write(**{key: value})
         if key == "audio_retention_days":

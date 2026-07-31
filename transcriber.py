@@ -24,10 +24,13 @@ def detect_device() -> str:
     return "cpu"
 
 
-def resolve_model(name: str, device: str, language: str = "en") -> str:
+def resolve_model(name: str, device: str, language: str = "en",
+                  translate: bool = False) -> str:
     if name != "auto":
         return name
-    english = language == "en"
+    # Translate mode needs a MULTILINGUAL model: the .en distillations cannot
+    # run Whisper's translate task, so English-only auto-selection is overruled.
+    english = language == "en" and not translate
     if device == "cuda":
         return GPU_MODEL_EN if english else GPU_MODEL_MULTI
     return CPU_MODEL_EN if english else CPU_MODEL_MULTI
@@ -103,13 +106,16 @@ class Transcriber:
         device = self.force_device or hardware_accel.choose_device(self.accel_cfg, accel)
         gpu_index = int(self.accel_cfg.get("gpu_device_index", 0) or 0)
 
+        translate = bool(self.accel_cfg.get("translate_to_english", False))
         attempts = []
         if device == "cuda":
-            attempts.append((resolve_model(name, "cuda", self.language), "cuda",
+            attempts.append((resolve_model(name, "cuda", self.language,
+                                           translate), "cuda",
                              hardware_accel.choose_compute_type(self.accel_cfg, "cuda", accel),
                              gpu_index))
         # ALWAYS append the CPU fallback (unchanged safety net; never removed)
-        attempts.append((resolve_model(name, "cpu", self.language), "cpu",
+        attempts.append((resolve_model(name, "cpu", self.language, translate),
+                         "cpu",
                          hardware_accel.choose_compute_type(self.accel_cfg, "cpu", accel), 0))
 
         last_err = None
@@ -146,9 +152,14 @@ class Transcriber:
         # below, so the perf_counter spans the real inference work.
         import time
         t0 = time.perf_counter()
+        translate = bool(self.accel_cfg.get("translate_to_english", False))
         segments, _info = self._model.transcribe(
             audio,
-            language=None if self.language == "auto" else self.language,
+            task="translate" if translate else "transcribe",
+            # translate mode listens to WHATEVER language is spoken, so a
+            # pinned source language would only get in the way
+            language=(None if (translate or self.language == "auto")
+                      else self.language),
             beam_size=self.beam_size, vad_filter=False,
             hotwords=self.hotwords)
         text = " ".join(seg.text.strip() for seg in segments).strip()

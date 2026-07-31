@@ -76,7 +76,9 @@ def diff_config(old: dict, new: dict):
             or old.get("gpu_device_index") != new.get("gpu_device_index")
             or old.get("max_vram_mode") != new.get("max_vram_mode")
             or old.get("cpu_threads") != new.get("cpu_threads")
-            or old.get("backend") != new.get("backend")):
+            or old.get("backend") != new.get("backend")
+            # translate mode can force a multilingual model
+            or old.get("translate_to_english") != new.get("translate_to_english")):
         actions.append(("reload_model", new["model"]))
     if old["input_device"] != new["input_device"]:
         actions.append(("set_device", new["input_device"]))

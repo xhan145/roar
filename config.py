@@ -30,6 +30,9 @@ DEFAULTS = {
     # Live route on/off switches are SESSION state in the tray app, never here.
     "automation_rules": [],
     "flow_notes_path": "",
+    # Translate mode: dictate in any language, type English (Whisper's native
+    # translate task; forces a multilingual model when the picker is on auto).
+    "translate_to_english": False,
     "overlay_enabled": True,
     "streaming_preview": True,
     "snippets": {},
@@ -171,7 +174,7 @@ def load(path=None):
                 cfg[key] = value.strip()
         elif key in ("cleanup_enabled", "remove_discourse_fillers",
                      "milestones_enabled", "milestone_notifications",
-                     "context_aware"):
+                     "context_aware", "translate_to_english"):
             cfg[key] = bool(value)
         elif key == "format_mode":
             if value in ("raw", "clean", "code"):

@@ -501,6 +501,10 @@
         <div style="margin-bottom:8px;">Language</div>
         <select id="s-language" aria-label="Dictation language"></select>
         <div class="hint" style="margin-top:6px;">Auto-detect identifies the language each time you dictate. Switching away from English may download a multilingual model (~1.6 GB) on Apply. ".en" models are English-only.</div>
+        <div class="row flex" style="background:var(--field);margin-top:8px;">
+          <div>Translate to English<div class="hint">Dictate in any language — ROAR types English. Uses a multilingual model (may download ~1.6 GB the first time).</div></div>
+          <button class="toggle" id="t-translate" aria-pressed="false" aria-label="Translate dictation to English"></button>
+        </div>
       </div>
       <div class="row">
         <div style="margin-bottom:8px;">Formatting mode</div>
@@ -1206,6 +1210,7 @@ async function init() {
   setToggle($("t-milestones"), c.milestones_enabled);
   setToggle($("t-ms-notify"), c.milestone_notifications);
   setToggle($("t-cleanup"), c.cleanup_enabled);
+  setToggle($("t-translate"), c.translate_to_english);
   setToggle($("t-discourse"), c.remove_discourse_fillers);
   setToggle($("t-history"), c.history_enabled);
   $("s-retention").value = String(c.audio_retention_days);
@@ -1773,6 +1778,11 @@ $("t-ms-notify").addEventListener("click", async () => {
   const want = !isOn($("t-ms-notify"));
   const r = await api().set_value("milestone_notifications", want);
   if (r.ok) setToggle($("t-ms-notify"), want);
+});
+$("t-translate").addEventListener("click", async () => {
+  const want = !isOn($("t-translate"));
+  const r = await api().set_value("translate_to_english", want);
+  if (r.ok) setToggle($("t-translate"), want);
 });
 $("t-discourse").addEventListener("click", async () => {
   const want = !isOn($("t-discourse"));
