@@ -733,6 +733,12 @@ const EDITIONS = {
 ROAR.checkoutReady = Object.fromEntries(
   Object.entries(ROAR.purchase).map(([id, url]) => [id, Boolean(url)]));
 
+// The pre-order note describes the FALLBACK; once every edition has a real
+// checkout link it would be stale copy — drop it.
+if (Object.values(ROAR.checkoutReady).every(Boolean)) {
+  document.getElementById("checkout-note").remove();
+}
+
 // Until a Payment Link exists, a Buy button opens a pre-order email rather
 // than pretending to be a store. Honest, and it's the manual fulfillment path.
 for (const [key, {label, price}] of Object.entries(EDITIONS)) {
