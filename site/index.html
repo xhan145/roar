@@ -397,7 +397,6 @@
   <div class="wrap foot">
     <div>© <span id="year">2026</span> ROAR — local-first dictation for Windows.</div>
     <nav class="foot-links" aria-label="Footer">
-      <a id="foot-github" href="https://github.com/xhan145/roar">GitHub</a>
       <a href="#pricing">Pricing</a>
       <a id="foot-support" href="#">Support</a>
     </nav>
@@ -413,8 +412,10 @@
    PLACEHOLDERS — replace before launch.
 --------------------------------------------------------------------------- */
 const ROAR = {
-  // Where "Download" goes: always the newest published release.
-  downloadUrl: "https://github.com/xhan145/roar/releases/latest",
+  // Where "Download" goes: the installer itself, directly — no repository
+  // page in between. The version in the asset name is stamped by
+  // scripts/roar_versions.py --fix, so it can never go stale.
+  downloadUrl: "https://github.com/xhan145/roar/releases/latest/download/ROAR-Setup-0.33.0.exe",
   // Stripe PAYMENT LINKS, one per paid edition. These are PUBLIC by design:
   // the amount is fixed inside Stripe, so a visitor cannot tamper with the
   // price. NEVER put a secret key or a webhook secret here — this page is

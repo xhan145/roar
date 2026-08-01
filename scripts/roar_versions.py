@@ -62,6 +62,12 @@ COMPONENTS = [
             # the public site shows the latest release version in the hero
             ("site/index.html",
              r'id="roar-version">v([0-9]+\.[0-9]+\.[0-9]+)<'),
+            # Direct-download links: the installer asset name embeds the
+            # version, so both pages must be restamped on every bump.
+            ("site/index.html",
+             r'ROAR-Setup-([0-9]+\.[0-9]+\.[0-9]+)\.exe'),
+            ("site/purchase/success.html",
+             r'ROAR-Setup-([0-9]+\.[0-9]+\.[0-9]+)\.exe'),
         ],
         "readme": "README.md",
         "github": "xhan145/roar",
