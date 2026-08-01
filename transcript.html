@@ -79,17 +79,21 @@ async function refresh() {
   try {
     const state = await api().state();
     if (!state.history_enabled) {
+      lastKey = "";   // transient screen: never let it satisfy the redraw latch
       render([], "History is turned <b>off</b>, so there is nothing to show. " +
                  "Enable it in Settings → Privacy & History controls.");
       return;
     }
     data = await api().transcript_list(source, document.getElementById("tr-search").value || null);
   } catch (e) {
+    lastKey = "";     // transient screen: retry must be able to redraw
     render([], "Couldn't read the transcript — retrying…");
     return;
   }
   const rows = data.rows.slice().reverse();   // oldest→newest, chat style
-  const key = rows.length + ":" + (rows.length ? rows[rows.length-1].id : 0) + ":" + source;
+  // Change detection over EVERY row id — count+last alone misses deletions
+  // made in Settings (privacy-sensitive: a deleted line must vanish here too).
+  const key = source + ":" + rows.map(r => r.id).join(",");
   document.getElementById("tr-status").textContent = rows.length ? rows.length + " lines" : "";
   if (key === lastKey) return;                // nothing changed: don't redraw
   lastKey = key;

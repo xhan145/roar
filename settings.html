@@ -1603,7 +1603,13 @@ $("b-flow-add").addEventListener("click", flowAdd);
 const RP_ROUTES = ["clipboard", "notes", "speak"];
 async function renderRouteProfiles() {
   const d = await api().flow_route_profiles();
+  const flow = await api().flow_get();
   const list = $("flow-rp-list"); list.innerHTML = "";
+  if (flow.can_per_app === false) {
+    const lock = document.createElement("div"); lock.className = "hint";
+    lock.textContent = "Per-app rules are part of ROAR Developer. You can create and keep rules now — they take effect once a Developer license is active.";
+    list.appendChild(lock);
+  }
   const entries = Object.entries(d.profiles || {});
   if (!entries.length) {
     const e = document.createElement("div"); e.className = "hint";
@@ -1640,7 +1646,9 @@ $("b-flow-rp-add").addEventListener("click", async () => {
   if (res.error) { msg("m-flow-rp", res.error, "err"); return; }
   $("flow-rp-exe").value = "";
   RP_ROUTES.forEach(r => $("flow-rp-" + r).value = "");
-  msg("m-flow-rp", "Rule saved — applies from your next dictation", "ok");
+  msg("m-flow-rp", res.locked
+    ? "Rule saved — it takes effect once a ROAR Developer license is active"
+    : "Rule saved — applies from your next dictation", "ok");
   renderRouteProfiles();
 });
 $("b-flow-notes-save").addEventListener("click", async () => {

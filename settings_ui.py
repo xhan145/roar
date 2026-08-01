@@ -753,6 +753,7 @@ class SettingsAPI:
             "scripted_actions": sorted(automations.SCRIPTED_ACTIONS),
             "can_rules": access.can("automations.rules"),
             "can_scripted": access.can("automations.scripted"),
+            "can_per_app": access.can("routing.per_app"),
         }
 
     def flow_add_rule(self, rule):
@@ -825,7 +826,12 @@ class SettingsAPI:
             profiles = dict(cfg.get("route_profiles", {}) or {})
             profiles[exe] = clean
             self._write(route_profiles=profiles)
-        return {"ok": True, "profiles": profiles}
+        # Config is preserved regardless of edition (nothing is ever deleted
+        # for being unlicensed) — but the UI must never claim an inactive rule
+        # applies. `locked` makes that honest.
+        import access
+        return {"ok": True, "profiles": profiles,
+                "locked": not access.can("routing.per_app")}
 
     def flow_delete_route_profile(self, exe):
         exe = str(exe or "").strip().lower()

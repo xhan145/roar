@@ -54,7 +54,9 @@ No subscription, no account, no cloud transcription, no telemetry.
 | Flow automation rules | — | ✅ | ✅ | ✅ |
 | Multi-output routing (clipboard/notes/speak) | — | ✅ | ✅ | ✅ |
 | Meeting capture (system audio) | — | ✅ | ✅ | ✅ |
+| Standalone live transcript window | ✅ | ✅ | ✅ | ✅ |
 | Flow scripted actions (script / webhook / OSC) | — | — | ✅ | ✅ |
+| Per-app routing overrides | — | — | ✅ | ✅ |
 | Code mode / symbol dictation | — | — | ✅ | ✅ |
 | App profiles / per-app language | — | — | ✅ | ✅ |
 | Project vocabulary / file tagging | — | — | ✅ | ✅ |

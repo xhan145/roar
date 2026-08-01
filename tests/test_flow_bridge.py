@@ -90,3 +90,24 @@ def test_route_profile_validation(tmp_path):
     assert "error" in api.flow_set_route_profile("x.exe", {})
     assert "error" in api.flow_set_route_profile("x.exe", "notes")
     assert "error" in api.flow_delete_route_profile("missing.exe")
+
+
+def test_flow_get_reports_per_app_entitlement(tmp_path):
+    state = _api(tmp_path).flow_get()
+    assert isinstance(state["can_per_app"], bool)
+
+
+def test_unentitled_rule_save_is_honest_about_being_inactive(tmp_path,
+                                                            monkeypatch):
+    import access
+    monkeypatch.setattr(access, "can", lambda f: False)
+    out = _api(tmp_path).flow_set_route_profile("x.exe", {"notes": False})
+    assert out["ok"] is True          # config is preserved, never rejected
+    assert out["locked"] is True      # ...but the UI must not claim it applies
+
+
+def test_entitled_rule_save_is_not_locked(tmp_path, monkeypatch):
+    import access
+    monkeypatch.setattr(access, "can", lambda f: True)
+    out = _api(tmp_path).flow_set_route_profile("x.exe", {"notes": False})
+    assert out["ok"] is True and out["locked"] is False

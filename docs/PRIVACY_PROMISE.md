@@ -25,6 +25,11 @@ Flow adds two places your text can go — both entirely under your control:
 - **Notes route (opt-in, off at every start).** When you turn it on, each
   dictation is also appended, timestamped, to ONE plain-text file at a path you
   chose. It lives on your machine and you can delete it like any file.
+- **Per-app routing rules (v0.34+) are persisted settings.** Unlike the live
+  route toggles (which always reset to off), an app rule you create — e.g.
+  "notes on in Word" — stays until you delete it in Settings → Flow. It's
+  plain config on your machine, and it only ever governs the local routes
+  above.
 - **Webhook action (trusted rules only).** The only way ROAR can ever make an
   outbound network call with your text is a Flow rule that YOU created, YOU
   marked trusted, pointing at a URL YOU chose. It sends only that one

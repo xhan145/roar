@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.34.0 — 2026-08-01 — Live transcript window + per-app routing
+
+- **Standalone live transcript window.** Tray → "Live transcript…" (or the
+  fob's right-click menu) opens a compact chat-style window showing everything
+  ROAR transcribes as it happens — dictations and meeting-capture lines
+  interleaved, with All / Dictation / Capture filters, search, an always-on-top
+  toggle, per-line copy, and export to a text file. Reads your local history
+  only; if history is off it says so instead of sitting empty. Free in every
+  edition.
+- **Per-app routing profiles.** Pin any route on or off per application:
+  "notes off in Slack" while notes is globally on, "notes always on in Word".
+  Unpinned routes keep following your live toggles, and typing into the
+  focused app is never affected. Managed under Settings → Flow; rules persist
+  (that's their job) and are documented in the privacy promise. (ROAR
+  Developer)
+
 ## v0.33.0 — 2026-07-31 — The mic fob
 
 - **The dictation pill is now a fob** — like ROAR Android. Idle, it collapses

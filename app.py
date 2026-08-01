@@ -93,6 +93,8 @@ def diff_config(old: dict, new: dict):
     if (old.get("fob_enabled") != new.get("fob_enabled")
             or old.get("fob_pos") != new.get("fob_pos")):
         actions.append(("set_fob", None))
+    if old.get("flow_notes_path") != new.get("flow_notes_path"):
+        actions.append(("notes_path_changed", None))
     return actions
 
 
@@ -123,6 +125,8 @@ class ROARApp:
         # ROAR Flow: session-only output routes (never persisted — they always
         # start off, so a forgotten notes-log can't survive a restart).
         self._routes = {"clipboard": False, "notes": False, "speak": False}
+        self._notes_broken = False   # notes route paused after a write failure
+        self._target_exe = None      # exe the current dictation is aimed at
         self._listen_session = None  # Flow meeting capture (loopback)
         self._detector = gestures.TapToggleDetector(
             double_tap_s=cfg.get("double_tap_ms", 400) / 1000)
@@ -350,8 +354,12 @@ class ROARApp:
                 self.tts_service.stop()
             self.session_mode = mode
             # the dictation targets the window focused when speech STARTS —
-            # if focus moves before transcription lands, we refuse to type
+            # if focus moves before transcription lands, we refuse to type.
+            # The exe is captured HERE too: per-app routing rules must follow
+            # the app the dictation was aimed at, not whatever grabs focus
+            # during the seconds transcription takes.
             self._target_hwnd = self._foreground_hwnd()
+            self._target_exe = self._foreground_exe()
             recorder_mod.play_tone("start", self.cfg["tones_enabled"])
             try:
                 self.recorder.start()
@@ -644,6 +652,8 @@ class ROARApp:
         name, on = route_cmd
         self._routes[name] = on
         if name == "notes" and on:
+            self._notes_broken = False   # deliberate retry clears the pause
+        if name == "notes" and on:
             self.notify(f"Flow: notes route on → {self._notes_path()}")
         else:
             self.notify(f"Flow: {name} route {'on' if on else 'off'}.")
@@ -652,12 +662,21 @@ class ROARApp:
         """Deliver final text to every active output. Injection is always the
         first output and keeps all its existing side effects (history,
         milestones, scratch stack); extra routes are strictly additive."""
-        session = (dict(self._routes) if access.can("routing.multi")
-                   else {k: False for k in self._routes})
+        # getattr: partially-constructed apps (tests, early callbacks) may not
+        # have session routes yet — behave as all-off, exactly like startup.
+        routes = getattr(self, "_routes",
+                         {"clipboard": False, "notes": False, "speak": False})
+        session = (dict(routes) if access.can("routing.multi")
+                   else {k: False for k in routes})
         if access.can("routing.per_app"):
+            # RECORDING-time exe: rules follow the app the dictation was aimed
+            # at (same authority as the injection focus guard), never whatever
+            # got focused while transcription ran.
+            exe = getattr(self, "_target_exe", None) or self._foreground_exe()
             session = routing.effective_routes(
-                session, self.cfg.get("route_profiles") or {},
-                self._foreground_exe())
+                session, self.cfg.get("route_profiles") or {}, exe)
+        if getattr(self, "_notes_broken", False):
+            session["notes"] = False   # paused after a write failure
         route_cfg = {f"route_{k}": v for k, v in session.items()}
         outputs = routing.active_outputs(route_cfg)
         if outputs == ("inject",):
@@ -678,9 +697,16 @@ class ROARApp:
         }
         status = routing.deliver(text, outputs, handlers, self.log)
         if str(status.get("notes", "")).startswith("error"):
+            # Pause notes EVERYWHERE it can come from (session toggle AND
+            # per-app pins) — flipping only the session toggle would let a
+            # pinned-ON rule re-fire the failure, and the toast, every single
+            # dictation. One honest notification; unpaused when the notes path
+            # changes or notes is deliberately toggled back on.
             self._routes["notes"] = False
-            self.notify("Notes file couldn't be written — notes route "
-                        "turned off.")
+            self._notes_broken = True
+            self.notify("Notes file couldn't be written — notes routing is "
+                        "paused. Fix the path in Settings → Flow, or toggle "
+                        "the notes route back on to retry.")
 
     def _inject_final(self, text, audio, tr_ms, target):
         with self.state_lock:
@@ -1167,6 +1193,8 @@ class ROARApp:
                                 self.overlay.set_fob(
                                     self.cfg.get("fob_enabled", True),
                                     self.cfg.get("fob_pos"))
+                        elif action == "notes_path_changed":
+                            self._notes_broken = False  # new path: retry notes
                         elif action == "reload_tts_config":
                             from tts.types import TTSConfig
                             self.tts_service.update_config(

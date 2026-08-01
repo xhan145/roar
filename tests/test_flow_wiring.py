@@ -116,3 +116,52 @@ def test_per_app_rule_adds_a_route_for_one_app(monkeypatch, tmp_path):
     a._deliver("captured", None, 0, None)
     assert a.injected == ["captured"]
     assert "captured" in (tmp_path / "notes.md").read_text(encoding="utf-8")
+
+
+# -- review findings: notes-failure pause vs per-app pins --------------------
+
+def test_pinned_notes_rule_cannot_refire_the_failure_toast(monkeypatch):
+    """A per-app rule pinning notes ON must not defeat the failure pause:
+    one toast, then notes stays paused across deliveries."""
+    a = _bare_app()
+    a._notes_broken = False
+    a.cfg["route_profiles"] = {"test.exe": {"notes": True}}
+    a._target_exe = "test.exe"
+    _entitle(monkeypatch, True)
+    monkeypatch.setattr(routing, "append_notes",
+                        lambda p, line: (_ for _ in ()).throw(OSError("locked")))
+    for _ in range(3):
+        a._deliver("hello", None, 0, None)
+    assert a.injected == ["hello"] * 3          # dictation never breaks
+    assert len(a.notices) == 1                  # ONE honest toast, not three
+    assert "paused" in a.notices[0]
+
+
+def test_notes_pause_clears_on_deliberate_retoggle(monkeypatch):
+    a = _bare_app()
+    a._notes_broken = True
+    _entitle(monkeypatch, True)
+    a._apply_route_command(("notes", True))
+    assert a._notes_broken is False
+
+
+def test_notes_path_change_schedules_unpause():
+    import config as config_mod
+    old = dict(config_mod.DEFAULTS)
+    new = dict(config_mod.DEFAULTS)
+    new["flow_notes_path"] = "D:/new/notes.md"
+    assert ("notes_path_changed", None) in app_mod.diff_config(old, new)
+
+
+def test_rule_lookup_uses_recording_time_exe(monkeypatch, tmp_path):
+    """Focus moved to another app during transcription: the rule for the app
+    the dictation was AIMED at must win, not the newly-focused app's."""
+    a = _bare_app()                                  # session routes all off
+    a.cfg["flow_notes_path"] = str(tmp_path / "notes.md")
+    a.cfg["route_profiles"] = {"winword.exe": {"notes": True}}
+    a._target_exe = "winword.exe"                    # captured at record start
+    a._foreground_exe = lambda: "chrome.exe"         # focus moved since
+    _entitle(monkeypatch, True)
+    a._deliver("dictated into word", None, 0, None)
+    assert "dictated into word" in (tmp_path / "notes.md").read_text(
+        encoding="utf-8")

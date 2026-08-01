@@ -14,10 +14,10 @@ Settings — this window is a monitor, not a manager.
 
 import ctypes
 import os
+import sqlite3
 import threading
 
 import config as config_mod
-import history as history_mod
 import paths
 
 TRANSCRIPT_MUTEX = "ROAR_TRANSCRIPT_WINDOW"
@@ -26,15 +26,36 @@ _WINDOW = None
 
 
 class TranscriptAPI:
-    """Bridge for transcript.html. Read-only over history + one window verb."""
+    """Bridge for transcript.html — STRICTLY read-only over the history DB.
+
+    Deliberately does NOT use history.History: constructing it runs the
+    rolling-backup snapshot and corruption-recovery machinery, which are the
+    tray process's job. This window opens the DB with SQLite's read-only URI
+    mode on every call — it is physically incapable of writing, creating, or
+    renaming anything.
+    """
 
     def __init__(self, config_path=None):
         self.config_path = config_path
 
-    @property
-    def _history(self):
-        # a fresh handle per call keeps this process stateless and WAL-friendly
-        return history_mod.History()
+    def _rows(self, limit, query):
+        path = paths.history_db_path()
+        if not os.path.exists(path):
+            return []
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True, timeout=2.0)
+        try:
+            sql = "SELECT id, ts_utc, text, model FROM dictations"
+            args = []
+            if query:
+                esc = (str(query).replace("\\", "\\\\")
+                       .replace("%", "\\%").replace("_", "\\_"))
+                sql += " WHERE text LIKE ? ESCAPE '\\'"
+                args.append(f"%{esc}%")
+            sql += " ORDER BY ts_utc DESC, id DESC LIMIT ?"
+            args.append(int(limit))
+            return conn.execute(sql, args).fetchall()
+        finally:
+            conn.close()
 
     def state(self):
         cfg = config_mod.load(self.config_path)
@@ -42,15 +63,14 @@ class TranscriptAPI:
 
     def transcript_list(self, source="all", query=None, limit=200):
         """Newest-first rows shaped for the page. source: all|dictation|capture."""
-        rows = self._history.list(limit=int(limit), query=query or None)
         out = []
-        for r in rows:
-            is_capture = (r["model"] == LISTEN_TAG)
+        for rid, ts_utc, text, model in self._rows(int(limit), query or None):
+            is_capture = (model == LISTEN_TAG)
             if source == "dictation" and is_capture:
                 continue
             if source == "capture" and not is_capture:
                 continue
-            out.append({"id": r["id"], "ts_utc": r["ts_utc"], "text": r["text"],
+            out.append({"id": rid, "ts_utc": ts_utc, "text": text,
                         "capture": is_capture})
         return {"rows": out}
 
