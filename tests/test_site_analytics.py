@@ -42,6 +42,25 @@ def test_loader_is_gated_on_a_validated_id():
     assert not re.search(r'<script[^>]+googletagmanager', html)
 
 
+def test_loader_is_gated_on_explicit_consent():
+    """Strict opt-in: GA4 loads only after Allow; Decline and silence load
+    nothing. The stored choice is a plain localStorage key."""
+    html = _html()
+    assert 'CONSENT_KEY = "roar-analytics-consent"' in html
+    assert 'if (choice === "granted") roarLoadGA4();' in html
+    assert 'else if (choice !== "denied") roarConsentBanner();' in html
+    # loading is never unconditional on config alone: the only CALL sites are
+    # the granted branch and the Allow button ("();" excludes the definition)
+    assert html.count("roarLoadGA4();") == 2
+
+
+def test_banner_offers_a_real_decline():
+    html = _html()
+    assert '"denied"' in html
+    assert "Decline" in html
+    assert "Allow" in html
+
+
 def test_disclosure_ships_with_the_tracker():
     """If analytics loads, the privacy section must say so in the same block."""
     html = _html()
