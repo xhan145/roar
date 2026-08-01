@@ -27,7 +27,7 @@ BAR_IDLE = "#DDD6FE"     # transcribing / resting
 TEXT = "#4C4568"
 TRANS_KEY = "#010203"   # transparentcolor => rounded pill corners
 W, H = 360, 44
-DOT = 34                 # fob (idle) window size
+DOT = 40                 # fob (idle) window size — matches fob.png
 N_BARS = 12
 BAR_AREA_H = 20
 BAR_W, BAR_STEP = 4, 7
@@ -104,6 +104,15 @@ class Overlay:
             import tkinter.font as tkfont
             self._font = tkfont.Font(family="Segoe UI", size=10)
             self._root, self._canvas = root, canvas
+            # The fob button artwork (pre-flattened onto the transparency key
+            # so the window stays round). Missing/corrupt file => vector dot.
+            self._fob_img = None
+            try:
+                import paths
+                self._fob_img = tk.PhotoImage(
+                    file=paths.resource_path("fob.png"))
+            except Exception:
+                pass
             self.interactive = self._make_noactivate(root)
             self._bind_mouse(canvas)
             self.available = True
@@ -299,6 +308,9 @@ class Overlay:
     def _draw_dot(self):
         c = self._canvas
         c.delete("all")
+        if self._fob_img is not None:
+            c.create_image(0, 0, anchor="nw", image=self._fob_img)
+            return
         d = DOT
         c.create_oval(2, 2, d - 2, d - 2, fill=PILL, outline=BAR_ACTIVE,
                       width=2)
