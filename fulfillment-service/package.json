@@ -1,0 +1,10 @@
+{
+  "name": "roar-fulfillment",
+  "private": true,
+  "type": "module",
+  "description": "PayPal -> signed ROAR licence -> buyer email. Zero runtime dependencies.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test test/"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "payload": {
+    "license_id": "ROAR-PRO-TEST2345",
+    "name": "Jos\u00e9 \u00d1and\u00fa \u2014 ROAR tester",
+    "email_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "edition": "pro",
+    "issued_at": "2026-08-01",
+    "valid_for_major": 1
+  },
+  "canonical": "{\"edition\":\"pro\",\"email_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"issued_at\":\"2026-08-01\",\"license_id\":\"ROAR-PRO-TEST2345\",\"name\":\"Jos\\u00e9 \\u00d1and\\u00fa \\u2014 ROAR tester\",\"valid_for_major\":1}",
+  "signature_b64": "I177VZTOv3zOF10Z1aedhy76jOnxf9WNRMaNZTL+FN2mq2ASE8KBOjZf1HmpvU3WykFpA94RtsvO/JIMCBecBg==",
+  "public_key_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAFYuL7I1hzuos+2AoBGRS5JLwEh37MFkHuGeKGTNej7M=\n-----END PUBLIC KEY-----\n"
+}
