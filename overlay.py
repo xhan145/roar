@@ -207,6 +207,7 @@ class Overlay:
             menu = tk.Menu(self._root, tearoff=0)
             for label, action in (("Scratch that", "scratch"),
                                   ("Read selected text", "read_selected"),
+                                  ("Live transcript", "transcript"),
                                   ("Open Settings", "settings"),
                                   ("Hide fob", "hide")):
                 menu.add_command(

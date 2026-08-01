@@ -30,7 +30,7 @@ for pkg in (
 hiddenimports += ["whispercpp_assets", "backends", "backends.whispercpp_vulkan"]
 hiddenimports += ["uiautomation", "comtypes"]
 
-datas += [("settings.html", ".")]
+datas += [("settings.html", "."), ("transcript.html", ".")]
 datas += [("tts/worker.py", "tts"),
           ("tts/assets/kokoro-model-manifest.json", "tts/assets"),
           ("licenses", "licenses"),

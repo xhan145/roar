@@ -961,6 +961,7 @@ class ROARApp:
                  checked=lambda item: self.cfg.get("fob_enabled", True)),
             Item("Meeting capture (system audio)", self._toggle_listen,
                  checked=lambda item: self._listen_session is not None),
+            Item("Live transcript…", self._open_transcript),
             Item("Flow routes", Menu(
                 Item("Also copy to clipboard",
                      lambda: self._toggle_route("clipboard"),
@@ -986,6 +987,14 @@ class ROARApp:
                                     "app.py")
             subprocess.Popen([sys.executable, app_path, "--settings"])
 
+    def _open_transcript(self):
+        if paths.is_frozen():
+            subprocess.Popen([sys.executable, "--transcript"])
+        else:
+            app_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    "app.py")
+            subprocess.Popen([sys.executable, app_path, "--transcript"])
+
     def _toggle_route(self, name):
         self._apply_route_command((name, not self._routes[name]))
 
@@ -998,6 +1007,8 @@ class ROARApp:
             self._scratch()
         elif action == "read_selected":
             self._dispatch_tts_command({"command": "read_selected"})
+        elif action == "transcript":
+            self._open_transcript()
         elif action == "settings":
             self._open_settings()
         elif action == "hide":
@@ -1293,6 +1304,8 @@ def main():
                         help="start, load model, then exit (self-test)")
     parser.add_argument("--settings", action="store_true",
                         help="open the settings window instead of the tray app")
+    parser.add_argument("--transcript", action="store_true",
+                        help="open the live transcript window")
     args = parser.parse_args()
 
     # Migration MUST precede redirect_output_when_frozen: opening the log
@@ -1307,6 +1320,9 @@ def main():
     if args.settings:
         import settings_ui
         sys.exit(settings_ui.run_settings(smoke=args.smoke))
+    if args.transcript:
+        import transcript_ui
+        sys.exit(transcript_ui.run_transcript(smoke=args.smoke))
 
     if not single_instance.acquire():
         print("ROAR: already running — exiting", flush=True)
