@@ -8,28 +8,38 @@
 <meta name="description" content="Your ROAR purchase was received.">
 <style>
   :root{
-    --bg:#0B0B10; --surface:#14141C; --text:#EDEDEF; --muted:#9BA1AC;
-    --border:#2A2A38; --accent:#A78BFA; --accent-ink:#0B0B10; --r:14px;
+    --bg:#08080D; --surface:rgba(255,255,255,.04); --text:#EDEDF2;
+    --muted:#A2A5B4; --border:rgba(255,255,255,.10);
+    --accent:#A78BFA; --accent-2:#7C6CF0; --accent-ink:#0B0B10; --r:16px;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);min-height:100vh;
     min-height:100dvh;display:grid;place-items:center;padding:24px;
-    font:400 16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
-    -webkit-font-smoothing:antialiased}
+    font:400 16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  .aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+  .aurora span{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;
+    width:52vw;height:52vw;min-width:420px;min-height:420px;left:-6vw;top:-18vh;
+    background:radial-gradient(circle at 40% 40%,rgba(124,108,240,.5),transparent 65%)}
   .card{width:100%;max-width:560px;background:var(--surface);
-    border:1px solid var(--border);border-radius:var(--r);padding:40px}
+    border:1px solid var(--border);border-radius:var(--r);padding:40px;
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    .card{background:#111119}}
   h1{margin:0 0 14px;font-size:28px;line-height:1.2;letter-spacing:-.02em}
   p{margin:0 0 16px;color:var(--muted)}
   a{color:var(--accent)}
   .links{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:24px}
   .btn{display:inline-flex;align-items:center;justify-content:center;
-    min-height:44px;padding:12px 22px;border-radius:10px;font-weight:600;
-    text-decoration:none;background:var(--accent);color:var(--accent-ink)}
+    min-height:46px;padding:12px 22px;border-radius:12px;font-weight:600;
+    text-decoration:none;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    color:var(--accent-ink);box-shadow:0 8px 28px -10px rgba(167,139,250,.55)}
   :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
+  <div class="aurora" aria-hidden="true"><span></span></div>
   <main class="card">
     <h1>Purchase received</h1>
     <p>Thank you. Your ROAR license will be delivered using the fulfillment
