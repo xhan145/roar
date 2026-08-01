@@ -88,3 +88,19 @@ LICENSE_PUBLIC_KEY_PEM = """\
 MCowBQYDK2VwAyEA8omc9mYaE/oDRg67VA8BgY5uP2T/CCgnHcf1BNBMF2c=
 -----END PUBLIC KEY-----
 """
+
+# SUBORDINATE fulfilment key: its private half lives ONLY in the Vercel
+# fulfilment service's env (never on this machine's disk outside
+# ~/.roar-signing/, never in the repo). If it is ever compromised, remove it
+# from this tuple in an app update and reissue affected licenses from the
+# founder key — founder-signed licenses are unaffected. See
+# docs/VERCEL_FULFILLMENT.md.
+FULFILLMENT_PUBLIC_KEY_PEM = """\
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA5V8lZZEUi5X19S9OpbrrVZju5hNcrqyAFaf+zQbjxcM=
+-----END PUBLIC KEY-----
+"""
+
+# Every key the app trusts, founder first. license.MultiKeyVerifier accepts a
+# signature from ANY of these.
+LICENSE_PUBLIC_KEYS = (LICENSE_PUBLIC_KEY_PEM, FULFILLMENT_PUBLIC_KEY_PEM)

@@ -70,8 +70,28 @@ class CryptographySignatureVerifier(SignatureVerifier):
             return False
 
 
+class MultiKeyVerifier(SignatureVerifier):
+    """Valid iff ANY configured public key verifies the signature.
+
+    Exists for the dual-key fulfilment design: the offline founder key plus a
+    revocable server-side fulfilment key. An unparseable PEM in the list is
+    skipped (that verifier fails closed on its own); an empty list rejects
+    everything.
+    """
+
+    def __init__(self, public_key_pems):
+        self._verifiers = [CryptographySignatureVerifier(pem)
+                           for pem in public_key_pems]
+
+    def verify(self, message: bytes, signature: bytes) -> bool:
+        return any(v.verify(message, signature) for v in self._verifiers)
+
+
 def _default_verifier():
-    return CryptographySignatureVerifier(commercial_config.LICENSE_PUBLIC_KEY_PEM)
+    # Read the two PEMs at call time (not the frozen LICENSE_PUBLIC_KEYS
+    # tuple) so tests can monkeypatch a key and see it take effect.
+    return MultiKeyVerifier((commercial_config.LICENSE_PUBLIC_KEY_PEM,
+                             commercial_config.FULFILLMENT_PUBLIC_KEY_PEM))
 
 
 def canonical_bytes(payload):
