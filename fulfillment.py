@@ -1,31 +1,25 @@
-"""Boundary for future automated licence delivery — deliberately NOT implemented.
+"""In-app fulfilment boundary — this module NEVER signs, by design.
 
-ROAR sells through Stripe Payment Links on a STATIC site, so there is no server
-to receive a webhook and no secure home for the Ed25519 signing key (it lives
-only in the owner's ~/.roar-signing/ directory, never in this repository and
-never in a shipped build). Signing here would mean putting that key somewhere it
-does not belong, so this module refuses instead of pretending.
+Automated delivery EXISTS, but not here: it runs as a separate Vercel service
+(`fulfillment-service/`, see docs/VERCEL_FULFILLMENT.md) that verifies a
+PayPal payment, signs with the SUBORDINATE fulfilment key held only in that
+service's environment, and emails the buyer. The FOUNDER key stays offline in
+the owner's ~/.roar-signing/, and the desktop app itself contains no signing
+capability at all — this module refuses so that no in-app code path can ever
+pretend otherwise.
 
-Today's real path is manual and honest:
-    1. Stripe notifies the owner that a payment completed.
-    2. The owner confirms it in the Stripe Dashboard.
-    3. The owner runs scripts/issue_license.py to sign a licence offline.
-    4. The owner sends the resulting file to the buyer.
+The manual fallback (refunds, service outages, old builds):
+    1. Verify the payment in the processor's dashboard.
+    2. Run scripts/issue_license.py to sign a licence offline.
+    3. Send the resulting file to the buyer.
 
-A production implementation MUST:
-    1. Confirm the payment really completed by asking Stripe directly — never
-       trust the browser, a redirect, or a query parameter.
-    2. Validate the purchased edition against PAID_EDITIONS.
-    3. Be idempotent on the Stripe Checkout Session id, so one sale can never
-       produce two licences.
-    4. Sign with the existing offline licence format, on a secure server only.
-    5. Deliver over a channel the buyer controls.
-    6. Store no voice, transcript, history, or application-usage data.
-    7. Follow a written refund and revocation policy.
+The deployed service upholds the same rules this docstring always demanded:
+payment confirmed with the processor (webhook signature over raw bytes),
+edition validated, idempotent per capture id, delivery to the buyer's own
+email, no voice/transcript/usage data anywhere near it.
 
 Pure validation only: no file access, no network, and nothing that reads the
 user's transcripts, audio, history, clipboard, vocabulary, or usage insights.
-See docs/STRIPE_SETUP.md and docs/WEBSITE_IMPLEMENTATION.md.
 """
 
 from dataclasses import dataclass
@@ -68,6 +62,6 @@ def issue_license(edition, stripe_session_id, customer_email=None,
     if version != cc.CURRENT_MAJOR_VERSION:
         raise ValueError(f"unsupported major version {major_version!r}")
     raise FulfillmentUnavailable(
-        "Automated licence delivery is not available: the site is static and "
-        "the signing key is intentionally offline. Issue the licence manually "
-        "with scripts/issue_license.py, then send it to the buyer.")
+        "The desktop app never signs licences. Automated delivery runs on the "
+        "separate Vercel service (see docs/VERCEL_FULFILLMENT.md); the manual "
+        "path is scripts/issue_license.py, then send the file to the buyer.")

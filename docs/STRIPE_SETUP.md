@@ -108,9 +108,10 @@ kinds pass the site's trusted-host test:
 Differences from Stripe to plan around:
 
 - **No custom redirect** on simple PayPal links — buyers see PayPal's own
-  confirmation, not `purchase/success.html`. The email they receive is the
-  confirmation; fulfilment is unchanged (PayPal notifies you → verify in the
-  PayPal dashboard → `scripts/issue_license.py` → email the licence).
+  confirmation, not `purchase/success.html`. Fulfilment is AUTOMATED for
+  PayPal via the Vercel service (docs/VERCEL_FULFILLMENT.md); the manual path
+  (verify in the dashboard → `scripts/issue_license.py` → email) remains the
+  fallback and the refund route.
 - The same rule applies with extra force: **PayPal payment completion must not
   automatically imply a licence was delivered** — verify the payment in the
   dashboard before signing, and record the transaction ID against the issued
@@ -122,5 +123,7 @@ Differences from Stripe to plan around:
 
 - No account, no login, no customer portal.
 - No telemetry, and no purchase data inside the app.
-- No licence key in the browser, and no signing key on any server.
+- No licence key in the browser. The FOUNDER signing key is never on any
+  server; the only server-held key is the subordinate, revocable fulfilment
+  key (docs/VERCEL_FULFILLMENT.md).
 - No subscription, and no recurring price in Stripe or PayPal.

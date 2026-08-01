@@ -106,3 +106,15 @@ def test_default_verifier_accepts_both_shipped_keys_shape():
     v = lic._default_verifier()
     assert isinstance(v, lic.MultiKeyVerifier)
     assert len(v._verifiers) == 2
+
+
+def test_revocation_has_one_source_of_truth():
+    """_default_verifier and LICENSE_PUBLIC_KEYS must always agree, so the
+    documented revocation step (blank FULFILLMENT_PUBLIC_KEY_PEM) cannot
+    leave a hidden second trust path."""
+    import inspect
+    src = inspect.getsource(lic._default_verifier)
+    assert "LICENSE_PUBLIC_KEY_PEM" in src
+    assert "FULFILLMENT_PUBLIC_KEY_PEM" in src
+    assert cc.LICENSE_PUBLIC_KEYS == (cc.LICENSE_PUBLIC_KEY_PEM,
+                                      cc.FULFILLMENT_PUBLIC_KEY_PEM)

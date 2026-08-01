@@ -91,10 +91,12 @@ MCowBQYDK2VwAyEA8omc9mYaE/oDRg67VA8BgY5uP2T/CCgnHcf1BNBMF2c=
 
 # SUBORDINATE fulfilment key: its private half lives ONLY in the Vercel
 # fulfilment service's env (never on this machine's disk outside
-# ~/.roar-signing/, never in the repo). If it is ever compromised, remove it
-# from this tuple in an app update and reissue affected licenses from the
-# founder key — founder-signed licenses are unaffected. See
-# docs/VERCEL_FULFILLMENT.md.
+# ~/.roar-signing/, never in the repo). REVOCATION: deleting it from the
+# LICENSE_PUBLIC_KEYS tuple alone is NOT enough — license._default_verifier
+# reads FULFILLMENT_PUBLIC_KEY_PEM directly, so remove/blank THIS constant
+# (a guard test pins the two lists to the same keys). Then cut a release and
+# reissue affected licenses from the founder key — founder-signed licenses
+# are unaffected. See docs/VERCEL_FULFILLMENT.md.
 FULFILLMENT_PUBLIC_KEY_PEM = """\
 -----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEA5V8lZZEUi5X19S9OpbrrVZju5hNcrqyAFaf+zQbjxcM=
