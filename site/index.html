@@ -697,6 +697,11 @@ const ROAR = {
     supporter: "",
   },
   supportEmail: "gregm@joincollective.net",
+  // Google Analytics 4 Measurement ID ("G-XXXXXXXXXX"). Empty string => NO
+  // analytics script is injected at all. This is the ONLY tracker the page may
+  // ever load — the site tests pin the allowed script host to
+  // googletagmanager.com, nothing else. Measurement IDs are public by design.
+  ga4: "",
 };
 
 document.getElementById("year").textContent = new Date().getFullYear();
@@ -743,6 +748,26 @@ for (const [key, {label, price}] of Object.entries(EDITIONS)) {
   el.textContent = key === "supporter" ? "Support ROAR" : `Request ${label} licence`;
   el.setAttribute("aria-describedby", "checkout-note");
   el.title = "Checkout coming soon — this opens a pre-order email";
+}
+
+// Site visit analytics (Google Analytics 4): loaded ONLY when a Measurement
+// ID is configured, and disclosed in the privacy section the moment it is.
+// This measures the WEBSITE — the ROAR app itself never sends anything.
+if (/^G-[A-Z0-9]+$/.test(ROAR.ga4)) {
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + ROAR.ga4;
+  document.head.appendChild(s);
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag("js", new Date());
+  gtag("config", ROAR.ga4);
+  const list = document.querySelector("#privacy .privacy ul");
+  if (list) {
+    const li = document.createElement("li");
+    li.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg><span><b>This website uses Google Analytics — the app never does.</b> Visit statistics (pages, referrers) help us understand interest in ROAR; Google Analytics sets cookies for this. The ROAR app itself sends nothing, ever — dictation, audio, and history stay on your machine.</span>';
+    list.appendChild(li);
+  }
 }
 </script>
 </body>
