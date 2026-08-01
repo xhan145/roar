@@ -663,6 +663,33 @@
         <div class="msg" id="m-flow"></div>
       </div>
       <div class="row">
+        <div style="margin-bottom:8px;">Per-app routing</div>
+        <div class="hint" style="margin-bottom:8px;">Pin routes per application:
+          <b>On</b>/<b>Off</b> overrides your live route toggles while that app is
+          focused; <b>Inherit</b> follows them. Typing into the app itself is
+          never affected. Part of ROAR Developer.</div>
+        <div id="flow-rp-list" style="margin-bottom:8px;"></div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;">
+          <input id="flow-rp-exe" type="text" maxlength="80" placeholder="Program — e.g. slack.exe"
+                 style="flex:1;min-width:150px;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);"
+                 aria-label="Application executable name">
+          <select id="flow-rp-clipboard" aria-label="Clipboard route override"
+                  style="background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);">
+            <option value="">Clipboard: inherit</option><option value="on">Clipboard: on</option><option value="off">Clipboard: off</option>
+          </select>
+          <select id="flow-rp-notes" aria-label="Notes route override"
+                  style="background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);">
+            <option value="">Notes: inherit</option><option value="on">Notes: on</option><option value="off">Notes: off</option>
+          </select>
+          <select id="flow-rp-speak" aria-label="Speak route override"
+                  style="background:var(--field);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);">
+            <option value="">Speak: inherit</option><option value="on">Speak: on</option><option value="off">Speak: off</option>
+          </select>
+          <button class="btn" id="b-flow-rp-add">Add app rule</button>
+        </div>
+        <div class="msg" id="m-flow-rp"></div>
+      </div>
+      <div class="row">
         <div style="margin-bottom:8px;">Notes route file</div>
         <div class="hint" style="margin-bottom:8px;">When the notes route is on, every
           dictation is also appended here with a timestamp. Plain text, local, yours to
@@ -1227,6 +1254,7 @@ async function init() {
   renderAppProfiles();
   renderSnippets();
   renderFlow();
+  renderRouteProfiles();
   renderTTS();
   startHomePolling();
 }
@@ -1570,6 +1598,51 @@ async function flowAdd() {
   renderFlow();
 }
 $("b-flow-add").addEventListener("click", flowAdd);
+
+/* ---- per-app routing profiles ---- */
+const RP_ROUTES = ["clipboard", "notes", "speak"];
+async function renderRouteProfiles() {
+  const d = await api().flow_route_profiles();
+  const list = $("flow-rp-list"); list.innerHTML = "";
+  const entries = Object.entries(d.profiles || {});
+  if (!entries.length) {
+    const e = document.createElement("div"); e.className = "hint";
+    e.textContent = "No app rules yet. Example: slack.exe with Notes: off keeps chatter out of your notes file.";
+    list.appendChild(e);
+    return;
+  }
+  entries.forEach(([exe, overrides]) => {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:6px;";
+    const name = document.createElement("span");
+    name.style.cssText = "font-weight:600;";
+    name.textContent = exe;
+    const what = document.createElement("span");
+    what.className = "hint"; what.style.cssText = "flex:1;margin:0;";
+    what.textContent = RP_ROUTES
+      .map(r => r in overrides ? `${r} ${overrides[r] ? "on" : "off"}` : null)
+      .filter(Boolean).join(" · ") + " · rest inherit";
+    const x = document.createElement("button");
+    x.textContent = "×"; x.setAttribute("aria-label", "delete rule for " + exe);
+    x.style.cssText = "background:none;border:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:16px;";
+    x.onclick = async () => { await api().flow_delete_route_profile(exe); renderRouteProfiles(); };
+    row.append(name, what, x);
+    list.appendChild(row);
+  });
+}
+$("b-flow-rp-add").addEventListener("click", async () => {
+  const overrides = {};
+  for (const r of RP_ROUTES) {
+    const v = $("flow-rp-" + r).value;
+    if (v) overrides[r] = v === "on";
+  }
+  const res = await api().flow_set_route_profile($("flow-rp-exe").value, overrides);
+  if (res.error) { msg("m-flow-rp", res.error, "err"); return; }
+  $("flow-rp-exe").value = "";
+  RP_ROUTES.forEach(r => $("flow-rp-" + r).value = "");
+  msg("m-flow-rp", "Rule saved — applies from your next dictation", "ok");
+  renderRouteProfiles();
+});
 $("b-flow-notes-save").addEventListener("click", async () => {
   const r = await api().flow_set_notes_path($("flow-notes-path").value);
   if (r.error) { msg("m-flow-notes", r.error, "err"); return; }

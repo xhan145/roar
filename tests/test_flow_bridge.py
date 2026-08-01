@@ -64,3 +64,29 @@ def test_trusted_flag_survives_round_trip(tmp_path):
                                 trusted=True))
     saved = api.flow_get()["rules"][0]
     assert saved["trusted"] is True and saved["action"] == "run_script"
+
+
+# -- per-app routing profiles ----------------------------------------------
+
+def test_route_profile_crud_round_trip(tmp_path):
+    api = _api(tmp_path)
+    assert api.flow_route_profiles()["profiles"] == {}
+    out = api.flow_set_route_profile("Slack.exe", {"notes": False,
+                                                   "clipboard": True})
+    assert out["ok"] is True
+    assert out["profiles"] == {"slack.exe": {"notes": False,
+                                             "clipboard": True}}
+    # persists through config load (sanitizer keeps it intact)
+    assert config_mod.load(str(tmp_path / "config.json"))[
+        "route_profiles"] == {"slack.exe": {"notes": False, "clipboard": True}}
+    assert api.flow_delete_route_profile("SLACK.EXE")["ok"] is True
+    assert api.flow_route_profiles()["profiles"] == {}
+
+
+def test_route_profile_validation(tmp_path):
+    api = _api(tmp_path)
+    assert "error" in api.flow_set_route_profile("", {"notes": True})
+    assert "error" in api.flow_set_route_profile("x.exe", {"teleport": True})
+    assert "error" in api.flow_set_route_profile("x.exe", {})
+    assert "error" in api.flow_set_route_profile("x.exe", "notes")
+    assert "error" in api.flow_delete_route_profile("missing.exe")

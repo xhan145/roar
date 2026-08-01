@@ -37,6 +37,10 @@ DEFAULTS = {
     # the dot's top-left [x, y] on the virtual screen; null = bottom-center.
     "fob_enabled": True,
     "fob_pos": None,
+    # Per-app routing overrides: lowercased exe basename -> {route: bool}.
+    # Present keys override the live session toggles; absent keys inherit.
+    # Persisted on purpose — that is the feature. See routing.effective_routes.
+    "route_profiles": {},
     "overlay_enabled": True,
     "streaming_preview": True,
     "snippets": {},
@@ -173,6 +177,15 @@ def load(path=None):
         elif key == "flow_notes_path":
             if isinstance(value, str):
                 cfg[key] = value.strip()
+        elif key == "route_profiles":
+            if isinstance(value, dict):
+                cfg[key] = {
+                    str(exe).strip().lower(): {
+                        r: bool(v) for r, v in overrides.items()
+                        if r in ("clipboard", "notes", "speak")}
+                    for exe, overrides in value.items()
+                    if isinstance(exe, str) and exe.strip()
+                    and isinstance(overrides, dict)}
         elif key == "snippet_keyword":
             if isinstance(value, str) and value.strip():
                 cfg[key] = value.strip()

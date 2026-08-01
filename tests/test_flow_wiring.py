@@ -9,6 +9,7 @@ import routing
 def _bare_app(entitled=True, routes=None):
     a = app_mod.ROARApp.__new__(app_mod.ROARApp)
     a.cfg = {"flow_notes_path": ""}
+    a._foreground_exe = lambda: "test.exe"
     a._routes = routes or {"clipboard": False, "notes": False, "speak": False}
     a.notices = []
     a.notify = a.notices.append
@@ -94,3 +95,24 @@ def test_default_notes_path_lands_in_documents():
     a = _bare_app()
     assert a._notes_path().endswith("ROAR Notes.md")
     assert "Documents" in a._notes_path()
+
+
+def test_per_app_rule_overrides_session_at_delivery(monkeypatch, tmp_path):
+    """Focused-app rules win: notes globally ON but OFF for test.exe."""
+    a = _bare_app(routes={"clipboard": False, "notes": True, "speak": False})
+    a.cfg["flow_notes_path"] = str(tmp_path / "notes.md")
+    a.cfg["route_profiles"] = {"test.exe": {"notes": False}}
+    _entitle(monkeypatch, True)
+    a._deliver("hello", None, 0, None)
+    assert a.injected == ["hello"]
+    assert not (tmp_path / "notes.md").exists()   # notes suppressed for this app
+
+
+def test_per_app_rule_adds_a_route_for_one_app(monkeypatch, tmp_path):
+    a = _bare_app()                                # all session routes off
+    a.cfg["flow_notes_path"] = str(tmp_path / "notes.md")
+    a.cfg["route_profiles"] = {"test.exe": {"notes": True}}
+    _entitle(monkeypatch, True)
+    a._deliver("captured", None, 0, None)
+    assert a.injected == ["captured"]
+    assert "captured" in (tmp_path / "notes.md").read_text(encoding="utf-8")

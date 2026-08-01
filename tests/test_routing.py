@@ -105,3 +105,49 @@ def test_parse_route_command_rejects(text):
 def test_parse_route_command_tolerates_recognizer_commas():
     assert routing.parse_route_command("Roar, route notes on.") == ("notes", True)
     assert routing.parse_route_command("Roar, routes off!") == "all_off"
+
+
+# -- per-app routing profiles ----------------------------------------------
+
+SESSION = {"clipboard": False, "notes": True, "speak": False}
+
+
+def test_effective_routes_inherits_session_when_no_rules():
+    assert routing.effective_routes(SESSION, {}, "slack.exe") == SESSION
+    assert routing.effective_routes(SESSION, {}, None) == SESSION
+
+
+def test_effective_routes_override_on_and_off():
+    rules = {"slack.exe": {"notes": False, "clipboard": True}}
+    out = routing.effective_routes(SESSION, rules, "slack.exe")
+    assert out == {"clipboard": True, "notes": False, "speak": False}
+
+
+def test_effective_routes_unset_keys_inherit():
+    rules = {"winword.exe": {"speak": True}}   # says nothing about notes/clip
+    out = routing.effective_routes(SESSION, rules, "WINWORD.EXE")
+    assert out == {"clipboard": False, "notes": True, "speak": True}
+
+
+def test_effective_routes_matching_is_case_insensitive():
+    rules = {"Slack.exe": {"notes": False}}
+    assert routing.effective_routes(SESSION, rules, "slack.exe")["notes"] is False
+
+
+def test_effective_routes_unknown_exe_is_session():
+    rules = {"slack.exe": {"notes": False}}
+    assert routing.effective_routes(SESSION, rules, "code.exe") == SESSION
+
+
+def test_effective_routes_never_contains_inject_and_never_mutates():
+    session = dict(SESSION)
+    out = routing.effective_routes(session, {"x.exe": {"inject": False,
+                                                       "notes": False}}, "x.exe")
+    assert "inject" not in out
+    assert out["notes"] is False
+    assert session == SESSION            # input untouched
+
+
+def test_effective_routes_ignores_unknown_route_keys():
+    out = routing.effective_routes(SESSION, {"x.exe": {"teleport": True}}, "x.exe")
+    assert out == SESSION

@@ -42,6 +42,7 @@ _DEVELOPER = frozenset({
     "code.symbols", "vocabulary.project", "snippets.developer_packs",
     "files.tagging",
     "automations.scripted",                   # Flow run_script/webhook actions
+    "routing.per_app",                        # Flow per-app routing overrides
 })
 
 _BY_EDITION = {

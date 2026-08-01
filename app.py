@@ -652,8 +652,13 @@ class ROARApp:
         """Deliver final text to every active output. Injection is always the
         first output and keeps all its existing side effects (history,
         milestones, scratch stack); extra routes are strictly additive."""
-        route_cfg = ({f"route_{k}": v for k, v in self._routes.items()}
-                     if access.can("routing.multi") else {})
+        session = (dict(self._routes) if access.can("routing.multi")
+                   else {k: False for k in self._routes})
+        if access.can("routing.per_app"):
+            session = routing.effective_routes(
+                session, self.cfg.get("route_profiles") or {},
+                self._foreground_exe())
+        route_cfg = {f"route_{k}": v for k, v in session.items()}
         outputs = routing.active_outputs(route_cfg)
         if outputs == ("inject",):
             self._inject_final(text, audio, tr_ms, target)

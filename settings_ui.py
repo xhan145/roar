@@ -798,6 +798,46 @@ class SettingsAPI:
             self._write(automation_rules=rules)
         return {"ok": True, "rules": rules}
 
+    def flow_route_profiles(self):
+        cfg = config_mod.load(self.config_path)
+        return {"profiles": cfg.get("route_profiles", {}) or {}}
+
+    def flow_set_route_profile(self, exe, overrides):
+        """Create/replace one app's routing rule. `overrides` holds ONLY the
+        routes to pin ({'notes': False}); absent routes inherit the session
+        toggles."""
+        exe = str(exe or "").strip().lower()
+        if not exe:
+            return {"error": "An application name is required — e.g. slack.exe"}
+        if len(exe) > 80:
+            return {"error": "Application names are limited to 80 characters."}
+        if not isinstance(overrides, dict):
+            return {"error": "Route overrides must be an object."}
+        bad = set(overrides) - {"clipboard", "notes", "speak"}
+        if bad:
+            return {"error": f"Unknown route {sorted(bad)[0]!r}."}
+        clean = {r: bool(v) for r, v in overrides.items()}
+        if not clean:
+            return {"error": "Pin at least one route On or Off — a rule that "
+                             "inherits everything does nothing."}
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            profiles = dict(cfg.get("route_profiles", {}) or {})
+            profiles[exe] = clean
+            self._write(route_profiles=profiles)
+        return {"ok": True, "profiles": profiles}
+
+    def flow_delete_route_profile(self, exe):
+        exe = str(exe or "").strip().lower()
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+            profiles = dict(cfg.get("route_profiles", {}) or {})
+            if exe not in profiles:
+                return {"error": "No such rule."}
+            profiles.pop(exe)
+            self._write(route_profiles=profiles)
+        return {"ok": True, "profiles": profiles}
+
     def flow_set_notes_path(self, path):
         path = str(path or "").strip()
         with self._cfg_lock:
@@ -1191,6 +1231,11 @@ def run_settings(smoke=False):
                         "document.getElementById('flow-action') && "
                         "document.getElementById('flow-notes-path') && "
                         "document.getElementById('b-flow-add')) ? 1 : 0")
+                    has_rp = window.evaluate_js(
+                        "(document.getElementById('flow-rp-list') && "
+                        "document.getElementById('flow-rp-exe') && "
+                        "document.getElementById('flow-rp-notes') && "
+                        "document.getElementById('b-flow-rp-add')) ? 1 : 0")
                     has_fob = window.evaluate_js(
                         "document.getElementById('t-fob') ? 1 : 0")
                     flow_nav = window.evaluate_js(
@@ -1222,7 +1267,7 @@ def run_settings(smoke=False):
                           f"ttsnav={tts_nav} ttsstatus={has_tts_status} "
                           f"ttsstop={has_tts_stop} "
                           f"fmt={has_fmt} accel={has_accel} corr={has_corr} ptr={has_ptr} "
-                          f"flow={has_flow} flownav={flow_nav} "
+                          f"flow={has_flow} flownav={flow_nav} rp={has_rp} "
                           f"fob={has_fob} "
                           f"themeok={theme_ok}",
                           flush=True)

@@ -102,6 +102,9 @@ FEATURE_COPY = {
     "automations.scripted": ("Scripted actions",
                              "Let trusted Flow rules run a script, call a "
                              "webhook, or send OSC to show-control gear."),
+    "routing.per_app": ("Per-app routing",
+                        "Different output routes per application — notes on "
+                        "in Word, off in Slack, always exactly as you set."),
     "capture.system_audio": ("Meeting capture",
                              "Transcribe what your PC is playing — calls and "
                              "meetings — into local history, live."),

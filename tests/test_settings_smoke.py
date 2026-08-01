@@ -34,4 +34,5 @@ def test_settings_smoke():
     assert "corr=1" in out  # personal corrections UI
     assert "ptr=1" in out   # Point & Speak toggle
     assert "flow=1" in out and "flownav=1" in out  # Flow rules + routing UI
+    assert "rp=1" in out  # per-app routing table
     assert "fob=1" in out   # movable mic fob toggle

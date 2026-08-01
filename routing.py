@@ -66,6 +66,29 @@ def append_notes(path, line):
         fh.write(line)
 
 
+def effective_routes(session_routes, rules, exe):
+    """The route set to deliver with, given the live session toggles, the
+    persisted per-app rules ({exe_basename: {route: bool}}), and the focused
+    app's exe basename.
+
+    Per-route override semantics: a rule's present keys win; absent keys
+    inherit the session toggle. Matching is case-insensitive on the basename.
+    Injection is unconditional and can never appear in the result. Pure —
+    inputs are never mutated."""
+    out = {name: bool(session_routes.get(name, False)) for name in _TOGGLEABLE}
+    if not exe or not rules:
+        return out
+    exe = str(exe).lower()
+    for pattern, overrides in rules.items():
+        if str(pattern).lower() != exe or not isinstance(overrides, dict):
+            continue
+        for name in _TOGGLEABLE:
+            if name in overrides:
+                out[name] = bool(overrides[name])
+        break
+    return out
+
+
 def parse_route_command(text):
     """Parse a spoken routing toggle. Returns (output, on) for
     'roar route <name> on/off', 'all_off' for 'roar routes off', else None.
