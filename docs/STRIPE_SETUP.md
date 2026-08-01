@@ -91,9 +91,36 @@ is offline and there is nothing to phone home to. That makes refunds a trust
 matter rather than a technical one: record them alongside the issued-licence
 log. See `docs/REFUND_POLICY.md`.
 
+## PayPal variant
+
+The same seam accepts PayPal links — per edition, mixable with Stripe. Two
+kinds pass the site's trusted-host test:
+
+1. **PayPal payment links (recommended).** In the PayPal Business dashboard:
+   Pay Links and Buttons → Create pay link → "Sell a product or service" →
+   fixed amount ($19 / $29 / $49, one per edition, one-time). The amount is
+   fixed on PayPal's side, like a Stripe Payment Link. Links look like
+   `https://www.paypal.com/ncp/payment/XXXXXXXX`.
+2. **PayPal.Me** (`https://paypal.me/<handle>/19`) — instant if you have a
+   handle, but the buyer can edit the amount before paying, so treat the
+   payment email as the source of truth, not the link.
+
+Differences from Stripe to plan around:
+
+- **No custom redirect** on simple PayPal links — buyers see PayPal's own
+  confirmation, not `purchase/success.html`. The email they receive is the
+  confirmation; fulfilment is unchanged (PayPal notifies you → verify in the
+  PayPal dashboard → `scripts/issue_license.py` → email the licence).
+- The same rule applies with extra force: **PayPal payment completion must not
+  automatically imply a licence was delivered** — verify the payment in the
+  dashboard before signing, and record the transaction ID against the issued
+  licence so one sale can never mint two.
+- Never commit PayPal API credentials, client IDs with secrets, or webhook
+  IDs — payment LINKS are public; credentials never are.
+
 ## What we deliberately do not do
 
 - No account, no login, no customer portal.
 - No telemetry, and no purchase data inside the app.
 - No licence key in the browser, and no signing key on any server.
-- No subscription, and no recurring price in Stripe.
+- No subscription, and no recurring price in Stripe or PayPal.

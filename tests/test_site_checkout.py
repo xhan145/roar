@@ -52,9 +52,17 @@ def test_no_secrets_or_server_config_in_the_page():
         assert forbidden not in html, forbidden
 
 
-def test_payment_links_if_present_are_stripe_urls():
-    """Payment Links are public by design, but they must be real Stripe URLs —
-    a typo'd or attacker-supplied host would silently take payments."""
+# The ONLY hosts a buy button may ever point at. Payment links are public by
+# design, but a typo'd or attacker-supplied host would silently take payments —
+# widening this list is a deliberate decision, never a drive-by edit.
+TRUSTED_CHECKOUT_PREFIXES = (
+    "https://buy.stripe.com/",
+    "https://www.paypal.com/ncp/payment/",   # PayPal no-code payment links
+    "https://paypal.me/",                    # PayPal.Me (prefilled amount)
+)
+
+
+def test_payment_links_if_present_are_trusted_processor_urls():
     block = _html().split("purchase:")[1].split("}")[0]
     for url in re.findall(r'"(\w+://[^"]*)"', block):
-        assert url.startswith("https://buy.stripe.com/"), url
+        assert url.startswith(TRUSTED_CHECKOUT_PREFIXES), url
