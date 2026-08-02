@@ -524,6 +524,73 @@ class SettingsAPI:
         return {"ok": r["ok"], "message": r["message"],
                 "edition": r["edition"].title()}
 
+    # -- Full-Feature Trial ----------------------------------------------
+    # Reads only the trial record and the licence state — never dictation
+    # data, never the network. The trial starts ONLY from trial_start().
+
+    def _trial(self):
+        import trial_store
+        if getattr(self, "_trial_svc", None) is None:
+            self._trial_svc = trial_store.TrialService()
+        return self._trial_svc
+
+    def trial_info(self):
+        """Structured trial state for the Settings card and badge."""
+        import license_service
+        import trial
+        with self._cfg_lock:
+            cfg = config_mod.load(self.config_path)
+        lic = license_service.get_status()
+        licensed = bool(lic["valid"])
+        status = self._trial().status()
+        effective = trial.resolve_effective_edition(
+            license_edition=lic["edition"], license_valid=licensed,
+            trial_status=status)
+        label = trial.remaining_label(status)
+        badge = ""
+        if (status.state == trial.ACTIVE and not licensed
+                and cfg.get("trial_status_badge_enabled", True)):
+            badge = "Full-Feature Trial · " + label
+        return {
+            "enabled": bool(cfg.get("trial_enabled", True)),
+            "state": trial.display_state(status, license_valid=licensed),
+            "started": (status.started_at.strftime("%Y-%m-%d")
+                        if status.started_at else ""),
+            "expires": (status.expires_at.strftime("%Y-%m-%d")
+                        if status.expires_at else ""),
+            "days_remaining": status.days_remaining,
+            "remaining_label": label,
+            "effective_edition": effective.title(),
+            "badge": badge,
+            "show_expiry_notice": (
+                status.state == trial.EXPIRED and not licensed
+                and not status.expired_notice_seen
+                and bool(cfg.get("trial_expiry_notice_enabled", True))),
+        }
+
+    def trial_start(self):
+        """Begin the 14-day trial — only ever from the explicit button."""
+        import trial
+        info_before = self.trial_info()
+        if not info_before["enabled"]:
+            return {"ok": False, "message": "The trial is not available."}
+        if info_before["state"] not in (trial.NOT_STARTED,):
+            return {"ok": False,
+                    "message": "This trial has already been used on this "
+                               "computer."}
+        status = self._trial().start()
+        ok = status.state == trial.ACTIVE
+        return {"ok": ok, "message": (
+            "Your 14-day ROAR trial has started.\n"
+            "All Pro and Developer features are now available locally."
+            if ok else "The trial could not be started."),
+            "info": self.trial_info()}
+
+    def trial_notice_seen(self):
+        """Remember locally that the one-time ended notice was dismissed."""
+        self._trial().mark_expired_notice_seen()
+        return {"ok": True}
+
     def _write(self, **changes):
         with self._cfg_lock:
             cfg = config_mod.load(self.config_path)

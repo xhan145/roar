@@ -33,6 +33,14 @@ DEFAULTS = {
     # Translate mode: dictate in any language, type English (Whisper's native
     # translate task; forces a multilingual model when the picker is on auto).
     "translate_to_english": False,
+    # 14-day Full-Feature Trial. The duration is informational here —
+    # trial.TRIAL_DURATION is authoritative and production always enforces 14
+    # days (tests inject clocks/durations through TrialService seams instead).
+    # None of these keys are exposed as editable Settings controls.
+    "trial_enabled": True,
+    "trial_duration_days": 14,
+    "trial_expiry_notice_enabled": True,
+    "trial_status_badge_enabled": True,
     # The movable mic fob (the idle form of the dictation pill). fob_pos is
     # the dot's top-left [x, y] on the virtual screen; null = bottom-center.
     "fob_enabled": True,
