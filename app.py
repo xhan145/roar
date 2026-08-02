@@ -243,8 +243,15 @@ class ROARApp:
     def _maybe_trial_ended_notice(self):
         """A single calm notification when the Full-Feature Trial has ended.
         Fires at most once ever (the record remembers), never while licensed,
-        and never during recording — Core keeps working regardless."""
+        and never during recording — Core keeps working regardless.
+
+        The in-process latch is checked FIRST: if the record can't be written
+        (read-only profile, roaming glitch), the worst case is one notice per
+        app run rather than one after every single dictation.
+        """
         try:
+            if getattr(self, "_trial_notice_shown", False):
+                return
             if not self.cfg.get("trial_expiry_notice_enabled", True):
                 return
             import access
@@ -254,6 +261,7 @@ class ROARApp:
                     or status.expired_notice_seen
                     or access.edition() != "core"):
                 return
+            self._trial_notice_shown = True
             access.mark_trial_notice_seen()
             self.notify(
                 "Your ROAR trial has ended. ROAR Core is still yours to use "

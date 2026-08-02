@@ -39,10 +39,11 @@ _RECORD_KEYS = {
     "schema_version", "trial_id", "started_at_utc", "expires_at_utc",
     "last_seen_at_utc", "expired_notice_seen",
 }
-# the immutable core covered by the integrity signature; last_seen and the
-# notice flag mutate during normal operation and stay outside it
+# EVERY field is signed, including the mutable ones. last_seen_at_utc is the
+# only thing standing between a rolled-back clock and an endless trial, so it
+# must not be editable in a text editor; the store re-signs on each write.
 _SIGNED_FIELDS = ("schema_version", "trial_id", "started_at_utc",
-                  "expires_at_utc")
+                  "expires_at_utc", "last_seen_at_utc", "expired_notice_seen")
 
 
 @dataclass(frozen=True)
@@ -149,7 +150,13 @@ def status_of(record, now=None):
     expires = parse_utc(valid["expires_at_utc"])
     last_seen = parse_utc(valid["last_seen_at_utc"])
     notice_seen = bool(valid.get("expired_notice_seen"))
-    if moment < last_seen - CLOCK_TOLERANCE:
+    # A mark at or past expiry carries no anti-rollback information — the
+    # trial is over either way — so it must never wedge a live trial. (The
+    # store also clamps what it persists; this is the read-side guard for a
+    # record written by an older build or a bad clock.)
+    if last_seen > expires:
+        last_seen = expires
+    if moment < last_seen - CLOCK_TOLERANCE and moment < expires:
         return TrialStatus(CLOCK_ROLLBACK_DETECTED, started, expires,
                            0, 0, notice_seen)
     remaining = int((expires - moment).total_seconds())

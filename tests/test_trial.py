@@ -191,13 +191,21 @@ def test_wrong_key_fails_verification():
     assert not trial.verify_record(rec, b"other-key")
 
 
-def test_mutable_bookkeeping_does_not_break_signature():
-    # last_seen and the notice flag change during normal operation and must
-    # not require re-signing
+def test_every_field_is_signed_including_the_mutable_ones():
+    # last_seen is the only thing standing between a rolled-back clock and an
+    # endless trial, so editing it (or the notice flag) must break the seal;
+    # the store re-signs whenever it legitimately updates them.
     rec = trial.sign_record(_record(), KEY)
-    rec["last_seen_at_utc"] = trial.format_utc(T0 + timedelta(days=5))
-    rec["expired_notice_seen"] = True
-    assert trial.verify_record(rec, KEY)
+    rewound = dict(rec)
+    rewound["last_seen_at_utc"] = trial.format_utc(T0 + timedelta(days=5))
+    assert not trial.verify_record(rewound, KEY)
+    flagged = dict(rec)
+    flagged["expired_notice_seen"] = True
+    assert not trial.verify_record(flagged, KEY)
+    # re-signing after a legitimate update verifies again
+    resigned = trial.sign_record(
+        {k: v for k, v in flagged.items() if k != "signature"}, KEY)
+    assert trial.verify_record(resigned, KEY)
 
 
 # -- effective edition resolution --------------------------------------------

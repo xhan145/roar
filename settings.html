@@ -918,6 +918,7 @@ function showSection(id) {
   if (!sec) return;
   document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
   sec.classList.add("active");
+  if (id === "about") renderTrial();   // card visible -> notice acknowledged
   if (id === "insights") renderInsights();
   if (id === "snippets") renderSnippets();
   if (id === "home") startHomePolling(); else stopHomePolling();
@@ -2107,7 +2108,13 @@ async function renderTrial() {
     $("b-trial-buy-dev").textContent = $("b-buy-dev").textContent;
     $("b-trial-buy-pro").onclick = () => $("b-buy-pro").click();
     $("b-trial-buy-dev").onclick = () => $("b-buy-dev").click();
-    if (t.show_expiry_notice) api().trial_notice_seen();  // shown once, here
+    // Acknowledge ONLY when the card is genuinely on screen. Opening
+    // Settings on another page must not silently consume the tray's
+    // one-time notice.
+    const about = $("about");
+    if (t.show_expiry_notice && about && about.classList.contains("active")) {
+      api().trial_notice_seen();
+    }
   }
 }
 $("b-trial-enter").addEventListener("click", () => showPaste(true));

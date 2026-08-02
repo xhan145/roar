@@ -9,11 +9,13 @@ Everything degrades to Core-with-grants on any error: a licensing problem must
 never break dictation. Reads only the license + grant files — never transcript,
 audio, history, snippets, vocabulary, clipboard, or the network.
 """
+import os
 import time
 
 import entitlements
 import legacy_grant
 import license_service
+import paths
 import trial
 import trial_store
 
@@ -21,6 +23,7 @@ _grants = None
 _trial_service = None
 _trial_cache = None          # (monotonic_fetched, TrialStatus)
 _TRIAL_CACHE_SECONDS = 30.0  # gate checks run on hot paths; reads are cached
+_license_stamp = None        # (mtime_ns, size) of the licence file when cached
 
 
 def grants():
@@ -34,9 +37,29 @@ def grants():
     return _grants
 
 
-def edition():
-    """Active edition from the signed license; Core unless one verifies."""
+def _license_file_stamp():
+    """Cheap fingerprint of the licence file: (mtime_ns, size), or None."""
     try:
+        st = os.stat(paths.license_path())
+        return (st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
+def edition():
+    """Active edition from the signed license; Core unless one verifies.
+
+    Settings runs in a SEPARATE process, so a licence imported there is
+    invisible to this process's cache. Watch the file itself: when it appears,
+    changes, or is removed, drop the cached status so a purchase takes effect
+    immediately — no restart, even mid-session after a trial ended.
+    """
+    global _license_stamp
+    try:
+        stamp = _license_file_stamp()
+        if stamp != _license_stamp:
+            _license_stamp = stamp
+            license_service.refresh()
         return license_service.get_active_edition()
     except Exception:
         return entitlements.CORE
