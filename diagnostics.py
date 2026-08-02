@@ -21,6 +21,10 @@ SAFE_KEYS = frozenset({
     "last_injection_duration_ms",
     "acceleration_mode", "performance_preset", "backend", "compute_type",
     "fallback_reason", "cpu_threads",
+    # Full-Feature Trial: display facts only — never the trial id, the
+    # signature, key material, or any protected blob
+    "effective_edition", "trial_status", "trial_started", "trial_expires",
+    "trial_days_remaining",
     "tts_enabled", "tts_engine", "tts_engine_version", "tts_state", "tts_model_status",
     "tts_model_version", "tts_voice", "tts_language", "tts_device",
     "tts_sample_rate", "tts_error_category", "tts_output_device",

@@ -262,6 +262,7 @@
     <button class="nav" data-s="readaloud"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>Read Aloud</button>
     <button class="nav" data-s="settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Settings</button>
     <button class="nav" data-s="about"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:8px;"><circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/></svg>About</button>
+    <div class="hint" id="trial-badge" hidden style="margin:10px 12px 0;"></div>
   </aside>
 
   <main>
@@ -836,6 +837,34 @@
         </div>
         <div class="kv" id="a-credits" style="margin-top:10px;">Created, Coded, and Developed by Greg M and Ben Y</div>
       </div>
+      <div class="row" id="trial-block" style="margin-top:14px;" hidden>
+        <div>Full-Feature Trial</div>
+        <div id="t-pre" hidden>
+          <div class="kv" style="margin-top:4px;">Try every ROAR feature for 14 days</div>
+          <div class="hint" style="margin-top:6px;">Explore smart formatting, snippets, Code Mode, app profiles, vocabulary suggestions, history tools, and the complete Developer feature set.</div>
+          <div class="hint" style="margin-top:6px;">No account. No payment card. No subscription. Your voice stays on this computer.</div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="btn primary" id="b-trial-start">Start 14-Day Trial</button>
+            <button class="btn" id="b-trial-core">Continue with ROAR Core</button>
+            <button class="btn" id="b-trial-license">Enter License</button>
+          </div>
+        </div>
+        <div id="t-active" hidden>
+          <div class="kv" style="margin-top:4px;"><b id="t-headline" style="color:var(--text)"></b></div>
+          <div class="kv" id="t-meta" style="margin-top:6px;"></div>
+          <div class="hint" id="t-note" style="margin-top:6px;white-space:pre-line;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;" id="t-actions" hidden>
+            <button class="btn primary" id="b-trial-buy-pro"></button>
+            <button class="btn" id="b-trial-buy-dev"></button>
+            <button class="btn" id="b-trial-enter">Enter License</button>
+            <button class="btn" id="b-trial-continue">Continue with ROAR Core</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+            <button class="btn" id="b-trial-retry" hidden>Try Again</button>
+          </div>
+        </div>
+        <div class="msg" id="m-trial"></div>
+      </div>
       <div class="row" id="license-block" style="margin-top:14px;">
         <div>License</div>
         <div class="kv" style="margin-top:4px;">Edition <b id="a-edition" style="color:var(--text)">Core</b> · <span id="a-license-status">Not activated</span> · validated locally / offline</div>
@@ -889,6 +918,7 @@ function showSection(id) {
   if (!sec) return;
   document.querySelectorAll("main section").forEach(s => s.classList.remove("active"));
   sec.classList.add("active");
+  if (id === "about") renderTrial();   // card visible -> notice acknowledged
   if (id === "insights") renderInsights();
   if (id === "snippets") renderSnippets();
   if (id === "home") startHomePolling(); else stopHomePolling();
@@ -2013,10 +2043,99 @@ async function renderLicense() {
   $("b-buy-pro").textContent = "Buy ROAR Pro — $" + prices.pro + " once";
   $("b-buy-dev").textContent = "Buy ROAR Developer — $" + prices.developer + " once";
   $("b-buy-supporter").textContent = "Support ROAR — $" + prices.supporter + " once";
-  $("b-buy-pro").onclick = () => window.open(urls.pro, "_blank");
-  $("b-buy-dev").onclick = () => window.open(urls.developer, "_blank");
-  $("b-buy-supporter").onclick = () => window.open(urls.supporter, "_blank");
+  $("b-buy-pro").onclick = () => openPurchase(urls.pro);
+  $("b-buy-dev").onclick = () => openPurchase(urls.developer);
+  $("b-buy-supporter").onclick = () => openPurchase(urls.supporter);
+  renderTrial();
 }
+
+/* A browser launch can fail (no default browser, blocked popup, kiosk).
+   Say so plainly instead of leaving a dead button — ROAR keeps working. */
+function openPurchase(url) {
+  if (!url) { msg("m-license", "No purchase link is configured for this edition.", "err"); return; }
+  const launch = () => window.open(url, "_blank");
+  let win = null;
+  try { win = launch(); } catch (e) { win = null; }
+  if (!win) {
+    msg("m-license", "ROAR could not open your browser. The purchase page is linked from the ROAR website — everything else keeps working.", "err");
+  }
+}
+
+/* ---- Full-Feature Trial ----
+   Explicit start only — nothing begins on install or launch. The card never
+   blocks anything, and Core plus every privacy control stays free. */
+async function renderTrial() {
+  const t = await api().trial_info();
+  if (!t) return;
+  const licensed = t.state === "licensed";
+  const badge = $("trial-badge");
+  badge.hidden = !t.badge;
+  badge.textContent = t.badge || "";
+  const block = $("trial-block");
+  block.hidden = !t.enabled || licensed;
+  if (block.hidden) return;
+  $("t-pre").hidden = t.state !== "not_started";
+  $("t-active").hidden = t.state === "not_started";
+  if (t.state === "not_started") return;
+  let head = "", note = "";
+  if (t.state === "active") {
+    head = "ROAR Full-Feature Trial";
+    note = "14 days of Pro and Developer features. Everything you save — snippets, profiles, vocabulary, tags — stays yours either way.";
+  } else if (t.state === "expired") {
+    head = "Your ROAR trial has ended";
+    note = "ROAR Core is still yours to use for free. Local dictation, multilingual transcription, streaming preview, basic history, privacy controls, basic vocabulary, and Scratch That remain available.\nUpgrade once to restore the paid features you tried. Your existing settings and content have been preserved.";
+  } else if (t.state === "clock_rollback_detected") {
+    head = "Trial paused";
+    note = "ROAR could not verify the remaining trial time because this device's clock appears to have moved backward.\nCheck the Windows date and time, then try again. ROAR Core remains available.";
+  } else if (t.state === "invalid") {
+    head = "Trial state unreadable";
+    note = "The saved trial record could not be read. ROAR Core remains available, and a purchased license activates normally.";
+  }
+  $("t-headline").textContent = head;
+  const meta = [];
+  if (t.started) meta.push("Started " + t.started);
+  if (t.expires) meta.push("Expires " + t.expires);
+  if (t.state === "active" && t.remaining_label) meta.push(t.remaining_label);
+  meta.push("Effective edition " + t.effective_edition);
+  $("t-meta").textContent = meta.join(" · ");
+  $("t-note").textContent = note;
+  $("b-trial-retry").hidden = t.state !== "clock_rollback_detected";
+  const expired = t.state === "expired";
+  $("t-actions").hidden = !expired;
+  if (expired) {
+    // mirror the canonical purchase buttons — one source for labels + links
+    $("b-trial-buy-pro").textContent = $("b-buy-pro").textContent;
+    $("b-trial-buy-dev").textContent = $("b-buy-dev").textContent;
+    $("b-trial-buy-pro").onclick = () => $("b-buy-pro").click();
+    $("b-trial-buy-dev").onclick = () => $("b-buy-dev").click();
+    // Acknowledge ONLY when the card is genuinely on screen. Opening
+    // Settings on another page must not silently consume the tray's
+    // one-time notice.
+    const about = $("about");
+    if (t.show_expiry_notice && about && about.classList.contains("active")) {
+      api().trial_notice_seen();
+    }
+  }
+}
+$("b-trial-enter").addEventListener("click", () => showPaste(true));
+$("b-trial-continue").addEventListener("click", () => {
+  $("t-actions").hidden = true;
+  msg("m-trial", "ROAR Core keeps working, free — your settings and content are untouched.", "ok");
+});
+$("b-trial-start").addEventListener("click", async () => {
+  const r = await api().trial_start();
+  msg("m-trial", r.message, r.ok ? "ok" : "err");
+  await renderTrial();
+});
+$("b-trial-core").addEventListener("click", () => {
+  $("t-pre").hidden = true;
+  msg("m-trial", "ROAR Core is yours, free. You can start the trial from this page any time.", "ok");
+});
+$("b-trial-license").addEventListener("click", () => showPaste(true));
+$("b-trial-retry").addEventListener("click", async () => {
+  msg("m-trial", "", "ok");
+  await renderTrial();
+});
 
 function showPaste(on) {
   $("a-license-text").style.display = on ? "" : "none";

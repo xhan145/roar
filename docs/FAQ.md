@@ -43,3 +43,12 @@ machine, email support within 14 days.
 **Are privacy controls paid?**
 Never. Privacy controls, deleting history, and deleting audio are free in every
 edition — including Core.
+
+**How does the 14-day trial work?**
+Click Start 14-Day Trial in Settings to unlock every Pro and Developer
+feature for exactly 14 days, entirely on your machine: no account, no payment
+card, no subscription, no internet. When it ends, ROAR Core keeps working
+free, everything you created is preserved, and a one-time purchase restores
+the paid features you tried. The trial record is stored separately from your
+dictation data, and clearing history or resetting settings never restarts or
+extends a trial.

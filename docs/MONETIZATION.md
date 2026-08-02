@@ -45,3 +45,13 @@ Paid editions unlock **workflow power** — not basic dignity. See
 3. Collect refund/support signal against [REFUND_POLICY.md](REFUND_POLICY.md).
 4. Only then consider enabling any runtime feature gate, with existing users
    grandfathered.
+
+## 14-Day Full-Feature Trial
+
+An explicit, offline trial of everything in Pro and Developer: started only by
+the Start 14-Day Trial button, never by installing or launching. No account,
+no payment card, no subscription, no internet. When it ends, Core keeps
+working free and every setting, snippet, profile, tag, and vocabulary entry is
+preserved; a one-time purchase restores the paid features. One calm ended
+notice, contextual upgrade prompts only on intentional interaction, and a
+valid licence always overrides the trial. Details: TRIAL_ARCHITECTURE.md.
