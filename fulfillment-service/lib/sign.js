@@ -36,8 +36,22 @@ export function buildPayload({ edition, name, emailHash, issuedAt, token }) {
   };
 }
 
+// Env editors mangle pasted PEMs: Vercel flattens newlines to spaces (or
+// strips them), .env files carry literal "\n", Windows clipboards add CRLF.
+// Rebuild the canonical form from the base64 body so createPrivateKey never
+// chokes on a paste artifact. Non-PEM input is returned untouched so it still
+// fails loudly downstream.
+export function normalizePem(pem) {
+  const s = String(pem || "").replace(/\\n/g, "\n").trim();
+  const m = s.match(/-----BEGIN ([A-Z0-9 ]+)-----([\s\S]*?)-----END \1-----/);
+  if (!m) return s;
+  const body = m[2].replace(/[^A-Za-z0-9+/=]/g, "");
+  const wrapped = body.replace(/(.{64})/g, "$1\n").trim();
+  return `-----BEGIN ${m[1]}-----\n${wrapped}\n-----END ${m[1]}-----\n`;
+}
+
 export function signLicense(payload, privateKeyPem) {
-  const key = createPrivateKey(privateKeyPem);
+  const key = createPrivateKey(normalizePem(privateKeyPem));
   const signature = edSign(null, canonicalBytes(payload), key);
   return { ...payload, signature: signature.toString("base64") };
 }

@@ -108,7 +108,7 @@ export function storeFactory(env) {
           headers: { Prefer: "return=representation" },
           body: JSON.stringify({
             status: "signed", edition, buyer_email: buyerEmail,
-            buyer_name: buyerName, license,
+            buyer_name: buyerName, license, error: null,
             updated_at: new Date().toISOString(),
           }),
         });
@@ -122,7 +122,7 @@ export function storeFactory(env) {
         `roar_licenses?capture_id=eq.${enc(captureId)}`, {
           method: "PATCH",
           headers: { Prefer: "return=representation" },
-          body: JSON.stringify({ status: "issued",
+          body: JSON.stringify({ status: "issued", error: null,
                                  updated_at: new Date().toISOString() }),
         });
       if ((await rows(r, "store.markIssued")).length !== 1) {
