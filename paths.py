@@ -121,6 +121,18 @@ def legacy_grant_path() -> str:
     return os.path.join(_source_root(), "legacy_grant.json")
 
 
+def trial_state_path() -> str:
+    """The Full-Feature Trial record. Beside license.json in %APPDATA%\\ROAR for
+    the same reasons: clearing history/audio, privacy resets, and normal MSI
+    upgrades must never touch it, and it is deliberately separate from every
+    file that holds personal dictation data."""
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "trial.json")
+    if platform_id.is_linux():
+        return os.path.join(_linux_config_dir(), "trial.json")
+    return os.path.join(_source_root(), "trial.json")
+
+
 def _data_dir() -> str:
     """Per-user writable data root (history, audio, log). Frozen: LOCALAPPDATA;
     source: project root."""
