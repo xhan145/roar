@@ -58,13 +58,28 @@ keys or reusable production secrets ship in the app.
 The record contains only:
 `schema_version, trial_id (random UUID), started_at_utc, expires_at_utc,
 last_seen_at_utc, expired_notice_seen, signature` — never transcripts, audio,
-history, clipboard, vocabulary, or window titles (pinned by tests).
+history, clipboard, vocabulary, or window titles (pinned by tests). **Every
+field is inside the HMAC**, including the two mutable ones, so hand-editing
+the mark or the notice flag invalidates the record; the store re-signs on each
+legitimate write. A record that is structurally sound but *unverifiable* (the
+DPAPI key is gone after an OS reinstall) is treated as present-but-unusable:
+it grants nothing, and it can never grant a second trial.
 
 ### Clock rollback
 
-Each successful read advances a monotonic `last_seen_at_utc` high-water mark.
+Reads advance a monotonic `last_seen_at_utc` high-water mark, but only while
+the trial is ACTIVE, only on an hourly dead-band
+(`trial_store.LAST_SEEN_GRANULARITY`), and **clamped to the expiry instant** —
+so the dictation path never touches the disk or registry, one bogus
+far-future clock reading cannot wedge the trial, and ROAR stops refreshing a
+"when did you last dictate" timestamp the moment the trial is over. A mark at
+or past expiry is ignored on read for the same reason. Both stores contribute
+the mutable fields on load (newest mark, either notice flag), so a rewind in
+one copy is corrected by the other.
+
 If the current UTC time is more than **5 minutes**
-(`trial.CLOCK_TOLERANCE`) before it, status becomes
+(`trial.CLOCK_TOLERANCE`) before the mark — and the trial has not already
+expired — status becomes
 `clock_rollback_detected`: paid trial features lock, Core stays available, a
 valid licence still overrides, the Settings card explains the clock moved
 backward and offers **Try Again**, and the state is never destroyed — fixing
@@ -75,19 +90,25 @@ the clock recovers on the next read.
 - The tray fires **one** notification at the first transition to IDLE after
   expiry (never while recording/transcribing, never when licensed), marking
   `expired_notice_seen` in the record *before* notifying so it can never
-  repeat — not on the next launch, not ever.
+  repeat — not on the next launch, not ever. An in-process latch backs it up,
+  so even a failed write costs at most one notice per run.
 - The Settings card shows the ended state with four actions (Buy ROAR Pro,
-  Buy ROAR Developer, Enter License, Continue with ROAR Core); visiting the
-  page also counts as seeing the notice.
+  Buy ROAR Developer, Enter License, Continue with ROAR Core); the notice is
+  acknowledged only when that card is actually on screen, so merely opening
+  Settings on another page never swallows the tray's notification.
 - No countdown timers in hours/minutes/seconds, no fake urgency, no repeated
   modals, nothing over the transcription overlay.
 
 ### Licence activation during a trial
 
 `license_service.import_license` validates offline as always; on success
-`access.effective_edition()` immediately resolves to the purchased edition,
-all trial messaging stops, and the historical trial record is kept (for
-diagnostics and duplicate-trial prevention) — never deleted.
+`access.effective_edition()` resolves to the purchased edition, all trial
+messaging stops, and the historical trial record is kept (for diagnostics and
+duplicate-trial prevention) — never deleted. Settings runs in its **own
+process**, so `access.edition()` watches `license.json` (mtime + size) and
+drops the cached licence status when it changes; a purchase made mid-session,
+including right after the trial ended, unlocks features in the running tray
+without a restart.
 
 ## Configuration
 

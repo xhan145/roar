@@ -1,15 +1,15 @@
-# ROAR release test plan
+﻿# ROAR release test plan
 
 Run before tagging. Automated first, then the manual Windows checks that can't
 be automated.
 
-## Automated (must pass ×2 in a row)
+## Automated (must pass Ã—2 in a row)
 
 ```
 venv/Scripts/python.exe -m pytest tests/ -q --ignore=tests/test_transcriber_gpu.py
 ```
 
-Kill `ROAR.exe` + its `msedgewebview2.exe` children first — a running instance
+Kill `ROAR.exe` + its `msedgewebview2.exe` children first â€” a running instance
 holds the single-instance/settings mutexes and flakes the two smoke tests.
 `tests/test_transcriber_gpu.py` needs CUDA; run it on GPU machines only.
 
@@ -17,10 +17,10 @@ holds the single-instance/settings mutexes and flakes the two smoke tests.
 
 1. `venv/Scripts/python.exe -m PyInstaller roar.spec --noconfirm`
    - Expect a WARNING if `models-seed/` is absent (languages won't be bundled).
-2. `bash scripts/build_msi.sh` → `dist/ROAR-<v>.msi` + `roar1..N.cab`
-   (external cabs are REQUIRED — the .msi format is capped at 2 GB; the files
+2. `bash scripts/build_msi.sh` â†’ `dist/ROAR-<v>.msi` + `roar1..N.cab`
+   (external cabs are REQUIRED â€” the .msi format is capped at 2 GB; the files
    must travel together).
-3. `bash scripts/build_setup.sh` → single-file `dist/ROAR-Setup-<v>.exe`.
+3. `bash scripts/build_setup.sh` â†’ single-file `dist/ROAR-Setup-<v>.exe`.
 
 4. Confirm `THIRD_PARTY_NOTICES.md`, `tts/worker.py`, and
    `tts/assets/kokoro-model-manifest.json` exist in `dist/ROAR`.
@@ -46,8 +46,8 @@ feature. Before distributing a separate `ROAR Local Voice Pack`:
 
 `dist/ROAR/ROAR.exe --settings --smoke`, then read the tail of
 `%LOCALAPPDATA%\ROAR\roar.log`. Expect one line:
-`settings probe navs=… version=<v> … diag=1 themeok=1` with every flag =1.
-(The probe writes to the log — windowed exes have no stdout.)
+`settings probe navs=â€¦ version=<v> â€¦ diag=1 themeok=1` with every flag =1.
+(The probe writes to the log â€” windowed exes have no stdout.)
 
 ## Install / upgrade
 
@@ -63,17 +63,17 @@ feature. Before distributing a separate `ROAR Local Voice Pack`:
 
 ## Manual Windows checks (no automation possible)
 
-- [ ] Offline launch: disable network, launch, dictate — everything works;
+- [ ] Offline launch: disable network, launch, dictate â€” everything works;
       Check for updates shows a calm error.
-- [ ] Missing microphone: unplug/disable mic, hold hotkey — calm balloon, no
+- [ ] Missing microphone: unplug/disable mic, hold hotkey â€” calm balloon, no
       crash.
 - [ ] Dictate into Notepad (default profile: capitalized), VS Code (verbatim,
       lowercase), WhatsApp Web in Chrome (casual).
 - [ ] Double-tap hands-free: lock on, speak, tap to stop.
 - [ ] "Scratch that" removes the last dictation; refuses after clicking into
       another window (error tone).
-- [ ] Focus guard: start dictating, click a different window before releasing —
-      "Focus changed — ROAR did not type." and nothing was typed.
+- [ ] Focus guard: start dictating, click a different window before releasing â€”
+      "Focus changed â€” ROAR did not type." and nothing was typed.
 - [ ] Appearance: Dark / Light / Match Windows all render legibly (spot-check
       every tab).
 - [ ] Safe Mode: overlay+preview off, paste on; message lists prior values.
@@ -105,8 +105,9 @@ Push main + tags; relaunch the installed app; verify Check for updates says
    starts until the button is clicked.
 2. Start the trial: card shows start date, expiry date, days remaining, and
    the sidebar badge; Code Mode and Flow features work.
-3. Import a licence mid-trial: edition flips immediately, all trial
-   messaging disappears, no restart needed.
+3. Import a licence mid-trial AND after expiry: verify a gated feature in
+   the tray itself (Code Mode inserts symbols), not just the Settings card —
+   it must work without restarting ROAR.
 4. Roll the system clock back a day: paid features lock with the calm clock
    message, Core dictation still works, Try Again recovers after fixing it.
 5. Simulated expiry: one tray notice at idle only, never during recording;
