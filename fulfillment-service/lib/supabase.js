@@ -85,8 +85,16 @@ export function storeFactory(env) {
                  buyerEmail: row.buyer_email, buyerName: row.buyer_name };
       }
       if (row.status === "failed") {
-        return (await takeover(captureId, "failed"))
-          ? { state: "claimed" } : { state: "in-progress" };
+        if (!(await takeover(captureId, "failed"))) {
+          return { state: "in-progress" };
+        }
+        // An email-stage failure already signed and persisted a licence:
+        // resume with it so one capture never mints two licence ids.
+        if (row.license && row.buyer_email) {
+          return { state: "resume", license: row.license,
+                   buyerEmail: row.buyer_email, buyerName: row.buyer_name };
+        }
+        return { state: "claimed" };
       }
       // claimed: only steal it when the owner looks dead
       const age = Date.now() - Date.parse(row.updated_at || 0);
