@@ -44,8 +44,15 @@ cp "dist/ROAR-$VERSION.msi" dist/roar*.cab "$STAGE/"
 # particular, a same-version major upgrade can otherwise remove an in-use
 # base_library.zip without successfully putting it back, leaving the next
 # launch unable to import Python's encodings module.
+# A failed install MUST be visible. The 7zSD stub does not propagate the
+# child's exit code — a run whose msiexec died with 1603 still handed the
+# caller exit 0 — so "exit /b %RC%" alone would keep failures invisible. The
+# batch therefore tells the human what happened and where the log is, and
+# always writes a verbose MSI log so the failure is diagnosable after the fact.
 printf '%s\r\n' \
   '@echo off' \
+  'setlocal' \
+  "set \"LOG=%TEMP%\\ROAR-install-$VERSION.log\"" \
   'tasklist /FI "IMAGENAME eq ROAR.exe" /NH 2>NUL | find /I "ROAR.exe" >NUL' \
   'if ERRORLEVEL 1 goto install' \
   'echo.' \
@@ -54,8 +61,17 @@ printf '%s\r\n' \
   'pause' \
   'exit /b 1618' \
   ':install' \
-  "msiexec /i \"%~dp0ROAR-$VERSION.msi\" /qb" \
-  'exit /b %ERRORLEVEL%' > "$STAGE/install.cmd"
+  "msiexec /i \"%~dp0ROAR-$VERSION.msi\" /qb /l*v \"%LOG%\"" \
+  'set "RC=%ERRORLEVEL%"' \
+  'if "%RC%"=="0" goto done' \
+  'echo.' \
+  'echo ROAR installation FAILED (error %RC%) - nothing was changed.' \
+  'echo A full log was written to:' \
+  'echo    %LOG%' \
+  'echo.' \
+  'pause' \
+  ':done' \
+  'exit /b %RC%' > "$STAGE/install.cmd"
 
 # store-mode archive: the cabs are already mszip-compressed
 rm -f build/setup-payload.7z

@@ -80,6 +80,13 @@ a.datas = [d for d in a.datas if not any(p in d[0] for p in _PRUNE)]
 
 pyz = PYZ(a.pure)
 
+# Windows version resource. Without it MSI treats ROAR.exe as an unversioned
+# file and may KEEP the old binary on an in-place upgrade while still
+# reporting success — see scripts/version_info.py for the incident this fixes.
+import paths as _paths
+from scripts.version_info import write_version_file as _write_version_file
+_VERSION_FILE = _write_version_file(_paths.APP_VERSION)
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -87,6 +94,7 @@ exe = EXE(
     exclude_binaries=True,
     name="ROAR",
     icon="icon.ico",
+    version=_VERSION_FILE,
     console=False,
     upx=False,
 )

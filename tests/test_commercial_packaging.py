@@ -131,4 +131,7 @@ def test_setup_blocks_an_upgrade_while_roar_is_running():
     assert 'find /I "ROAR.exe"' in script
     assert "Please exit ROAR" in script
     assert "exit /b 1618" in script
-    assert "exit /b %ERRORLEVEL%" in script
+    # msiexec's code is captured into RC *immediately* — the echo/if lines that
+    # now report a failure would otherwise clobber %ERRORLEVEL% — then returned.
+    assert 'set "RC=%ERRORLEVEL%"' in script
+    assert "exit /b %RC%" in script
