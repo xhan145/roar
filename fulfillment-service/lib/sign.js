@@ -44,10 +44,23 @@ export function buildPayload({ edition, name, emailHash, issuedAt, token }) {
 export function normalizePem(pem) {
   const s = String(pem || "").replace(/\\n/g, "\n").trim();
   const m = s.match(/-----BEGIN ([A-Z0-9 ]+)-----([\s\S]*?)-----END \1-----/);
-  if (!m) return s;
-  const body = m[2].replace(/[^A-Za-z0-9+/=]/g, "");
-  const wrapped = body.replace(/(.{64})/g, "$1\n").trim();
-  return `-----BEGIN ${m[1]}-----\n${wrapped}\n-----END ${m[1]}-----\n`;
+  if (m) {
+    return wrapPem(m[1], m[2]);
+  }
+  // Headers lost entirely: a bare base64 body of key-like length is
+  // unambiguous, so re-wrap it as PKCS8. Anything else passes through
+  // untouched and fails loudly in createPrivateKey.
+  const bare = s.replace(/\s+/g, "");
+  if (/^[A-Za-z0-9+/]{40,}={0,2}$/.test(bare)) {
+    return wrapPem("PRIVATE KEY", bare);
+  }
+  return s;
+}
+
+function wrapPem(label, body) {
+  const b64 = body.replace(/[^A-Za-z0-9+/=]/g, "");
+  const wrapped = b64.replace(/(.{64})/g, "$1\n").trim();
+  return `-----BEGIN ${label}-----\n${wrapped}\n-----END ${label}-----\n`;
 }
 
 export function signLicense(payload, privateKeyPem) {

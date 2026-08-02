@@ -53,6 +53,22 @@ test("PEM with newlines removed entirely signs", () => {
   assertSigns(squashed, "squashed");
 });
 
+test("headerless base64 body signs (headers lost in paste)", () => {
+  const bodyOnly = PRIV_PEM
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\s+/g, "");
+  assertSigns(bodyOnly, "headerless");
+});
+
+test("headerless base64 with stray whitespace signs", () => {
+  const bodyOnly = PRIV_PEM
+    .replace(/-----BEGIN PRIVATE KEY-----/, "")
+    .replace(/-----END PRIVATE KEY-----/, "")
+    .trim();
+  assertSigns("  " + bodyOnly + "\n", "headerless-ws");
+});
+
 test("normalizePem leaves non-PEM garbage unchanged for a loud failure", () => {
   assert.equal(normalizePem("not a key"), "not a key");
   assert.throws(() => signLicense(PAYLOAD, "not a key"));
