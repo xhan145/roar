@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.35.0 — 2026-08-02 — 14-day Full-Feature Trial
+
+- **Try every ROAR feature for 14 days.** Settings → About now offers a
+  Full-Feature Trial: click **Start 14-Day Trial** and every Pro and Developer
+  feature unlocks — smart formatting, snippets, Code Mode, app profiles,
+  vocabulary suggestions, history tools, Flow automations and routing. No
+  account, no payment card, no subscription, and no internet: the trial is
+  calculated and stored entirely on your machine. It never starts on its own —
+  installing, launching, or updating ROAR does nothing until you click the
+  button.
+- **When it ends, ROAR Core is still yours.** Local dictation, multilingual
+  transcription, streaming preview, history, privacy controls, basic
+  vocabulary and Scratch That keep working, free, forever. Nothing you created
+  is deleted or converted: your snippets, profiles, tags, vocabulary and
+  settings sit exactly where you left them and light back up the moment a
+  licence is activated. You get one calm notification when the trial ends —
+  never during dictation, and never again after that.
+- **A licence always wins.** Buying at any point — during the trial or long
+  after it ended — takes effect immediately in the running app, with no
+  restart. Clearing history, deleting audio, or resetting settings can never
+  restart, extend, or shorten a trial, and a normal update preserves it.
+- **Honest about the clock.** If your system clock moves backward, ROAR says
+  so plainly, keeps Core available, and offers Try Again instead of accusing
+  you of anything. Offline trial enforcement is best-effort and documented as
+  such in `docs/TRIAL_ARCHITECTURE.md` — it is not, and is never advertised
+  as, DRM.
+- **Under the hood.** New `trial.py` (pure state) and `trial_store.py`
+  (protected storage) feed one runtime answer, `access.effective_edition()`:
+  a valid paid licence outranks an active trial, which outranks Core. The
+  trial record holds only trial bookkeeping — never transcripts, audio,
+  history, clipboard, vocabulary, or window titles — and diagnostics show
+  dates and states only.
+
 ## v0.34.0 — 2026-08-01 — Live transcript window + per-app routing
 
 - **Standalone live transcript window.** Tray → "Live transcript…" (or the
