@@ -1137,6 +1137,22 @@ class SettingsAPI:
                 "tts_last_audio_duration_ms", "tts_last_first_audio_ms",
                 "tts_last_real_time_factor"):
             info[key] = st.get(key)
+        # Licence + trial display facts (dates and states only — the trial id,
+        # signature, and protection material never enter diagnostics).
+        try:
+            import license_service
+            lic = license_service.get_status()
+            info["edition"] = lic["edition"]
+            info["license_status"] = "valid" if lic["valid"] else lic["reason"]
+            t = self.trial_info()
+            info["effective_edition"] = t["effective_edition"]
+            info["trial_status"] = t["state"].replace("_", " ").title()
+            info["trial_started"] = t["started"]
+            info["trial_expires"] = t["expires"]
+            if t["state"] == "active":
+                info["trial_days_remaining"] = t["days_remaining"]
+        except Exception:
+            pass
         return {"report": diagnostics.format_report(info)}
 
     def safe_mode(self):
