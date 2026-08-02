@@ -2042,10 +2042,22 @@ async function renderLicense() {
   $("b-buy-pro").textContent = "Buy ROAR Pro — $" + prices.pro + " once";
   $("b-buy-dev").textContent = "Buy ROAR Developer — $" + prices.developer + " once";
   $("b-buy-supporter").textContent = "Support ROAR — $" + prices.supporter + " once";
-  $("b-buy-pro").onclick = () => window.open(urls.pro, "_blank");
-  $("b-buy-dev").onclick = () => window.open(urls.developer, "_blank");
-  $("b-buy-supporter").onclick = () => window.open(urls.supporter, "_blank");
+  $("b-buy-pro").onclick = () => openPurchase(urls.pro);
+  $("b-buy-dev").onclick = () => openPurchase(urls.developer);
+  $("b-buy-supporter").onclick = () => openPurchase(urls.supporter);
   renderTrial();
+}
+
+/* A browser launch can fail (no default browser, blocked popup, kiosk).
+   Say so plainly instead of leaving a dead button — ROAR keeps working. */
+function openPurchase(url) {
+  if (!url) { msg("m-license", "No purchase link is configured for this edition.", "err"); return; }
+  const launch = () => window.open(url, "_blank");
+  let win = null;
+  try { win = launch(); } catch (e) { win = null; }
+  if (!win) {
+    msg("m-license", "ROAR could not open your browser. The purchase page is linked from the ROAR website — everything else keeps working.", "err");
+  }
 }
 
 /* ---- Full-Feature Trial ----

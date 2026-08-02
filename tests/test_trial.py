@@ -258,6 +258,38 @@ def test_licensed_state_helper():
 
 # -- purity ------------------------------------------------------------------
 
+def test_convenience_api_delegates_to_the_injected_service():
+    """The canonical names the app calls — each takes an explicit service, so
+    the module stays free of ambient storage or clocks."""
+
+    class FakeService:
+        def __init__(self):
+            self.started = False
+            self.seen = False
+
+        def status(self, now=None):
+            base = trial.status_of(_record(), now=now or T0)
+            return base if self.started else trial.TrialStatus(
+                trial.NOT_STARTED, None, None, 0, 0, False)
+
+        def start(self, now=None):
+            self.started = True
+            return self.status(now=now)
+
+        def mark_expired_notice_seen(self):
+            self.seen = True
+
+    svc = FakeService()
+    assert trial.get_trial_status(svc, now=T0).state == trial.NOT_STARTED
+    assert not trial.is_trial_active(svc, now=T0)
+    assert trial.start_trial(svc, now=T0).state == trial.ACTIVE
+    assert trial.is_trial_active(svc, now=T0)
+    assert trial.get_trial_days_remaining(
+        svc, now=T0 + timedelta(days=3)) == 11
+    trial.mark_expired_notice_seen(svc)
+    assert svc.seen is True
+
+
 def test_trial_module_is_pure():
     import ast, inspect
     tree = ast.parse(inspect.getsource(trial))

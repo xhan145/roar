@@ -9,6 +9,7 @@ records, and diagnostics stay redacted.
 import glob
 import json
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -218,3 +219,60 @@ def test_status_channel_still_bans_private_fields():
     import status
     for banned in ("transcript", "clipboard", "audio", "window_title"):
         assert banned not in status.ALLOWED
+
+
+# -- upgrades, contextual prompts, browser failures --------------------------
+
+def test_normal_application_upgrade_preserves_the_trial(tmp_path):
+    """An MSI upgrade replaces program files, not %APPDATA% — a new process
+    reading the same store must see the same trial, mid-flight."""
+    marker = FakeMarker()
+    _service(tmp_path, marker).start(now=T0)
+    # "new version starts": fresh service objects, same stores
+    after_upgrade = _service(tmp_path, marker)
+    status = after_upgrade.status(now=T0 + timedelta(days=7))
+    assert status.state == trial.ACTIVE
+    assert status.started_at == T0
+    assert status.days_remaining == 7
+    # and it still cannot be restarted
+    assert after_upgrade.start(now=T0 + timedelta(days=7)).started_at == T0
+
+
+def test_upgrading_an_existing_install_never_auto_starts_a_trial(tmp_path):
+    """v0.13/v0.14 users land on not_started — the button is the only door."""
+    import config as config_mod
+    cfg_path = tmp_path / "config.json"
+    cfg = config_mod.load(str(cfg_path))
+    cfg["commercial_schema"] = 1          # an already-migrated older install
+    config_mod.save(cfg, str(cfg_path))
+    svc = _service(tmp_path)
+    assert svc.status(now=T0).state == trial.NOT_STARTED
+    assert not os.path.exists(str(tmp_path / "trial.json"))
+
+
+def test_upgrade_prompts_are_pull_only_never_pushed():
+    """Contextual upgrade copy exists as a lookup; nothing in the app shows it
+    on launch. prompt_for() answers a question the user asked by clicking."""
+    import upgrade_prompts
+    assert upgrade_prompts.prompt_for("dictation.push_to_talk") is None
+    prompt = upgrade_prompts.prompt_for("code.mode")
+    assert prompt and "Not Now" in prompt["buttons"]
+    html = open(os.path.join(ROOT, "settings.html"), encoding="utf-8").read()
+    # every browser launch sits behind a click handler (no startup nag)
+    for match in re.finditer(r"window\.open\(", html):
+        assert "=>" in html[max(0, match.start() - 40):match.start()]
+    app_src = open(os.path.join(ROOT, "app.py"), encoding="utf-8").read()
+    assert "upgrade_prompts" not in app_src   # the tray never nags
+
+
+def test_purchase_launch_failure_is_handled_gracefully():
+    html = open(os.path.join(ROOT, "settings.html"), encoding="utf-8").read()
+    body = html.split("function openPurchase")[1].split("\n}")[0]
+    assert "try {" in body and "catch" in body
+    assert "could not open your browser" in body
+    assert "No purchase link is configured" in body
+    # the purchase buttons go through the guarded helper, not raw window.open
+    for button in ("b-buy-pro", "b-buy-dev", "b-buy-supporter"):
+        line = [l for l in html.splitlines()
+                if f'$("{button}").onclick' in l][0]
+        assert "openPurchase(" in line

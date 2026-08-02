@@ -189,3 +189,29 @@ def display_state(status, license_valid=False):
     if license_valid:
         return LICENSED
     return status.state
+
+
+# -- convenience API ---------------------------------------------------------
+# The canonical names callers use. Each takes an explicit `service` so this
+# module stays pure (no default storage, no ambient clock); app code passes
+# access._trial_service or a TrialService, tests pass a fake.
+
+def get_trial_status(service, now=None):
+    return service.status(now=now)
+
+
+def start_trial(service, now=None):
+    """Begin the trial. ONLY ever called from the explicit Start button."""
+    return service.start(now=now)
+
+
+def is_trial_active(service, now=None):
+    return service.status(now=now).state == ACTIVE
+
+
+def get_trial_days_remaining(service, now=None):
+    return service.status(now=now).days_remaining
+
+
+def mark_expired_notice_seen(service):
+    service.mark_expired_notice_seen()
