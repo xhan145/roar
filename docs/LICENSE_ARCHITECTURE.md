@@ -76,3 +76,13 @@ no user-data imports + copy hygiene.
    offline and unlocks the right edition.
 4. Never commit a private key; `requirements-directml.txt`-style opt-in files stay
    out of the default install.
+
+## Trial interaction
+
+The 14-day Full-Feature Trial (TRIAL_ARCHITECTURE.md) sits BELOW licences in
+resolution priority: access.effective_edition() returns a valid licence
+edition first, then "trial" while active, then "core". A signed licence
+naming edition "trial" never validates (unsupported_edition). Trial state
+lives beside license.json for the same survival reasons, and importing a
+licence during or after a trial activates immediately without deleting the
+trial record.

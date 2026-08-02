@@ -35,3 +35,10 @@ free in every edition and always will be.
 Prices live in exactly one place — `PRICING` in `commercial_config.py`. This
 document, the in-app upgrade copy, and the website all follow it, and tests fail
 if any of them drift.
+
+## Trying before buying
+
+The 14-day Full-Feature Trial unlocks everything in Pro and Developer,
+locally and offline, with no account and no payment card. It starts only when
+you click Start 14-Day Trial, and when it ends ROAR Core remains free and all
+of your content and settings are preserved. Purchases stay one-time.

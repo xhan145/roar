@@ -98,3 +98,18 @@ feature. Before distributing a separate `ROAR Local Voice Pack`:
 
 Push main + tags; relaunch the installed app; verify Check for updates says
 "You're up to date".
+
+## Trial (manual)
+
+1. Fresh profile: Settings shows Try every ROAR feature for 14 days; nothing
+   starts until the button is clicked.
+2. Start the trial: card shows start date, expiry date, days remaining, and
+   the sidebar badge; Code Mode and Flow features work.
+3. Import a licence mid-trial: edition flips immediately, all trial
+   messaging disappears, no restart needed.
+4. Roll the system clock back a day: paid features lock with the calm clock
+   message, Core dictation still works, Try Again recovers after fixing it.
+5. Simulated expiry: one tray notice at idle only, never during recording;
+   the Settings card shows the ended state once with the four actions;
+   snippets, profiles, tags, vocabulary, and history are all intact.
+6. Uninstall/reinstall: the trial does not restart.

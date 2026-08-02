@@ -70,3 +70,10 @@ Guarantees, in plain words:
 - Privacy controls remain free.
 - History and audio deletion remain free.
 - Offline use remains free.
+
+## Trial edition
+
+The runtime-only "trial" edition carries the full Developer feature set while
+active and resolves to Core at expiry. It is never sellable, never appears in
+PRICING, and every ALWAYS_FREE promise holds during and after the trial.
+See TRIAL_ARCHITECTURE.md.
