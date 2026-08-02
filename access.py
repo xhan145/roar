@@ -98,5 +98,17 @@ def requires_upgrade(feature):
         return False
 
 
+def mark_trial_notice_seen():
+    """Remember (in the trial record) that the one-time ended notice was
+    shown. Never raises — a bookkeeping fault must not disturb the app."""
+    global _trial_cache
+    try:
+        service = _trial_service or trial_store.TrialService()
+        service.mark_expired_notice_seen()
+    except Exception:
+        pass
+    _trial_cache = None
+
+
 def minimum_edition_for(feature):
     return entitlements.minimum_edition_for(feature)

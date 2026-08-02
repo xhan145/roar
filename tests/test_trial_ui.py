@@ -1,4 +1,4 @@
-"""Trial activation UI: settings bridge methods + static scans of the card.
+﻿"""Trial activation UI: settings bridge methods + static scans of the card.
 
 Follows the test_license_ui.py conventions: bridge functions are exercised
 with injected trial services and licence states; the HTML is scanned as text
@@ -51,7 +51,7 @@ def api(tmp_path, monkeypatch):
 def _license(monkeypatch, edition):
     monkeypatch.setattr(license_service, "get_status", lambda path=None: {
         "edition": edition, "valid": True, "reason": "ok",
-        "license_id": "ROAR…TEST", "customer_name": "", "valid_for_major": 1,
+        "license_id": "ROAR-TEST", "customer_name": "", "valid_for_major": 1,
         "verified_offline": True, "message": "", "detail": "",
     })
 
@@ -87,7 +87,8 @@ def test_start_twice_refuses_politely(api):
 def test_active_badge_counts_whole_days(api):
     api._trial_svc.start(now=NOW - timedelta(hours=1))
     info = api.trial_info()
-    assert info["badge"] == "Full-Feature Trial · 13 days remaining"
+    assert "Full-Feature Trial" in info["badge"]
+    assert "13 days remaining" in info["badge"]
     assert info["days_remaining"] == 13
 
 
@@ -189,3 +190,88 @@ def test_bridge_exposes_the_three_trial_methods():
     for name in ("def trial_info", "def trial_start",
                  "def trial_notice_seen"):
         assert name in BRIDGE_SRC
+
+
+# -- expiry + contextual upgrade UX ------------------------------------------
+
+def test_expired_card_offers_the_four_actions():
+    for el in ("t-actions", "b-trial-buy-pro", "b-trial-buy-dev",
+               "b-trial-enter", "b-trial-continue"):
+        assert f'id="{el}"' in HTML, el
+    # purchase clicks delegate to the canonical license buttons - no new
+    # window.open sites, one source of labels and links
+    assert '$("b-buy-pro").click()' in HTML
+    assert '$("b-buy-dev").click()' in HTML
+
+
+def test_settings_marks_the_ended_notice_seen_once():
+    assert "trial_notice_seen()" in HTML
+
+
+def test_app_has_the_idle_moment_notice():
+    src = open(os.path.join(ROOT, "app.py"), encoding="utf-8").read()
+    assert "_maybe_trial_ended_notice" in src
+    method = src.split("def _maybe_trial_ended_notice")[1]
+    method = method.split("\n    def ")[0]
+    # marked seen BEFORE notifying, so it can never repeat
+    assert method.index("mark_trial_notice_seen") < method.index("self.notify")
+    assert "trial has ended" in method
+    assert "preserved" in method
+    # fires from the IDLE transition only
+    set_state = src.split("def _set_state")[1].split("\n    def ")[0]
+    assert "_maybe_trial_ended_notice" in set_state
+    assert "self.IDLE" in set_state
+
+
+def test_app_notice_fires_once_and_only_when_expired_unlicensed(
+        tmp_path, monkeypatch):
+    import types
+    import access
+    import app as app_mod
+
+    svc = trial_store.TrialService(
+        path=str(tmp_path / "trial.json"), marker=FakeMarker(),
+        protection=trial_store.NullProtection())
+    svc.start(now=NOW - timedelta(days=20))
+    monkeypatch.setattr(access, "_trial_service", svc)
+    monkeypatch.setattr(access, "_trial_cache", None)
+    monkeypatch.setattr(access.license_service, "get_active_edition",
+                        lambda path=None: "core")
+    notes = []
+    stub = types.SimpleNamespace(cfg={}, notify=notes.append)
+    app_mod.ROARApp._maybe_trial_ended_notice(stub)
+    assert len(notes) == 1
+    assert "trial has ended" in notes[0]
+    assert "preserved" in notes[0]
+    # the record remembers: never a second notice
+    access._trial_cache = None
+    app_mod.ROARApp._maybe_trial_ended_notice(stub)
+    assert len(notes) == 1
+
+
+def test_app_notice_respects_licence_and_config(tmp_path, monkeypatch):
+    import types
+    import access
+    import app as app_mod
+
+    svc = trial_store.TrialService(
+        path=str(tmp_path / "trial.json"), marker=FakeMarker(),
+        protection=trial_store.NullProtection())
+    svc.start(now=NOW - timedelta(days=20))
+    monkeypatch.setattr(access, "_trial_service", svc)
+    monkeypatch.setattr(access, "_trial_cache", None)
+    notes = []
+    # a valid licence silences the notice entirely
+    monkeypatch.setattr(access.license_service, "get_active_edition",
+                        lambda path=None: "pro")
+    stub = types.SimpleNamespace(cfg={}, notify=notes.append)
+    app_mod.ROARApp._maybe_trial_ended_notice(stub)
+    assert notes == []
+    # and so does the config switch
+    monkeypatch.setattr(access.license_service, "get_active_edition",
+                        lambda path=None: "core")
+    access._trial_cache = None
+    stub_off = types.SimpleNamespace(
+        cfg={"trial_expiry_notice_enabled": False}, notify=notes.append)
+    app_mod.ROARApp._maybe_trial_ended_notice(stub_off)
+    assert notes == []

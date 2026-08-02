@@ -235,6 +235,32 @@ class ROARApp:
         # Best-effort live status for the Home dashboard (separate process).
         # Operational only — no transcript. Never affects dictation.
         status_mod.write_status(state=state)
+        # The one-time trial-ended notice waits for an idle moment: expiry
+        # never interrupts an active recording or transcription.
+        if state == self.IDLE:
+            self._maybe_trial_ended_notice()
+
+    def _maybe_trial_ended_notice(self):
+        """A single calm notification when the Full-Feature Trial has ended.
+        Fires at most once ever (the record remembers), never while licensed,
+        and never during recording — Core keeps working regardless."""
+        try:
+            if not self.cfg.get("trial_expiry_notice_enabled", True):
+                return
+            import access
+            import trial as trial_mod
+            status = access.trial_status()
+            if (status.state != trial_mod.EXPIRED
+                    or status.expired_notice_seen
+                    or access.edition() != "core"):
+                return
+            access.mark_trial_notice_seen()
+            self.notify(
+                "Your ROAR trial has ended. ROAR Core is still yours to use "
+                "for free, and everything you saved is preserved. Open "
+                "Settings for one-time upgrade options.")
+        except Exception:
+            pass
 
     # -- hotkeys ----------------------------------------------------------
     def _matches(self, key_name, chord_key):

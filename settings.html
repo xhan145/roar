@@ -853,6 +853,12 @@
           <div class="kv" style="margin-top:4px;"><b id="t-headline" style="color:var(--text)"></b></div>
           <div class="kv" id="t-meta" style="margin-top:6px;"></div>
           <div class="hint" id="t-note" style="margin-top:6px;white-space:pre-line;"></div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;" id="t-actions" hidden>
+            <button class="btn primary" id="b-trial-buy-pro"></button>
+            <button class="btn" id="b-trial-buy-dev"></button>
+            <button class="btn" id="b-trial-enter">Enter License</button>
+            <button class="btn" id="b-trial-continue">Continue with ROAR Core</button>
+          </div>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
             <button class="btn" id="b-trial-retry" hidden>Try Again</button>
           </div>
@@ -2081,7 +2087,22 @@ async function renderTrial() {
   $("t-meta").textContent = meta.join(" · ");
   $("t-note").textContent = note;
   $("b-trial-retry").hidden = t.state !== "clock_rollback_detected";
+  const expired = t.state === "expired";
+  $("t-actions").hidden = !expired;
+  if (expired) {
+    // mirror the canonical purchase buttons — one source for labels + links
+    $("b-trial-buy-pro").textContent = $("b-buy-pro").textContent;
+    $("b-trial-buy-dev").textContent = $("b-buy-dev").textContent;
+    $("b-trial-buy-pro").onclick = () => $("b-buy-pro").click();
+    $("b-trial-buy-dev").onclick = () => $("b-buy-dev").click();
+    if (t.show_expiry_notice) api().trial_notice_seen();  // shown once, here
+  }
 }
+$("b-trial-enter").addEventListener("click", () => showPaste(true));
+$("b-trial-continue").addEventListener("click", () => {
+  $("t-actions").hidden = true;
+  msg("m-trial", "ROAR Core keeps working, free — your settings and content are untouched.", "ok");
+});
 $("b-trial-start").addEventListener("click", async () => {
   const r = await api().trial_start();
   msg("m-trial", r.message, r.ok ? "ok" : "err");
