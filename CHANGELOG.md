@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.35.1 — 2026-08-02 — upgrades that actually upgrade
+
+- **Fixed: installing a new version could silently leave the old one running.**
+  On some machines an in-place upgrade would finish, report success, and change
+  nothing at all — same version, same files. ROAR.exe now carries a proper
+  Windows version stamp (visible in Properties → Details), which is what
+  Windows Installer uses to decide whether to replace it. Without that stamp it
+  could decide to keep what was already there.
+- **Fixed: a failed install no longer looks like a successful one.** If the
+  installer cannot complete, it now says so on screen with the error code,
+  writes a full log to `%TEMP%\ROAR-install-<version>.log`, and tells you where
+  that log is — instead of closing quietly as though everything worked.
+- **Fixed: the build no longer deletes what the next upgrade needs.** Packaging
+  discarded the previous version's installer package, which Windows needs to
+  remove the old version during an upgrade; without it the upgrade failed and
+  rolled back. Both the current and previous packages are now kept.
+
+Nothing changed in the app itself — this release is entirely about installing
+and updating it. If v0.35.0 is already working for you, there is nothing new to
+see; if updating to it appeared to do nothing, this is the release that fixes
+that.
+
 ## v0.35.0 — 2026-08-02 — 14-day Full-Feature Trial
 
 - **Try every ROAR feature for 14 days.** Settings → About now offers a
