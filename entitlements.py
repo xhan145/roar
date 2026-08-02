@@ -20,6 +20,13 @@ _log = logging.getLogger("roar.entitlements")
 CORE, PRO, DEVELOPER, SUPPORTER = "core", "pro", "developer", "supporter"
 EDITIONS = (CORE, PRO, DEVELOPER, SUPPORTER)
 
+# The 14-day Full-Feature Trial is a RUNTIME edition only: it grants the full
+# Developer feature set while active, but it is never sellable, never appears
+# in PRICING, and a signed licence naming it never validates. Resolution
+# (licence > active trial > core) lives in trial.resolve_effective_edition.
+TRIAL = "trial"
+RUNTIME_EDITIONS = EDITIONS + (TRIAL,)
+
 # always allowed, for every edition, forever — gating any of these would break
 # the product promise
 ALWAYS_FREE = frozenset({
@@ -50,6 +57,7 @@ _BY_EDITION = {
     PRO: _PRO,
     DEVELOPER: _PRO | _DEVELOPER,
     SUPPORTER: _PRO | _DEVELOPER,  # supporters get everything
+    TRIAL: _PRO | _DEVELOPER,     # active trial: full Developer feature set
 }
 
 _PAID = _PRO | _DEVELOPER
