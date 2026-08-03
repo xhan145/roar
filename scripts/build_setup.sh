@@ -49,6 +49,13 @@ cp "dist/ROAR-$VERSION.msi" dist/roar*.cab "$STAGE/"
 # caller exit 0 — so "exit /b %RC%" alone would keep failures invisible. The
 # batch therefore tells the human what happened and where the log is, and
 # always writes a verbose MSI log so the failure is diagnosable after the fact.
+#
+# msiexec has THREE success codes, not one: 0, plus 3010 (reboot required) and
+# 1641 (reboot initiated). Restart Manager returns 3010 when it had to schedule
+# in-use files for replacement — likely here, since ROAR's webview children hold
+# locks on _internal DLLs. Calling that "FAILED - nothing was changed" would be
+# a lie AND would send the user back into a half-replaced one-dir runtime, so
+# those two get a success message that says to restart first.
 printf '%s\r\n' \
   '@echo off' \
   'setlocal' \
@@ -64,10 +71,19 @@ printf '%s\r\n' \
   "msiexec /i \"%~dp0ROAR-$VERSION.msi\" /qb /l*v \"%LOG%\"" \
   'set "RC=%ERRORLEVEL%"' \
   'if "%RC%"=="0" goto done' \
+  'if "%RC%"=="3010" goto reboot' \
+  'if "%RC%"=="1641" goto reboot' \
   'echo.' \
   'echo ROAR installation FAILED (error %RC%) - nothing was changed.' \
   'echo A full log was written to:' \
   'echo    %LOG%' \
+  'echo.' \
+  'pause' \
+  'goto done' \
+  ':reboot' \
+  'echo.' \
+  'echo ROAR was installed. Windows must RESTART to finish replacing files that' \
+  'echo were in use. Do NOT launch ROAR until you have restarted.' \
   'echo.' \
   'pause' \
   ':done' \

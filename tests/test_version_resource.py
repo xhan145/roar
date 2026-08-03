@@ -74,10 +74,31 @@ def test_installer_logs_and_surfaces_a_failed_msiexec():
     assert "%RC%" in sh, "the msiexec exit code must be captured and reported"
 
 
+def test_installer_treats_reboot_codes_as_success_not_failure():
+    """msiexec 3010/1641 mean "installed, needs a restart". Reporting them as
+    "FAILED - nothing was changed" is false AND sends the user back into a
+    half-replaced one-dir runtime."""
+    sh = (ROOT / "scripts" / "build_setup.sh").read_text(encoding="utf-8")
+    for code in ("3010", "1641"):
+        assert f'if "%RC%"=="{code}" goto reboot' in sh, code
+    assert "goto done' \\" in sh, "the failure branch must not fall into :reboot"
+    assert ":reboot" in sh and "RESTART" in sh
+
+
 def test_build_msi_keeps_the_previous_msi_for_upgrades():
     """Purging the old MSI breaks the next in-place upgrade: Windows needs it
     to remove the installed product."""
     sh = (ROOT / "scripts" / "build_msi.sh").read_text(encoding="utf-8")
     assert 'find dist -maxdepth 1 \\( -name "ROAR-*.msi"' not in sh, (
         "the blanket purge of superseded MSIs is what broke the 0.34->0.35 upgrade")
-    assert "head -n -2" in sh, "keep the current AND previous MSI"
+    assert "head -n -1" in sh, "keep the current AND previous MSI"
+
+
+def test_build_msi_never_deletes_the_version_it_just_built():
+    """Ranking by version alone deletes the fresh MSI whenever two NEWER ones
+    are present (e.g. building an old tag) — while still printing 'built …'."""
+    sh = (ROOT / "scripts" / "build_msi.sh").read_text(encoding="utf-8")
+    assert '! -name "ROAR-$VERSION.msi"' in sh, (
+        "the version just built must be excluded BEFORE ranking")
+    assert "| grep -v" not in sh, (
+        "grep exits 1 on no matches and would trip pipefail on a first build")

@@ -31,6 +31,13 @@ mv -f "dist/ROAR-$VERSION.msi.building" "dist/ROAR-$VERSION.msi"
 # while STILL reporting exit code 0: a silent no-op install (hit for real on
 # the 0.34.0 -> 0.35.0 upgrade, 2026-08-02). The *clickable* installer is the
 # Setup .exe, and build_setup.sh still keeps exactly one of those.
-ls -1 dist/ROAR-*.msi 2>/dev/null | sort -V | head -n -2 | xargs -r rm -f
+#
+# Exclude the version just built BEFORE ranking. Ranking alone would delete it
+# whenever two NEWER MSIs are present — e.g. checking out an old tag to
+# reproduce a bug — and the script would still print "built …" and exit 0.
+# find (not grep) because find exits 0 on no matches; grep exits 1 and would
+# trip `set -o pipefail` on the first-ever build.
+find dist -maxdepth 1 -name "ROAR-*.msi" ! -name "ROAR-$VERSION.msi" -print \
+  | sort -V | head -n -1 | xargs -r rm -f
 find dist -maxdepth 1 -name "FlowLocal-*.msi*" -delete  # pre-rename leftovers
 echo "built dist/ROAR-$VERSION.msi"

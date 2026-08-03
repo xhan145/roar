@@ -83,9 +83,16 @@ pyz = PYZ(a.pure)
 # Windows version resource. Without it MSI treats ROAR.exe as an unversioned
 # file and may KEEP the old binary on an in-place upgrade while still
 # reporting success — see scripts/version_info.py for the incident this fixes.
+# SPECPATH-anchored on both ends: PyInstaller resolves EXE(version=) relative to
+# the SPEC dir, so a CWD-relative write would (a) fail to import from a different
+# cwd and (b) let a stale build/version_info.txt be stamped silently.
+import sys as _sys
+if SPECPATH not in _sys.path:
+    _sys.path.insert(0, SPECPATH)
 import paths as _paths
 from scripts.version_info import write_version_file as _write_version_file
-_VERSION_FILE = _write_version_file(_paths.APP_VERSION)
+_VERSION_FILE = _write_version_file(
+    _paths.APP_VERSION, _os.path.join(SPECPATH, "build", "version_info.txt"))
 
 exe = EXE(
     pyz,

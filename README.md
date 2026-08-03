@@ -1,7 +1,7 @@
 # ROAR
 
 <!-- ROAR-VERSION -->
-**Version:** v0.35.1
+**Version:** v0.35.2
 <!-- /ROAR-VERSION -->
 
 
@@ -126,7 +126,7 @@ ROAR is not trying to be a giant writing suite. It is a small, sharp desktop too
 
 ## Current Status
 
-Current app version: `0.35.1` (`paths.APP_VERSION`).
+Current app version: `0.35.2` (`paths.APP_VERSION`).
 
 **Shipped**
 

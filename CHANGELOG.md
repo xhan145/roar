@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.35.2 — 2026-08-02 — installer honesty, continued
+
+An adversarial review of the v0.35.1 packaging fixes found four real defects —
+two of them introduced by v0.35.1 itself. The app is unchanged; this is again
+purely about installing and building.
+
+- **Fixed: an install that needs a restart no longer claims it failed.**
+  Windows returns a distinct "installed, but restart to finish" result when it
+  has to replace files that were in use. v0.35.1 reported that as
+  `FAILED — nothing was changed`, which was untrue, and said nothing about
+  restarting — leaving you free to launch a half-replaced app. It now tells you
+  the install succeeded and to restart before launching ROAR.
+- **Fixed: the build could delete the installer package it had just made.**
+  The v0.35.1 rule kept the two newest packages, which quietly discarded a
+  freshly built one whenever two newer versions were already present — building
+  an older version to reproduce a bug, for instance — while still printing
+  "built" and reporting success. The version being built is now always kept.
+- **Fixed: the version stamp is written next to the build recipe** rather than
+  wherever the build happened to be started from, so it can neither go missing
+  nor be silently stamped from a stale copy.
+
 ## v0.35.1 — 2026-08-02 — upgrades that actually upgrade
 
 - **Fixed: installing a new version could silently leave the old one running.**
