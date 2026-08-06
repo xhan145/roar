@@ -10,7 +10,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 from urllib.request import Request, urlopen
 
 
@@ -122,7 +122,7 @@ def _available_record(
     asset_url = asset.get("browser_download_url")
     asset_size_bytes = asset.get("size")
     digest = asset.get("digest")
-    if not _is_trusted_download_url(asset_url):
+    if not _is_trusted_download_url(asset_url, release["tag_name"], asset_name):
         raise ManifestError("browser_download_url must be a trusted GitHub HTTPS release URL")
     if not isinstance(asset_size_bytes, int) or isinstance(asset_size_bytes, bool) or asset_size_bytes < 1:
         raise ManifestError("asset size must be a positive integer")
@@ -196,7 +196,9 @@ def _validate_platform_record(record: Any, platform: str) -> None:
     name_match = pattern.fullmatch(record["asset_name"]) if isinstance(record["asset_name"], str) else None
     if not name_match or name_match.group(1) != record["version"]:
         raise ManifestError("asset_name must match the platform package and version")
-    if not _is_trusted_download_url(record["asset_url"]):
+    if not _is_trusted_download_url(
+        record["asset_url"], f"v{record['version']}", record["asset_name"]
+    ):
         raise ManifestError("asset_url must be a trusted GitHub HTTPS release URL")
     if not isinstance(record["asset_size_bytes"], int) or isinstance(record["asset_size_bytes"], bool) or record["asset_size_bytes"] < 1:
         raise ManifestError("asset_size_bytes must be a positive integer")
@@ -214,14 +216,19 @@ def _validate_platform_record(record: Any, platform: str) -> None:
             raise ManifestError("known_limitations_url must be /linux/")
 
 
-def _is_trusted_download_url(value: Any) -> bool:
+def _is_trusted_download_url(value: Any, release_tag: str, asset_name: str) -> bool:
     if not isinstance(value, str):
         return False
     parsed = urlparse(value)
+    expected_path = (
+        f"/{TRUSTED_REPOSITORY}/releases/download/"
+        f"{quote(release_tag, safe='')}/{quote(asset_name, safe='')}"
+    )
     return (
         parsed.scheme == "https"
         and parsed.netloc == "github.com"
-        and parsed.path.startswith(f"/{TRUSTED_REPOSITORY}/releases/download/")
+        and parsed.path == expected_path
+        and not parsed.params
     )
 
 

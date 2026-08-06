@@ -76,6 +76,18 @@ def test_untrusted_asset_url_is_rejected(url):
         build_manifest(releases, "xhan145/roar", "2026-08-06T12:00:00Z")
 
 
+def test_asset_url_must_match_selected_release_tag_and_filename():
+    """Fails if valid GitHub URL metadata points at a different release asset."""
+    releases = load_fixture("current.json")
+    releases[0]["assets"][0]["browser_download_url"] = (
+        "https://github.com/xhan145/roar/releases/download/v0.35.1/"
+        "ROAR-Setup-0.35.1.exe"
+    )
+
+    with pytest.raises(ManifestError, match="browser_download_url"):
+        build_manifest(releases, "xhan145/roar", "2026-08-06T12:00:00Z")
+
+
 @pytest.mark.parametrize(
     "field,value",
     [
