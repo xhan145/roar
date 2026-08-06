@@ -93,6 +93,13 @@ def test_download_section_uses_same_origin_module_and_linux_limitations_link():
     assert any(node["tag"] == "a" and node["attrs"].get("href") == "linux/" for node in descendants(document.nodes, linux))
 
 
+def test_no_javascript_visitors_have_a_repository_releases_recovery_link():
+    document = page()
+    noscript = next(node for node in document.nodes if node["tag"] == "noscript")
+    links = descendants(document.nodes, noscript)
+    assert any(node["tag"] == "a" and node["attrs"].get("href") == "https://github.com/xhan145/roar/releases" for node in links)
+
+
 def test_stale_installer_and_checkout_copy_are_not_rendered():
     html = Path("site/index.html").read_text(encoding="utf-8")
     assert "Small installer" not in html

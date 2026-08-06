@@ -1,7 +1,7 @@
 const REPOSITORY = 'xhan145/roar';
 const RELEASES_URL = 'https://github.com/xhan145/roar/releases';
 const SHA256 = /^[0-9a-f]{64}$/;
-const GITHUB_ASSET = /^https:\/\/github\.com\/xhan145\/roar\/releases\/download\//;
+const VERSION = /^\d+\.\d+\.\d+$/;
 
 export function formatBytes(bytes) {
   if (!Number.isFinite(bytes) || bytes < 1) throw new TypeError('asset size must be positive');
@@ -14,23 +14,59 @@ export function formatDate(iso) {
   return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
 }
 
+function isValidUtcDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z$/.exec(value);
+  if (!match) return false;
+  const [year, month, day, hour, minute, second] = match.slice(1).map(Number);
+  return month >= 1 && month <= 12 && day >= 1 && day <= new Date(Date.UTC(year, month, 0)).getUTCDate()
+    && hour <= 23 && minute <= 59 && second <= 59;
+}
+
+function isTrustedAssetUrl(value, version, assetName) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.host === 'github.com'
+      && url.pathname === `/xhan145/roar/releases/download/v${version}/${assetName}`;
+  } catch {
+    return false;
+  }
+}
+
+function isReleaseNotesUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.host === 'github.com'
+      && url.pathname.startsWith('/xhan145/roar/releases/tag/');
+  } catch {
+    return false;
+  }
+}
+
 function validAvailable(record, platform) {
   const fields = ['version', 'release_name', 'published_at', 'architecture', 'package_type', 'asset_name', 'asset_url', 'asset_size_bytes', 'sha256', 'release_notes_url'];
-  if (!record || record.available !== true || !['stable', 'preview'].includes(record.channel) || fields.some((field) => record[field] === undefined)) return false;
+  const expected = new Set(['available', 'channel', ...fields]);
+  if (platform === 'linux') { expected.add('tested_environments'); expected.add('known_limitations_url'); }
+  if (!record || record.available !== true || Object.keys(record).length !== expected.size || Object.keys(record).some((key) => !expected.has(key)) || fields.some((field) => record[field] === undefined)) return false;
   if (fields.filter((field) => field !== 'asset_size_bytes').some((field) => typeof record[field] !== 'string' || record[field] === '')) return false;
   if (!Number.isInteger(record.asset_size_bytes) || record.asset_size_bytes < 1 || !SHA256.test(record.sha256)) return false;
-  if (!/^\d{4}-\d{2}-\d{2}T.*Z$/.test(record.published_at) || Number.isNaN(new Date(record.published_at).valueOf())) return false;
-  if (!GITHUB_ASSET.test(record.asset_url) || !/^https:\/\/github\.com\/xhan145\/roar\/releases\/tag\//.test(record.release_notes_url)) return false;
-  if (platform === 'linux' && (!Array.isArray(record.tested_environments) || typeof record.known_limitations_url !== 'string')) return false;
+  if (!VERSION.test(record.version) || !isValidUtcDate(record.published_at) || !isReleaseNotesUrl(record.release_notes_url)) return false;
+  const contract = platform === 'windows'
+    ? { channel: 'stable', packageType: 'exe', asset: `ROAR-Setup-${record.version}.exe` }
+    : { channel: 'preview', packageType: 'AppImage', asset: `ROAR-Linux-${record.version}-x86_64.AppImage` };
+  if (record.channel !== contract.channel || record.architecture !== 'x86_64' || record.package_type !== contract.packageType || record.asset_name !== contract.asset || !isTrustedAssetUrl(record.asset_url, record.version, record.asset_name)) return false;
+  if (platform === 'linux' && (!Array.isArray(record.tested_environments) || !record.tested_environments.length || !record.tested_environments.every((environment) => typeof environment === 'string' && environment) || record.known_limitations_url !== '/linux/')) return false;
   return true;
 }
 
 export function parseManifest(value) {
-  if (!value || value.schema_version !== 1 || value.repository !== REPOSITORY || !value.platforms) throw new TypeError('unsupported release manifest');
+  const manifestKeys = ['schema_version', 'repository', 'generated_at', 'platforms'];
+  if (!value || Object.keys(value).length !== manifestKeys.length || manifestKeys.some((key) => !(key in value)) || value.schema_version !== 1 || value.repository !== REPOSITORY || !value.platforms || !isValidUtcDate(value.generated_at)) throw new TypeError('unsupported release manifest');
+  if (Object.keys(value.platforms).length !== 2 || !('windows' in value.platforms) || !('linux' in value.platforms)) throw new TypeError('invalid platform records');
   for (const platform of ['windows', 'linux']) {
     const record = value.platforms[platform];
-    if (!record || !['stable', 'preview'].includes(record.channel)) throw new TypeError(`missing ${platform} channel`);
-    if (record.available === false) continue;
+    const channel = platform === 'windows' ? 'stable' : 'preview';
+    if (!record || record.channel !== channel) throw new TypeError(`missing ${platform} channel`);
+    if (record.available === false && Object.keys(record).length === 2) continue;
     if (!validAvailable(record, platform)) throw new TypeError(`invalid ${platform} release metadata`);
   }
   return value;
@@ -52,6 +88,14 @@ export async function writeChecksum(write, checksum) {
   } catch {
     return false;
   }
+}
+
+export function manuallySelectChecksum(checksum, status, selection, range) {
+  checksum.textContent = checksum.dataset.fullChecksum;
+  range.selectNodeContents(checksum);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  status.textContent = 'Copy unavailable; checksum selected for manual copy';
 }
 
 function setText(card, name, text) {
@@ -96,8 +140,7 @@ async function copyChecksum(event) {
     status.textContent = 'Checksum copied';
   } else {
     const selection = window.getSelection(); const range = document.createRange();
-    range.selectNodeContents(checksum); selection.removeAllRanges(); selection.addRange(range);
-    status.textContent = 'Copy unavailable; checksum selected for manual copy';
+    manuallySelectChecksum(checksum, status, selection, range);
   }
 }
 

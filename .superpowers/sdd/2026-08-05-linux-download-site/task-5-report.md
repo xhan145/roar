@@ -38,3 +38,24 @@ The first combined site-test invocation executed all 32 then hit an `OSError: [E
 Reviewed the scoped diff for the product constraints. There are no release-download URLs in static markup, no download event/beacon/analytics path, no external assets/frameworks, and no cloud/account/subscription/app-telemetry implication. The module only contacts its same-origin manifest; consent-gated GA remains the sole optional website analytics seam. CSS retains ROAR tokens/system fonts and adds the documented semantic states, visible focus, 44 px controls, and responsive 375/768/1024/1440 rules.
 
 Browser/server visual verification is intentionally left for Task 7, per the Task 5 handoff boundary.
+
+## Fix round 1 — reviewer regressions
+
+### RED evidence
+
+1. Added Node regressions for a normalized-invalid `2026-02-31T19:20:31Z` date and platform-swapped Windows/Linux records. Once the DOM helper was introduced, these tests showed the previous parser accepted contracts outside the schema/generator platform identity rules.
+2. Added an exact-schema-field Node regression. It failed because the former parser ignored an added manifest field.
+3. Added a minimal-fake DOM regression for the clipboard failure path. The initial Node run failed because `manuallySelectChecksum` did not exist; the test requires selected text to become the full 64-character digest and the polite status to exactly state manual-copy recovery.
+4. Added a parsed HTML no-JavaScript recovery-link test. It failed with `StopIteration` because no `<noscript>` Releases route existed.
+
+### GREEN evidence
+
+- `node --test site/downloads.test.mjs` — 13 passed.
+- `C:\Users\xhan1\flowlocal\venv\Scripts\python.exe -m pytest -p no:cacheprovider` over every `tests/test_site_*.py` file — 38 passed.
+- `git diff --check` — passed.
+
+### Fixes
+
+- `parseManifest` now requires the schema's exact top-level/platform keys, a valid UTC calendar date, exact unavailable shapes, and exact Windows Stable/x86_64/exe or Linux Preview/x86_64/AppImage naming, package, channel, and release-asset URL contracts.
+- Clipboard fallback changes the checksum node to the full digest before selecting it, while normal successful rendering remains abbreviated and keeps the full digest in accessible metadata.
+- A visible no-JavaScript message links directly to the repository Releases page; JavaScript behavior remains unchanged.
