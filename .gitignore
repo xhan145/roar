@@ -17,6 +17,7 @@ audio/
 models-seed/
 backups/
 .obsidian/
+.worktrees/
 
 # License signing — never commit a private key or an issued customer license.
 # The signing keypair lives OUTSIDE the repo (~/.roar-signing/); these patterns
