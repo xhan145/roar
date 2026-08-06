@@ -1,0 +1,18 @@
+[
+  {
+    "tag_name": "v0.35.2",
+    "name": "ROAR v0.35.2 — installer honesty, continued",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-08-03T19:20:31Z",
+    "html_url": "https://github.com/xhan145/roar/releases/tag/v0.35.2",
+    "assets": [
+      {
+        "name": "ROAR-Setup-0.35.2.exe",
+        "size": 908794228,
+        "digest": "sha256:ed7180f00bd4a3c923c97eeb8b84c43f263b0fced9aa38d903489eed4ad768e3",
+        "browser_download_url": "https://github.com/xhan145/roar/releases/download/v0.35.2/ROAR-Setup-0.35.2.exe"
+      }
+    ]
+  }
+]
