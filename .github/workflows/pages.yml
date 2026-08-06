@@ -14,7 +14,11 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "scripts/generate_site_release_manifest.py"
+      - "site/data/releases.schema.json"
       - ".github/workflows/pages.yml"
+  release:
+    types: [published, edited]
   workflow_dispatch:
 
 permissions:
@@ -36,6 +40,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - uses: actions/setup-python@v5
+      - name: Generate verified release metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python scripts/generate_site_release_manifest.py
+          --repository ${{ github.repository }}
+          --output site/data/releases.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
