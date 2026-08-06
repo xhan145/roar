@@ -20,7 +20,8 @@
 - Canonical Linux filename: `ROAR-Linux-<paths.APP_VERSION>-x86_64.AppImage`.
 - Site supports 375, 768, 1024, and 1440 px widths, WCAG AA contrast, visible keyboard focus, reduced motion, and practical 44-by-44 px targets.
 - Keep the current logo, system font stack, lavender/white/near-black identity, static architecture, and existing checkout behavior.
-- Every behavior change follows red-green-refactor; configuration/workflow contracts receive static tests before edits.
+- Every behavior change follows red-green-refactor; configuration/workflow contracts receive failing contract tests before edits.
+- Tests must exercise parsed/executed artifacts and observable outcomes. Do not use raw source-substring checks where parsing, importing, or running the artifact can prove the contract.
 - Use `C:\Users\xhan1\flowlocal\venv\Scripts\python.exe` for Windows pytest commands in this worktree.
 - Baseline exception: `tests/test_smoke.py` fails only while another ROAR process owns the singleton; all other baseline tests must remain green.
 
@@ -186,19 +187,11 @@ git commit -m "feat(site): generate verified release metadata"
 
 - [ ] **Step 1: Write failing workflow contract tests**
 
-```python
-def test_pages_regenerates_release_manifest_before_upload():
-    text = PAGES.read_text(encoding="utf-8")
-    generate = text.index("generate_site_release_manifest.py")
-    upload = text.index("actions/upload-pages-artifact@v3")
-    assert generate < upload
-    assert "GH_TOKEN" in text
-
-def test_pages_refreshes_when_release_metadata_changes():
-    text = PAGES.read_text(encoding="utf-8")
-    assert "release:" in text
-    assert "published" in text and "edited" in text
-```
+Parse the workflow with `yaml.load(..., Loader=yaml.BaseLoader)`. Locate the
+deploy job's steps by their `name`/`uses` fields and assert the generation step
+precedes the upload step, has the expected CLI arguments, and receives
+`GH_TOKEN`. Assert the parsed `on.release.types` sequence is exactly
+`["published", "edited"]`.
 
 Also assert `contents: read`, `pages: write`, `id-token: write`, Python setup,
 and push paths for the generator/schema/workflow itself.
@@ -266,7 +259,11 @@ git commit -m "ci(site): refresh release metadata before Pages deploy"
 
 - [ ] **Step 1: Write failing packaging contract tests**
 
-Assert that the Linux spec includes `settings.html`, `transcript.html`,
+Inspect the Linux spec as executable PyInstaller configuration where possible,
+and run the shell recipe with fake `python`, PyInstaller, AppImageTool, and
+`sha256sum` shims in a temporary copied fixture. Assert produced filenames,
+invocations, and targeted cleanup from observable files/logs. Also assert the
+Linux spec includes `settings.html`, `transcript.html`,
 `fob.png`, `assets`, `licenses`, `THIRD_PARTY_NOTICES.md`, and the TTS worker/
 manifest; excludes Windows-only `uiautomation`, `comtypes`, `PyAudioWPatch`,
 DirectML, and Vulkan modules; uses a distinct `ROAR-linux` collection directory;
@@ -365,21 +362,12 @@ git commit -m "build(linux): produce verified AppImage packages"
 
 - [ ] **Step 1: Write failing workflow safety tests**
 
-```python
-def test_workflow_builds_on_ubuntu_2404_without_auto_publish():
-    text = WORKFLOW.read_text(encoding="utf-8")
-    assert "runs-on: ubuntu-24.04" in text
-    assert "actions/upload-artifact@v4" in text
-    assert "gh release create" not in text
-    assert "softprops/action-gh-release" not in text
-
-def test_release_upload_requires_explicit_existing_tag():
-    text = WORKFLOW.read_text(encoding="utf-8")
-    assert "release_tag" in text
-    assert "gh release view" in text
-    assert "gh release upload" in text
-    assert "if:" in text
-```
+Parse the workflow with `yaml.BaseLoader`. Assert the build job runs on
+`ubuntu-24.04`, exposes only `contents: read`, and ends with an
+`actions/upload-artifact@v4` step. Assert the attach job exposes
+`contents: write`, depends on build, has the exact manual-dispatch guard, checks
+an existing release's draft/prerelease flags, and uploads without any parsed step
+that creates or publishes a release.
 
 Also pin AppImageTool URL and digest exactly:
 
@@ -475,9 +463,10 @@ git commit -m "ci(linux): build preview packages without publishing"
 - Produces pure JS: `formatBytes(bytes)`, `formatDate(iso)`, `parseManifest(value)`, and `platformView(record)`.
 - Produces DOM bootstrap bound to `[data-release-platform="windows|linux"]`.
 
-- [ ] **Step 1: Write failing static site tests**
+- [ ] **Step 1: Write failing parsed static-site tests**
 
-Assert:
+Parse HTML with `html.parser` or an equivalent local parser and assert observable
+elements/attributes rather than raw source substrings. Assert:
 
 - a section `id="download"` has explicit Windows and Linux cards;
 - visible `Stable` and `Preview` text exists in card markup;
