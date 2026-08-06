@@ -52,6 +52,7 @@ def test_core_card_leads_to_the_download_not_a_purchase():
     core = _block_for("ROAR Core")
     assert "data-edition" not in core
     assert "Download ROAR" in core
+    assert 'id="tier-download" href="#download"' in core
 
 
 def test_both_recommendation_labels_present():

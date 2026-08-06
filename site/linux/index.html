@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux Preview installation and limitations — ROAR</title>
+<meta name="description" content="ROAR Linux Preview installation, verification, and known limitations.">
+<style>
+  :root{--bg:#08080D;--surface:rgba(255,255,255,.04);--text:#EDEDF2;--muted:#A2A5B4;--border:rgba(255,255,255,.10);--accent:#A78BFA;--accent-2:#7C6CF0;--accent-ink:#0B0B10;--preview:#F2C66D;--preview-bg:rgba(242,198,109,.14);--focus-ring:#C4B5FD;--r:16px}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.65 Inter,system-ui,-apple-system,"Segoe UI",sans-serif} main{max-width:760px;margin:0 auto;padding:64px 24px} h1,h2{line-height:1.15;letter-spacing:-.02em} h1{font-size:clamp(34px,6vw,52px)} h2{margin-top:42px;font-size:25px} p,li{color:var(--muted)} a{color:var(--text);text-underline-offset:3px} code,pre{font-family:ui-monospace,Consolas,"Cascadia Mono",monospace} pre{overflow:auto;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text)} .badge{display:inline-block;padding:5px 10px;border-radius:999px;background:var(--preview-bg);border:1px solid rgba(242,198,109,.45);color:var(--preview);font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase} .callout{padding:20px 22px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface)} :focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px}
+</style>
+</head>
+<body>
+<main>
+  <a href="../index.html#download">Back to verified downloads</a>
+  <p class="badge">Linux Preview</p>
+  <h1>Install and verify the Linux Preview</h1>
+  <p>ROAR Linux is an x86_64 AppImage Preview. Availability appears on the download page only after a verified release manifest includes a matching package and checksum.</p>
+  <h2>Install</h2>
+  <pre><code>chmod +x ROAR-Linux-&lt;version&gt;-x86_64.AppImage
+sha256sum ROAR-Linux-&lt;version&gt;-x86_64.AppImage
+./ROAR-Linux-&lt;version&gt;-x86_64.AppImage</code></pre>
+  <p>Compare the printed SHA-256 with the full checksum on the verified download card before launching. The AppImage launches directly; it does not need a package manager installation.</p>
+  <h2>What has been automatically checked</h2>
+  <p>The package workflow runs an Ubuntu 24.04 automated package smoke check for the x86_64 AppImage, including the frozen application and extracted AppImage launch path.</p>
+  <h2>Known limitations</h2>
+  <div class="callout"><p><strong>Use X11 for this Preview.</strong> The supported path is X11. Wayland is not supported in this Preview. No Linux GPU support claim is made.</p></div>
+  <h2>Manual real-device gates still required</h2>
+  <ul>
+    <li>Microphone capture on your actual device.</li>
+    <li>Global hotkey registration and reliable cross-application text injection on X11.</li>
+    <li>Settings, permissions, suspend/resume, and a full dictation session on the target desktop.</li>
+  </ul>
+  <p>If a Preview is unavailable or its verification details do not match, do not guess a download URL. Visit the repository <a href="https://github.com/xhan145/roar/releases">Releases page</a>.</p>
+</main>
+</body>
+</html>
