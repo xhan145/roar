@@ -102,6 +102,15 @@ def test_desktop_version_echoes_do_not_stamp_release_assets():
     assert all("site/" not in rel.replace("\\", "/") for rel, _ in echoes)
 
 
+def test_site_hero_has_no_hardcoded_latest_release_version():
+    """The hero must not drift from release metadata shown in download cards."""
+    import pathlib
+
+    html = pathlib.Path("site/index.html").read_text(encoding="utf-8")
+    assert "Latest release:" not in html
+    assert 'id="roar-version"' not in html
+
+
 def test_dashboard_uses_stable_desktop_source_and_keeps_external_source(tmp_path, monkeypatch):
     """The dashboard must not leak a worktree-specific desktop path."""
     desktop = tmp_path / "desktop"
