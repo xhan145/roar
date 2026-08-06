@@ -123,6 +123,7 @@ function renderCard(card, record) {
   setText(card, 'version', view.version); setText(card, 'release-date', view.date); setText(card, 'package', view.packageType); setText(card, 'architecture', view.architecture); setText(card, 'size', view.size);
   const checksum = card.querySelector('[data-release="checksum"]');
   checksum.textContent = view.checksumLabel; checksum.dataset.fullChecksum = view.checksum; checksum.title = view.checksum;
+  card.querySelector('[data-release-copy="checksum"]').disabled = false;
   const action = card.querySelector('[data-release="action"]');
   action.textContent = view.actionLabel; action.href = view.assetUrl; action.removeAttribute('aria-disabled');
   card.querySelector('[data-release="release-notes"]').href = view.releaseNotesUrl;

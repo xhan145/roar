@@ -59,3 +59,13 @@ Browser/server visual verification is intentionally left for Task 7, per the Tas
 - `parseManifest` now requires the schema's exact top-level/platform keys, a valid UTC calendar date, exact unavailable shapes, and exact Windows Stable/x86_64/exe or Linux Preview/x86_64/AppImage naming, package, channel, and release-asset URL contracts.
 - Clipboard fallback changes the checksum node to the full digest before selecting it, while normal successful rendering remains abbreviated and keeps the full digest in accessible metadata.
 - A visible no-JavaScript message links directly to the repository Releases page; JavaScript behavior remains unchanged.
+
+## Task 7 browser verification fix — checksum copy enabled state
+
+### RED evidence
+
+Added a behavioral Node test that supplies a complete release manifest and minimal DOM boundary, imports the actual module so its bootstrap runs, and observes the Windows checksum copy control after rendering. `node --test site/downloads.test.mjs` ran 14 tests with 13 passing and the new regression failing at `true !== false`: the verified Windows card retained its static disabled state.
+
+### GREEN evidence
+
+`renderCard()` now performs the missing available-state transition by setting the card's checksum copy control to `disabled = false`. The focused rerun passed all 14 Node tests. Final Node, complete `tests/test_site_*.py`, and diff-check evidence was recorded before the fix commit.

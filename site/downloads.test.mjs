@@ -92,3 +92,42 @@ test('manual checksum fallback selects the complete digest and announces the exa
   assert.equal(selection.added, range);
   assert.equal(status.textContent, 'Copy unavailable; checksum selected for manual copy');
 });
+
+test('bootstrap enables checksum copying after a verified Windows release loads', async () => {
+  const checksumCopy = { disabled: true, addEventListener() {} };
+  const elements = {
+    '[data-release="status"]': { textContent: '' },
+    '[data-release="version"]': { textContent: '' },
+    '[data-release="release-date"]': { textContent: '' },
+    '[data-release="package"]': { textContent: '' },
+    '[data-release="architecture"]': { textContent: '' },
+    '[data-release="size"]': { textContent: '' },
+    '[data-release="checksum"]': { textContent: '', dataset: {}, title: '' },
+    '[data-release="action"]': { textContent: '', removeAttribute() {} },
+    '[data-release="release-notes"]': { href: '' },
+    '[data-release="tested-environments"]': null,
+    '[data-release-copy="checksum"]': checksumCopy,
+  };
+  const card = {
+    dataset: { releasePlatform: 'windows' },
+    querySelector(selector) { return elements[selector]; },
+  };
+  const previousDocument = globalThis.document;
+  const previousFetch = globalThis.fetch;
+  globalThis.document = { querySelectorAll() { return [card]; } };
+  globalThis.fetch = async () => ({
+    ok: true,
+    async json() {
+      return manifest({ windows, linux: { available: false, channel: 'preview' } });
+    },
+  });
+
+  try {
+    await import(`./downloads.mjs?available-windows=${Date.now()}`);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(checksumCopy.disabled, false);
+  } finally {
+    globalThis.document = previousDocument;
+    globalThis.fetch = previousFetch;
+  }
+});
