@@ -12,6 +12,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+BASH = os.environ.get("ROAR_TEST_BASH", "bash")
 
 
 class _BuildNode:
@@ -157,6 +158,10 @@ def packaging_fixture(tmp_path):
           printf '0.35.2\n'
           exit 0
         fi
+        if [[ "$1" == "-c" && "$2" == "import PyInstaller; print(PyInstaller.__version__)" ]]; then
+          printf '%s\n' "${FAKE_PYINSTALLER_VERSION:-6.21.0}"
+          exit 0
+        fi
         if [[ "$*" == "-m PyInstaller --noconfirm --clean --workpath build/linux/pyinstaller --distpath build/linux/frozen roar-linux.spec" ]]; then
           mkdir -p build/linux/frozen/ROAR-linux
           cat > build/linux/frozen/ROAR-linux/ROAR-linux <<'EOF'
@@ -177,7 +182,11 @@ def packaging_fixture(tmp_path):
         cat > "$2" <<'EOF'
         #!/usr/bin/env bash
         [[ "$1" == "--smoke" ]] || exit 90
+        printf 'appimage-env:APPIMAGE_EXTRACT_AND_RUN=%s\n' \
+          "${APPIMAGE_EXTRACT_AND_RUN-}" >> "$FAKE_LOG"
+        [[ "${APPIMAGE_EXTRACT_AND_RUN-}" == "1" ]] || exit 88
         printf 'ROAR: hotkeys registered\n'
+        exit "${FAKE_SMOKE_EXIT:-0}"
         EOF
         chmod +x "$2"
     ''')
@@ -185,6 +194,10 @@ def packaging_fixture(tmp_path):
         #!/usr/bin/env bash
         printf 'sha256sum:%s\n' "$*" >> "$FAKE_LOG"
         if [[ "$1" == "--check" ]]; then
+          if [[ "${FAKE_CHECKSUM_FAIL:-0}" == "1" ]]; then
+            printf 'forced checksum mismatch\n' >&2
+            exit 99
+          fi
           read -r digest filename < "$2"
           [[ "$digest" == aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ]] || exit 93
           [[ -f "$filename" ]] || exit 94
@@ -212,7 +225,7 @@ def packaging_fixture(tmp_path):
         ''')
 
     subprocess.run(
-        ["bash", "-c", "chmod +x fake-bin/* linux/*.sh"],
+        [BASH, "-c", "chmod +x fake-bin/* linux/*.sh"],
         cwd=tmp_path,
         check=True,
     )
@@ -227,7 +240,7 @@ def packaging_fixture(tmp_path):
 def _run_bash(root, env, command):
     return subprocess.run(
         [
-            "bash",
+            BASH,
             "-c",
             (
                 'export PATH="$PWD/fake-bin:$PATH"; '
@@ -295,6 +308,7 @@ def test_build_recipe_produces_verified_canonical_artifacts(packaging_fixture):
 
     invocations = (root / "tool.log").read_text(encoding="utf-8")
     assert "python:-c from paths import APP_VERSION; print(APP_VERSION)" in invocations
+    assert "python:-c import PyInstaller; print(PyInstaller.__version__)" in invocations
     assert (
         "python:-m PyInstaller --noconfirm --clean --workpath "
         "build/linux/pyinstaller --distpath build/linux/frozen roar-linux.spec"
@@ -307,6 +321,8 @@ def test_build_recipe_produces_verified_canonical_artifacts(packaging_fixture):
     assert "wget:" not in invocations
     assert invocations.count("xvfb:") == 2
     assert invocations.count("--smoke") == 2
+    assert invocations.count("sha256sum:--check") == 1
+    assert "appimage-env:APPIMAGE_EXTRACT_AND_RUN=1" in invocations
 
     xdg_paths = (root / "xdg.log").read_text(encoding="utf-8").splitlines()
     assert len(xdg_paths) == 6
@@ -354,6 +370,81 @@ def test_build_recipe_requires_supplied_appimagetool(packaging_fixture):
     assert "wget:" not in log
 
 
+def test_build_recipe_rejects_mismatched_pyinstaller_before_cleanup(packaging_fixture):
+    root, env = packaging_fixture
+    stale_build = root / "build/linux/stale.txt"
+    stale_build.parent.mkdir(parents=True)
+    stale_build.write_text("keep", encoding="utf-8")
+    stale_artifact = root / "dist/ROAR-Linux-0.35.1-x86_64.AppImage"
+    stale_artifact.parent.mkdir()
+    stale_artifact.write_text("keep", encoding="utf-8")
+
+    result = _run_bash(
+        root,
+        env,
+        'FAKE_PYINSTALLER_VERSION=6.20.0 '
+        'ROAR_LINUX_PYTHON="$PWD/fake-bin/python shim" '
+        'APPIMAGETOOL="$PWD/fake-bin/appimagetool shim" '
+        "bash linux/build_appimage.sh",
+    )
+
+    assert result.returncode != 0
+    assert "PyInstaller 6.21.0" in result.stderr
+    assert "6.20.0" in result.stderr
+    assert stale_build.read_text(encoding="utf-8") == "keep"
+    assert stale_artifact.read_text(encoding="utf-8") == "keep"
+
+
+def test_verifier_rejects_checksum_failure_before_smoke(packaging_fixture):
+    root, env = packaging_fixture
+    artifact = root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage"
+    artifact.parent.mkdir()
+    _write_executable(
+        artifact,
+        "#!/usr/bin/env bash\nprintf 'ROAR: hotkeys registered\\n'\n",
+    )
+    artifact.with_name(artifact.name + ".sha256").write_text(
+        "a" * 64 + f"  {artifact.name}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    subprocess.run(
+        [BASH, "-c", f'chmod +x "{artifact.name}"'],
+        cwd=artifact.parent,
+        check=True,
+    )
+
+    result = _run_bash(
+        root,
+        env,
+        f'FAKE_CHECKSUM_FAIL=1 bash linux/verify_appimage.sh "dist/{artifact.name}"',
+    )
+
+    assert result.returncode == 99, result.stdout + result.stderr
+    assert "forced checksum mismatch" in result.stderr
+    invocations = (root / "tool.log").read_text(encoding="utf-8")
+    assert "sha256sum:--check" in invocations
+    assert "xvfb:" not in invocations
+
+
+def test_build_recipe_rejects_nonzero_packaged_smoke(packaging_fixture):
+    root, env = packaging_fixture
+
+    result = _run_bash(
+        root,
+        env,
+        'FAKE_SMOKE_EXIT=23 '
+        'ROAR_LINUX_PYTHON="$PWD/fake-bin/python shim" '
+        'APPIMAGETOOL="$PWD/fake-bin/appimagetool shim" '
+        "bash linux/build_appimage.sh",
+    )
+
+    assert result.returncode == 23
+    assert "status 23" in result.stderr
+    assert not (root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage").exists()
+    assert not (root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage.sha256").exists()
+
+
 @pytest.mark.parametrize(
     "output",
     [
@@ -370,8 +461,12 @@ def test_verifier_rejects_invalid_smoke_output(packaging_fixture, output):
         "#!/usr/bin/env bash\ncat <<'EOF'\n" + output + "EOF\n",
     )
     sidecar = artifact.with_name(artifact.name + ".sha256")
-    sidecar.write_text("a" * 64 + f"  {artifact.name}\n", encoding="utf-8")
-    subprocess.run(["bash", "-c", f'chmod +x "{artifact.name}"'], cwd=artifact.parent, check=True)
+    sidecar.write_text(
+        "a" * 64 + f"  {artifact.name}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    subprocess.run([BASH, "-c", f'chmod +x "{artifact.name}"'], cwd=artifact.parent, check=True)
 
     result = _run_bash(
         root,

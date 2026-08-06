@@ -30,6 +30,17 @@ elif ! command -v "$APPIMAGETOOL" >/dev/null 2>&1; then
   exit 1
 fi
 
+required_pyinstaller_version="6.21.0"
+installed_pyinstaller_version="$(
+  "${python_cmd[@]}" -c 'import PyInstaller; print(PyInstaller.__version__)'
+)"
+if [[ "$installed_pyinstaller_version" != "$required_pyinstaller_version" ]]; then
+  printf 'error: PyInstaller %s is required; %s reports %s\n' \
+    "$required_pyinstaller_version" "${python_cmd[0]}" \
+    "$installed_pyinstaller_version" >&2
+  exit 1
+fi
+
 version="$("${python_cmd[@]}" -c 'from paths import APP_VERSION; print(APP_VERSION)')"
 if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   printf 'error: invalid paths.APP_VERSION: %s\n' "$version" >&2
