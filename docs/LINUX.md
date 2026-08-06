@@ -1,76 +1,72 @@
-# ROAR on Linux (experimental — Ubuntu 24.04, X11)
+# ROAR on Linux (Preview — Ubuntu 24.04, X11)
 
-ROAR runs from the same codebase on Ubuntu 24.04 with an X11/Xorg session:
-global hotkey, local transcription, and text injection into the focused
-window, plus the tray, overlay, settings window, history, and autostart. This
-is **run-from-source** (a build recipe for a portable AppImage is included but
-unverified by the author — see `linux/build_appimage.sh`).
-
-**Not supported (this pass):** Wayland. X11/Xorg only — Wayland blocks global
-hotkey capture and cross-app text injection without a root helper. Log in on
-Xorg (see below).
+Linux is a **Preview**, not a published release channel. ROAR supports an
+x86_64 AppImage build on Ubuntu 24.04 and is intended for an X11/Xorg session.
+Wayland is not supported by the current global-hotkey and cross-app injection
+implementation; use Xorg for those capabilities.
 
 ## Prerequisites
 
-- **Ubuntu 24.04 LTS**, logged into an **X11 ("Ubuntu on Xorg") session**, not
-  the default Wayland session:
-  - At the GDM login screen, click your username, then click the gear icon in
-    the bottom-right corner of the password field and choose **"Ubuntu on
-    Xorg"** before entering your password.
-  - To confirm you're on X11 after logging in: `echo $XDG_SESSION_TYPE` should
-    print `x11`.
-- Python 3.12 (Ubuntu 24.04 ships this by default).
-- An NVIDIA GPU is optional but recommended — `setup.sh` uses it automatically
-  if present (CUDA is first-class on Linux; Vulkan is Windows-only and is not
-  offered here).
+- **Ubuntu 24.04 LTS**, logged into an **X11 ("Ubuntu on Xorg") session**,
+  not the default Wayland session. At the GDM login screen, select the gear
+  icon and choose **Ubuntu on Xorg** before signing in. `echo
+  $XDG_SESSION_TYPE` should print `x11`.
+- Python 3.12 (included with Ubuntu 24.04).
 
-## Setup
+## Setup and running from source
 
-From the repo root:
+From the repository root:
 
 ```bash
 bash linux/setup.sh
-```
-
-This is idempotent and will:
-- apt-install system dependencies (prompts for `sudo`): `python3-venv
-  python3-dev python3-tk python3-gi gir1.2-webkit2-4.1
-  gir1.2-appindicator3-0.1 libportaudio2 xclip xdotool libnotify-bin`
-- create a venv at `.venv` with `--system-site-packages` (so the system
-  PyGObject/WebKitGTK bindings are visible to it)
-- pip-install `requirements-linux.txt` into that venv, including the CUDA
-  runtime wheels (`nvidia-cublas-cu12`, `nvidia-cudnn-cu12`) needed for
-  GPU transcription
-- check for `nvidia-smi` and report whether GPU acceleration will be used
-- install the launcher to `~/.local/bin/roar`
-
-## Running
-
-```bash
 ~/.local/bin/roar
 ```
 
-(or just `roar` if `~/.local/bin` is on your `PATH`). The tray icon should
-appear; use the hotkey to dictate.
+The setup script installs the Ubuntu package dependencies, creates `.venv`
+with system PyGObject/WebKitGTK bindings, installs `requirements-linux.txt`,
+and adds `~/.local/bin/roar`.
 
 ## Injection escape hatch
 
-Text injection normally uses `pynput` to type Unicode into the focused
-window, with a clipboard-paste fallback. If a particular app mishandles
-`pynput`'s typing (rare, app-specific), switch to the `xdotool` backend
-without any code change:
+Text injection normally uses `pynput`, with a clipboard-paste fallback. If a
+particular application mishandles that input, select the `xdotool` backend:
 
 ```bash
 ROAR_INJECT_BACKEND=xdotool ~/.local/bin/roar
 ```
 
-## GPU note
+## Build and verify the AppImage
 
-- Check the driver is visible: `nvidia-smi` should list your GPU.
-- Check ROAR picked it up: look for `device=cuda` in
-  `~/.local/share/ROAR/roar.log`.
-- If neither shows CUDA, ROAR has cleanly fallen back to CPU — dictation still
-  works, just slower per clip.
+The package architecture is **x86_64**. On Ubuntu 24.04, install the build
+requirements and use the pinned AppImageTool before building:
+
+```bash
+python3 -m venv --system-site-packages .venv
+.venv/bin/python -m pip install -r requirements-linux.txt -r requirements-linux-build.txt
+mkdir -p .tools
+curl --fail --location --silent --show-error \
+  https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage \
+  --output .tools/appimagetool
+echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  .tools/appimagetool" | sha256sum --check --status -
+chmod +x .tools/appimagetool
+APPIMAGETOOL="$PWD/.tools/appimagetool" bash linux/build_appimage.sh
+```
+
+Verify the produced package and its sidecar checksum (substitute its version):
+
+```bash
+bash linux/verify_appimage.sh dist/ROAR-Linux-<version>-x86_64.AppImage
+sha256sum --check <file>.sha256
+```
+
+GitHub Actions runs this package build on Ubuntu 24.04 and performs an
+automated Xvfb launch smoke. That smoke is not proof of a real microphone,
+physical global-hotkey, or cross-app text injection. Those checks remain the
+manual release gate on a physical Ubuntu 24.04/Xorg machine.
+
+No Linux release exists until a human creates a draft or prerelease and runs
+the manual upload path with its tag; normal CI produces only a verified
+workflow artifact.
 
 ## Where things live (XDG)
 
@@ -79,24 +75,19 @@ ROAR_INJECT_BACKEND=xdotool ~/.local/bin/roar
   (`history.db`, `audio/`, `models/`, `roar.log`)
 - Autostart entry: `~/.config/autostart/ROAR.desktop`
 
-## Smoke-test checklist (run on Ubuntu 24.04 / X11)
+## Manual release checklist (Ubuntu 24.04 / X11)
 
-This is the human verification pass — the author builds on Windows and cannot
-run, inject-test, or build a Linux artifact directly, so this checklist is the
-final gate before calling Linux support solid. Report any failure with the
-relevant lines from `~/.local/share/ROAR/roar.log`.
+These physical-machine checks are required before calling any Linux package a
+release. Report failures with relevant lines from
+`~/.local/share/ROAR/roar.log`.
 
 1. `linux/setup.sh` completes; `linux/roar` launches; tray icon appears.
-2. **(MUST PASS) Hotkey:** press push-to-talk, speak, release → text types into
-   **gedit**; toggle mode and double-tap hands-free both work; the hotkey keeps
-   working after several dictations and after opening/closing Settings.
-3. Injection works cross-app: repeat into a browser field and a terminal.
-4. **GPU:** the log shows `device=cuda`; a clip transcribes markedly faster than
-   CPU (confirm `nvidia-smi` shows the process). Force `device=cpu` still works.
+2. **Hotkey:** press push-to-talk, speak, release, and confirm text types into
+   **gedit**. Confirm toggle mode and double-tap hands-free also work.
+3. **Cross-app injection:** repeat into a browser field and a terminal.
+4. **Microphone:** make a real recording and confirm its transcript is typed.
 5. Overlay pill shows recording state.
-6. Open Settings (tray → Settings) — the pywebview window renders; change a
-   setting; it persists to `~/.config/ROAR/config.json`.
-7. History records entries; delete history and audio; retention toggles work.
-8. Import a signed license (`issue_license.py` output) → edition activates.
-9. Enable autostart → `~/.config/autostart/ROAR.desktop` exists; log out/in →
-   ROAR starts.
+6. Settings render and persist a changed value to `~/.config/ROAR/config.json`.
+7. History records entries; deletion and retention toggles work.
+8. Enable autostart; confirm `~/.config/autostart/ROAR.desktop` and a log-out/
+   log-in launch.

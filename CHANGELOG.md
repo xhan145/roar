@@ -193,12 +193,13 @@ that.
 All notable changes to ROAR. Dates are release-tag dates; entries before a tag
 exists are marked unreleased.
 
-## Unreleased — Linux (experimental)
-- **ROAR runs on Ubuntu 24.04 (X11)** from the same codebase: XDG paths,
-  pynput global hotkey (self-healing), pynput/xdotool text injection, xdotool
-  focus tracking, flock single-instance, .desktop autostart, CUDA GPU via the
-  nvidia-cu12 wheels (Vulkan is Windows-only). Run-from-source (linux/setup.sh)
-  plus an AppImage recipe. Test on 24.04/Xorg per docs/LINUX.md.
+## Unreleased — Linux (Preview)
+- **Ubuntu 24.04/X11 AppImage Preview CI.** The x86_64 package is built,
+  checksum-verified, and launch-smoked under Xvfb as a workflow artifact.
+  A manual path can attach those verified assets only to an existing draft or
+  prerelease; it never creates or publishes a release. Physical microphone,
+  global-hotkey, and cross-app injection checks on Ubuntu 24.04/Xorg remain the
+  release gate. See docs/LINUX.md.
 
 ## v0.30.0 — 2026-07-28
 - **Point & Speak responds instantly.** With the gesture enabled, the voice now
