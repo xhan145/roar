@@ -69,5 +69,9 @@ if ! grep -Fq 'ROAR: hotkeys registered' "$smoke_log"; then
   printf 'error: ROAR smoke test did not register hotkeys\n' >&2
   exit 1
 fi
+if ! grep -Fq 'ROAR: clean exit' "$smoke_log"; then
+  printf 'error: ROAR smoke test did not exit cleanly\n' >&2
+  exit 1
+fi
 
 printf 'Verified %s\n' "$target"

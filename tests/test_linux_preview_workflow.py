@@ -34,6 +34,7 @@ def test_linux_preview_build_uses_pinned_tool_and_runs_package_checks():
     workflow = load_workflow()
     build_steps = steps_by_name(workflow["jobs"]["build"])
     install = build_steps["Install AppImageTool"]
+    package = build_steps["Build and verify AppImage"]
     run_commands = "\n".join(
         step["run"] for step in workflow["jobs"]["build"]["steps"] if "run" in step
     )
@@ -44,6 +45,7 @@ def test_linux_preview_build_uses_pinned_tool_and_runs_package_checks():
     assert "bash -n linux/build_appimage.sh linux/verify_appimage.sh" in run_commands
     assert "bash linux/build_appimage.sh" in run_commands
     assert "bash linux/verify_appimage.sh dist/ROAR-Linux-*-x86_64.AppImage" in run_commands
+    assert package["env"]["APPIMAGE_EXTRACT_AND_RUN"] == "1"
 
 
 def test_linux_preview_attach_only_updates_an_existing_draft_or_prerelease():

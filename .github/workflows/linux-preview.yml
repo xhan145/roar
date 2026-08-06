@@ -38,6 +38,8 @@ jobs:
       - name: Check package script syntax
         run: bash -n linux/build_appimage.sh linux/verify_appimage.sh
       - name: Build and verify AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
           APPIMAGETOOL="$PWD/.tools/appimagetool" bash linux/build_appimage.sh
           bash linux/verify_appimage.sh dist/ROAR-Linux-*-x86_64.AppImage

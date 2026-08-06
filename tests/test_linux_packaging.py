@@ -168,6 +168,7 @@ def packaging_fixture(tmp_path):
         #!/usr/bin/env bash
         [[ "$1" == "--smoke" ]] || exit 89
         printf 'ROAR: hotkeys registered\n'
+        printf 'ROAR: clean exit\n'
         EOF
           chmod +x build/linux/frozen/ROAR-linux/ROAR-linux
           exit 0
@@ -186,6 +187,7 @@ def packaging_fixture(tmp_path):
           "${APPIMAGE_EXTRACT_AND_RUN-}" >> "$FAKE_LOG"
         [[ "${APPIMAGE_EXTRACT_AND_RUN-}" == "1" ]] || exit 88
         printf 'ROAR: hotkeys registered\n'
+        printf 'ROAR: clean exit\n'
         exit "${FAKE_SMOKE_EXIT:-0}"
         EOF
         chmod +x "$2"
@@ -450,6 +452,7 @@ def test_build_recipe_rejects_nonzero_packaged_smoke(packaging_fixture):
     [
         "ROAR: already running — exiting\nROAR: hotkeys registered\n",
         "ROAR: tray ready\n",
+        "ROAR: hotkeys registered\n",
     ],
 )
 def test_verifier_rejects_invalid_smoke_output(packaging_fixture, output):
