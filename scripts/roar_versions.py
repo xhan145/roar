@@ -59,15 +59,6 @@ COMPONENTS = [
             ("tests/test_settings_bridge.py", r's\["version"\] == "([0-9.]+)"'),
             # README prose (the badge is handled separately)
             ("README.md", r"Current app version: `([0-9.]+)`"),
-            # the public site shows the latest release version in the hero
-            ("site/index.html",
-             r'id="roar-version">v([0-9]+\.[0-9]+\.[0-9]+)<'),
-            # Direct-download links: the installer asset name embeds the
-            # version, so both pages must be restamped on every bump.
-            ("site/index.html",
-             r'ROAR-Setup-([0-9]+\.[0-9]+\.[0-9]+)\.exe'),
-            ("site/purchase/success.html",
-             r'ROAR-Setup-([0-9]+\.[0-9]+\.[0-9]+)\.exe'),
         ],
         "readme": "README.md",
         "github": "xhan145/roar",
@@ -272,6 +263,20 @@ def _previous_published():
     return out
 
 
+def dashboard_source(root):
+    """A stable dashboard source, relative only when it belongs to desktop."""
+    desktop = os.path.abspath(DESKTOP)
+    source = os.path.abspath(root)
+    try:
+        inside_desktop = os.path.commonpath([desktop, source]) == desktop
+    except ValueError:  # Paths on different Windows drives cannot be compared.
+        inside_desktop = False
+    if inside_desktop:
+        relative = os.path.relpath(source, desktop)
+        return "." if relative == "." else relative.replace(os.sep, "/")
+    return root
+
+
 def write_dashboard(results):
     previous = _previous_published()
     lines = ["# ROAR version dashboard", "",
@@ -289,10 +294,10 @@ def write_dashboard(results):
         if not r["found"]:
             lines.append(f"| {r['name']} | — | — | not found | ⚠️ missing |")
         elif r["drift"]:
-            lines.append(f"| {r['name']} | v{r['version']} | {pub} | `{r['root']}` | "
+            lines.append(f"| {r['name']} | v{r['version']} | {pub} | `{dashboard_source(r['root'])}` | "
                          f"❌ {len(r['drift'])} drift |")
         else:
-            lines.append(f"| {r['name']} | v{r['version']} | {pub} | `{r['root']}` | "
+            lines.append(f"| {r['name']} | v{r['version']} | {pub} | `{dashboard_source(r['root'])}` | "
                          f"✅ in sync |")
     lines.append("")
     lines.append("Components are versioned independently (a port at v0.1 need "

@@ -85,16 +85,37 @@ def test_every_component_declares_its_github_repo():
         assert c.get("github"), c["name"]
 
 
-def test_site_and_readme_prose_carry_the_app_version():
-    """The website hero and README prose are managed echo targets — they must
-    always match paths.APP_VERSION (roar_versions --fix rewrites them)."""
+def test_readme_prose_carries_the_app_version():
+    """README version prose remains managed by --fix."""
     import pathlib
     import re
 
     import paths
-    html = pathlib.Path("site/index.html").read_text(encoding="utf-8")
-    m = re.search(r'id="roar-version">v([0-9.]+)<', html)
-    assert m and m.group(1) == paths.APP_VERSION
     readme = pathlib.Path("README.md").read_text(encoding="utf-8")
     m = re.search(r"Current app version: `([0-9.]+)`", readme)
     assert m and m.group(1) == paths.APP_VERSION
+
+
+def test_desktop_version_echoes_do_not_stamp_release_assets():
+    """A release asset is selected from the verified manifest, not APP_VERSION."""
+    echoes = rv.COMPONENTS[0]["echo"]
+    assert all("site/" not in rel.replace("\\", "/") for rel, _ in echoes)
+
+
+def test_dashboard_uses_stable_desktop_source_and_keeps_external_source(tmp_path, monkeypatch):
+    """The dashboard must not leak a worktree-specific desktop path."""
+    desktop = tmp_path / "desktop"
+    desktop.mkdir()
+    android = tmp_path.parent / "roar-android"
+    monkeypatch.setattr(rv, "DESKTOP", str(desktop))
+
+    rv.write_dashboard([
+        {"name": "ROAR Desktop (Windows)", "root": str(desktop),
+         "version": "0.35.2", "found": True, "drift": [], "release": "v0.35.2"},
+        {"name": "ROAR Android", "root": str(android),
+         "version": "0.7.0", "found": True, "drift": [], "release": None},
+    ])
+
+    dashboard = (desktop / "VERSIONS.md").read_text(encoding="utf-8")
+    assert "| ROAR Desktop (Windows) | v0.35.2 | v0.35.2 | `.` |" in dashboard
+    assert f"| ROAR Android | v0.7.0 | \u2014 | `{android}` |" in dashboard
