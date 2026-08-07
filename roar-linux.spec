@@ -17,7 +17,11 @@ for pkg in (
     binaries += package_binaries
     hiddenimports += package_hiddenimports
 
-hiddenimports += ["webview.platforms.gtk", "gi"]
+hiddenimports += [
+    "webview.platforms.gtk",
+    "gi",
+    "pynput.keyboard._xorg",
+]
 
 datas += [
     ("settings.html", "."),
