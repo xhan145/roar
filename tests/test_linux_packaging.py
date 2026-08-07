@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import time
 import types
 
 import pytest
@@ -479,6 +480,30 @@ def test_verifier_surfaces_frozen_app_log_when_smoke_crashes(packaging_fixture):
 
     assert result.returncode == 23
     assert "Traceback: missing pynput backend" in result.stdout + result.stderr
+
+
+def test_verifier_bounds_a_hung_smoke_process(packaging_fixture):
+    root, env = packaging_fixture
+    artifact = root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage"
+    artifact.parent.mkdir()
+    _write_executable(artifact, "#!/usr/bin/env bash\nsleep 2\n")
+    artifact.with_name(artifact.name + ".sha256").write_text(
+        "a" * 64 + f"  {artifact.name}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    started = time.monotonic()
+    result = _run_bash(
+        root,
+        env,
+        f'ROAR_SMOKE_TIMEOUT=0.2 bash linux/verify_appimage.sh "dist/{artifact.name}"',
+    )
+    elapsed = time.monotonic() - started
+
+    assert result.returncode == 124, result.stdout + result.stderr
+    assert elapsed < 1.5
+    assert "timed out" in result.stderr
 
 
 @pytest.mark.parametrize(

@@ -46,12 +46,15 @@ if [[ "$mode" == "appimage" ]]; then
 fi
 
 smoke_log="$verify_root/smoke.log"
+smoke_timeout="${ROAR_SMOKE_TIMEOUT:-300}"
 set +e
 if [[ "$mode" == "frozen" ]]; then
-  xvfb-run -a "$target" --smoke >"$smoke_log" 2>&1
+  timeout --kill-after=10 "$smoke_timeout" \
+    xvfb-run -a "$target" --smoke >"$smoke_log" 2>&1
   smoke_status=$?
 else
-  APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a "$target" --smoke >"$smoke_log" 2>&1
+  APPIMAGE_EXTRACT_AND_RUN=1 timeout --kill-after=10 "$smoke_timeout" \
+    xvfb-run -a "$target" --smoke >"$smoke_log" 2>&1
   smoke_status=$?
 fi
 set -e
@@ -61,6 +64,11 @@ if ((smoke_status != 0)); then
   app_log="$XDG_DATA_HOME/ROAR/roar.log"
   if [[ -f "$app_log" ]]; then
     cat "$app_log"
+  fi
+  if ((smoke_status == 124)); then
+    printf 'error: ROAR smoke test timed out after %s seconds\n' \
+      "$smoke_timeout" >&2
+    exit 124
   fi
   printf 'error: ROAR smoke test exited with status %s\n' "$smoke_status" >&2
   exit "$smoke_status"
