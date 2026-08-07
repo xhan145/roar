@@ -71,13 +71,15 @@ def validate_manifest(manifest: dict) -> None:
 def _select_platform(releases: list[dict], platform: str) -> dict:
     channel = "stable" if platform == "windows" else "preview"
     asset_pattern = WINDOWS_ASSET if platform == "windows" else LINUX_ASSET
-    prerelease = platform == "linux"
     eligible = [
         release
         for release in releases
         if isinstance(release, dict)
         and release.get("draft") is False
-        and release.get("prerelease") is prerelease
+        and (
+            release.get("prerelease") is False
+            or (platform == "linux" and release.get("prerelease") is True)
+        )
         and isinstance(release.get("published_at"), str)
     ]
     eligible.sort(key=lambda release: release["published_at"], reverse=True)

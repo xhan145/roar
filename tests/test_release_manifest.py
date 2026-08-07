@@ -42,6 +42,31 @@ def test_missing_linux_release_fails_closed():
     assert linux == {"available": False, "channel": "preview"}
 
 
+def test_linux_preview_can_share_the_stable_windows_release():
+    """Fails if a verified preview asset on the stable release stays unavailable."""
+    releases = load_fixture("current.json")
+    releases[0]["assets"].append(
+        {
+            "name": "ROAR-Linux-0.35.2-x86_64.AppImage",
+            "size": 162630136,
+            "digest": "sha256:fa7dd2340a2076075cf861644577bd9aa52848fb19278111e99a17667f3f4082",
+            "browser_download_url": (
+                "https://github.com/xhan145/roar/releases/download/v0.35.2/"
+                "ROAR-Linux-0.35.2-x86_64.AppImage"
+            ),
+        }
+    )
+
+    linux = build_manifest(
+        releases, "xhan145/roar", "2026-08-07T02:30:32Z"
+    )["platforms"]["linux"]
+
+    assert linux["available"] is True
+    assert linux["channel"] == "preview"
+    assert linux["version"] == "0.35.2"
+    assert linux["sha256"] == "fa7dd2340a2076075cf861644577bd9aa52848fb19278111e99a17667f3f4082"
+
+
 def test_invalid_release_list_root_is_rejected():
     """Fails if an API error object is treated as an empty release list."""
     with pytest.raises(ManifestError, match="release list"):
