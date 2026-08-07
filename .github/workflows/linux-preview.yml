@@ -54,8 +54,12 @@ jobs:
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
         run: |
-          APPIMAGETOOL="$PWD/.tools/appimagetool" bash linux/build_appimage.sh
-          bash linux/verify_appimage.sh dist/ROAR-Linux-*-x86_64.AppImage
+          xvfb-run -a dbus-run-session -- bash -c '
+            set -euo pipefail
+            /usr/lib/notification-daemon/notification-daemon &
+            APPIMAGETOOL="$PWD/.tools/appimagetool" bash linux/build_appimage.sh
+            bash linux/verify_appimage.sh dist/ROAR-Linux-*-x86_64.AppImage
+          '
       - name: Upload verified Linux preview
         uses: actions/upload-artifact@v4
         with:

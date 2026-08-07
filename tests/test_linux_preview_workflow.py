@@ -49,6 +49,8 @@ def test_linux_preview_build_uses_pinned_tool_and_runs_package_checks():
     assert "bash linux/build_appimage.sh" in run_commands
     assert "bash linux/verify_appimage.sh dist/ROAR-Linux-*-x86_64.AppImage" in run_commands
     assert package["env"]["APPIMAGE_EXTRACT_AND_RUN"] == "1"
+    assert "xvfb-run -a dbus-run-session -- bash -c" in package["run"]
+    assert "/usr/lib/notification-daemon/notification-daemon &" in package["run"]
 
 
 def test_linux_preview_attach_only_updates_an_existing_draft_or_prerelease():
