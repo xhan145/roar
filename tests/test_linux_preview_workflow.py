@@ -73,13 +73,21 @@ def test_linux_preview_only_attaches_on_manual_release_tag_dispatch():
     workflow = load_workflow()
     triggers = workflow["on"]
 
-    assert triggers["pull_request"]["paths"] == [
+    assert {
+        "**/*.py",
         "linux/**",
         "roar-linux.spec",
         "requirements-linux*.txt",
+        "requirements-linux.txt",
+        "assets/**",
+        "settings.html",
+        "transcript.html",
+        "fob.png",
+        "licenses/**",
+        "THIRD_PARTY_NOTICES.md",
         ".github/workflows/linux-preview.yml",
         "tests/test_*linux*.py",
-    ]
+    } <= set(triggers["pull_request"]["paths"])
     release_tag = triggers["workflow_dispatch"]["inputs"]["release_tag"]
     assert release_tag == {
         "description": "Existing draft/prerelease tag to receive verified assets; leave empty for artifact-only build",

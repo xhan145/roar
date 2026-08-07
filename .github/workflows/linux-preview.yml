@@ -2,7 +2,20 @@ name: Linux preview package
 
 on:
   pull_request:
-    paths: ["linux/**", "roar-linux.spec", "requirements-linux*.txt", ".github/workflows/linux-preview.yml", "tests/test_*linux*.py"]
+    paths:
+      - "**/*.py"
+      - "linux/**"
+      - "roar-linux.spec"
+      - "requirements-linux*.txt"
+      - "requirements-linux.txt"
+      - "assets/**"
+      - "settings.html"
+      - "transcript.html"
+      - "fob.png"
+      - "licenses/**"
+      - "THIRD_PARTY_NOTICES.md"
+      - ".github/workflows/linux-preview.yml"
+      - "tests/test_*linux*.py"
   workflow_dispatch:
     inputs:
       release_tag:
