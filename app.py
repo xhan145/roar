@@ -143,6 +143,7 @@ class ROARApp:
         self.icon = pystray.Icon("ROAR", tray_icons.make_icon(self.LOADING),
                                  "ROAR", menu=self._build_menu())
         self.worker = threading.Thread(target=self._worker, daemon=True)
+        self._shutting_down = False
         self._pointer_hook = None  # Point & Speak (Ctrl+Right-click); lazy
         self.tts_service = self._build_tts_service(cfg)
         from tts.ipc import TTSCommandServer
@@ -1259,6 +1260,7 @@ class ROARApp:
 
     # -- lifecycle -------------------------------------------------------------
     def _quit(self):
+        self._shutting_down = True
         self._stop_watch.set()
         if self._listen_session is not None:
             try:
@@ -1307,6 +1309,15 @@ class ROARApp:
                 self._quit()
             threading.Thread(target=stop_after_load, daemon=True).start()
 
+    def _run_tray(self):
+        try:
+            self.icon.run(setup=self._on_tray_ready)
+        except Exception as exc:
+            if not self._shutting_down:
+                raise
+            self.log(f"tray shutdown cleanup warning: {exc}")
+        self.log("clean exit")
+
     def run(self):
         # Seed the Home-dashboard status file for this run (session start).
         status_mod.write_status(state=self.state, session_started_at=time.time(),
@@ -1332,8 +1343,7 @@ class ROARApp:
                 f"error_category={type(exc).__name__}")
         self._register_hotkeys()
         threading.Thread(target=self._watch_config, daemon=True).start()
-        self.icon.run(setup=self._on_tray_ready)
-        self.log("clean exit")
+        self._run_tray()
 
 
 def _apply_legacy_grant(cfg, config_existed):

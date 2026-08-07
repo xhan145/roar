@@ -1,0 +1,3 @@
+# Reproducible Linux packaging toolchain.
+# Install explicitly before running linux/build_appimage.sh.
+pyinstaller==6.21.0

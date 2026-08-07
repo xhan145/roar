@@ -34,7 +34,9 @@ def test_does_not_treat_query_params_as_proof_of_payment():
 
 def test_links_back_to_download_and_activation_help():
     html = _html()
-    assert "github.com/xhan145/roar/releases/latest" in html
+    assert "../index.html#download" in html
+    assert "ROAR-Setup-" not in html
+    assert "<script" not in html.lower()
     assert "index.html#faq" in html
 
 

@@ -17,6 +17,8 @@
     --text:#EDEDF2; --muted:#A2A5B4;
     --accent:#A78BFA; --accent-2:#7C6CF0; --hot:#E879F9;
     --accent-ink:#0B0B10; --ok:#5BD6A0;
+    --preview:#F2C66D; --preview-bg:rgba(242,198,109,.14);
+    --unavailable:#D4D6DF; --focus-ring:#C4B5FD;
     --r:16px; --maxw:1120px;
     --dur:200ms; --ease:cubic-bezier(.22,.9,.35,1);
   }
@@ -72,7 +74,7 @@
   .skip{position:absolute;left:-9999px;top:0;background:var(--accent);color:var(--accent-ink);
     padding:10px 16px;border-radius:0 0 10px 0;font-weight:600;z-index:100}
   .skip:focus{left:0}
-  :focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:6px}
+  :focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px;border-radius:6px}
 
   /* glass card primitive */
   .glass{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
@@ -130,6 +132,29 @@
     color:var(--muted);font-size:13.5px}
   .trust span{display:inline-flex;align-items:center;gap:7px}
   .trust svg{width:14px;height:14px;color:var(--ok)}
+
+  /* ============ verified downloads ============ */
+  .downloads{padding-top:56px}
+  .download-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .download-card{padding:28px;display:flex;flex-direction:column;gap:18px;min-width:0}
+  .download-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .download-heading h3{font-size:22px}
+  .channel-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:var(--surface-2);border:1px solid var(--border-hi)}
+  .channel-badge.preview{color:var(--preview);background:var(--preview-bg);border-color:rgba(242,198,109,.45)}
+  .download-status{color:var(--muted);margin:0;min-height:2.6em}
+  .download-meta{margin:0;display:grid;grid-template-columns:minmax(92px,.8fr) minmax(0,1.2fr);gap:9px 14px;font-size:14px}
+  .download-meta dt{color:var(--muted)} .download-meta dd{margin:0;min-width:0}
+  .download-meta code{font-family:ui-monospace,Consolas,"Cascadia Mono",monospace;overflow-wrap:anywhere}
+  .download-links{display:flex;gap:12px;flex-wrap:wrap;font-size:14px}
+  .download-links a,.download-recovery{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+  .checksum-row{display:flex;align-items:center;gap:8px;min-width:0}
+  .copy-checksum{width:44px;height:44px;flex:none;border:1px solid var(--border-hi);border-radius:10px;background:var(--surface-2);color:var(--text);cursor:pointer}
+  .copy-checksum:disabled,[aria-disabled="true"]{opacity:.6;cursor:not-allowed}
+  .checksum-status{min-height:1.6em;color:var(--muted);font-size:13px;margin:0}
+  .install-note{margin:0;color:var(--muted);font-size:14px}
+  .download-card .btn{width:100%;min-height:46px}
+  @media (max-width:768px){.download-grid{grid-template-columns:1fr}}
+  @media (max-width:375px){.wrap{padding:0 16px}.download-card{padding:22px}.download-meta{grid-template-columns:1fr}.checksum-row{align-items:flex-start}.download-card .btn{width:100%}}
 
   /* product-in-action mock */
   .demo{max-width:680px;margin:56px auto 0;padding:22px;text-align:left;position:relative;
@@ -305,7 +330,7 @@
       <a href="#flow">Flow</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
-      <a class="btn primary" id="nav-download" href="#">Download free</a>
+      <a class="btn primary" id="nav-download" href="#download">Download free</a>
     </nav>
   </div>
 </header>
@@ -314,7 +339,7 @@
   <!-- HERO -->
   <section class="hero">
     <div class="wrap">
-      <p class="chip"><span class="dot"></span>100% local · Latest release: <span id="roar-version">v0.35.2</span></p>
+      <p class="chip"><span class="dot"></span>100% local · Verified releases below</p>
       <h1>Speak. It types.<br><span class="grad">Nothing leaves your machine.</span></h1>
       <p class="lede">
         ROAR is private dictation for Windows — built for engineers shipping code, students
@@ -322,14 +347,14 @@
         release. Clean text lands in whatever app you're already in.
       </p>
       <div class="cta-row">
-        <a class="btn primary" id="hero-download" href="#">
+        <a class="btn primary" id="hero-download" href="#download">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Download for Windows — free
         </a>
         <a class="btn" href="#pricing">See pricing</a>
       </div>
       <p class="cta-note">Free forever for everyday dictation. No account. Windows 10/11.<br>
-        Small installer — the speech model downloads once on first run, then you're offline for good.</p>
+        The speech model downloads once on first run; then dictation stays offline.</p>
 
       <div class="glass demo">
         <div class="titlebar"><span aria-hidden="true"><i></i><i></i><i></i></span>
@@ -354,6 +379,44 @@
       </div>
     </div>
   </section>
+
+  <section id="download" class="downloads" aria-labelledby="download-heading">
+    <div class="wrap">
+      <div class="center"><p class="kicker">Verified releases</p><h2 id="download-heading">Download ROAR</h2><p class="sub">Choose your platform. We never detect or preselect it for you.</p></div>
+      <div class="download-grid">
+        <article class="glass download-card" data-release-platform="windows">
+          <div class="download-heading"><h3>Windows</h3><span class="channel-badge">Stable</span></div>
+          <p class="download-status" data-release="status">Windows release metadata is loading.</p>
+          <a class="btn primary" data-release="action" aria-disabled="true">Windows Stable unavailable</a>
+          <a class="download-recovery" data-release="recovery" hidden>View Releases</a>
+          <dl class="download-meta">
+            <dt>Version</dt><dd data-release="version">—</dd><dt>Released</dt><dd data-release="release-date">—</dd>
+            <dt>Package</dt><dd data-release="package">—</dd><dt>Architecture</dt><dd data-release="architecture">—</dd>
+            <dt>Size</dt><dd data-release="size">—</dd><dt>Checksum</dt><dd class="checksum-row"><code data-release="checksum">Verified metadata required</code><button class="copy-checksum" type="button" data-release-copy="checksum" aria-label="Copy Windows checksum" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></dd>
+          </dl>
+          <p class="checksum-status" data-release="checksum-status" aria-live="polite"></p>
+          <div class="download-links"><a data-release="release-notes">Release notes</a></div>
+          <p class="install-note" data-release="install">Download the verified installer, then run it.</p>
+        </article>
+        <article class="glass download-card" data-release-platform="linux">
+          <div class="download-heading"><h3>Linux</h3><span class="channel-badge preview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4m0 4h.01"/><path d="M10.3 3.9 2.4 17.2A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>Preview</span></div>
+          <p class="download-status" data-release="status">Linux Preview availability is checked from verified releases.</p>
+          <a class="btn" data-release="action" aria-disabled="true">Linux Preview unavailable</a>
+          <a class="download-recovery" data-release="recovery" hidden>View Releases</a>
+          <dl class="download-meta">
+            <dt>Version</dt><dd data-release="version">—</dd><dt>Released</dt><dd data-release="release-date">—</dd>
+            <dt>Package</dt><dd data-release="package">—</dd><dt>Architecture</dt><dd data-release="architecture">—</dd>
+            <dt>Size</dt><dd data-release="size">—</dd><dt>Checksum</dt><dd class="checksum-row"><code data-release="checksum">Verified metadata required</code><button class="copy-checksum" type="button" data-release-copy="checksum" aria-label="Copy Linux checksum" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></dd>
+            <dt>Automated smoke</dt><dd data-release="tested-environments">Verified release metadata required</dd>
+          </dl>
+          <p class="checksum-status" data-release="checksum-status" aria-live="polite"></p>
+          <div class="download-links"><a data-release="release-notes">Release notes</a><a data-release="limitations" href="linux/">Linux limitations</a></div>
+          <p class="install-note" data-release="install">Read the Linux Preview instructions before installing.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+  <noscript><div class="wrap"><p class="download-status">JavaScript is disabled. Find verified ROAR packages on the <a class="download-recovery" href="https://github.com/xhan145/roar/releases">repository Releases page</a>.</p></div></noscript>
 
   <!-- AUDIENCES -->
   <section id="audiences">
@@ -557,7 +620,7 @@
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>Basic vocabulary</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>No account required</li>
           </ul>
-          <a class="btn" id="tier-download" href="#">Download ROAR</a>
+          <a class="btn" id="tier-download" href="#download">Download ROAR</a>
         </div>
 
         <div class="tier best">
@@ -613,10 +676,6 @@
           <a class="btn" id="buy-supporter" data-edition="supporter" href="#">Support ROAR</a>
         </div>
       </div>
-
-      <p class="fineprint" id="checkout-note">Card checkout is coming soon. Until
-        then the buy buttons open a pre-order email, and licenses are issued and
-        sent by hand — usually within a day.</p>
 
       <p class="fineprint"><strong>One payment. No subscription.</strong><br>
         No account required · No cloud transcription · No telemetry ·
@@ -683,7 +742,6 @@ const ROAR = {
   // Where "Download" goes: the installer itself, directly — no repository
   // page in between. The version in the asset name is stamped by
   // scripts/roar_versions.py --fix, so it can never go stale.
-  downloadUrl: "https://github.com/xhan145/roar/releases/latest/download/ROAR-Setup-0.35.2.exe",
   // PAYMENT LINKS, one per paid edition — Stripe Payment Links or PayPal
   // payment links, mixable per edition. These are PUBLIC by design: the
   // amount is fixed inside the processor, so a visitor cannot tamper with the
@@ -718,9 +776,6 @@ pauseBtn.addEventListener("click", () => {
     paused ? "Resume the demo animation" : "Pause the demo animation");
 });
 
-for (const id of ["nav-download", "hero-download", "tier-download"]) {
-  document.getElementById(id).href = ROAR.downloadUrl;
-}
 document.getElementById("foot-support").href = "mailto:" + ROAR.supportEmail;
 
 // A paid edition is buyable only when its Payment Link is configured. Nothing
@@ -732,12 +787,6 @@ const EDITIONS = {
 };
 ROAR.checkoutReady = Object.fromEntries(
   Object.entries(ROAR.purchase).map(([id, url]) => [id, Boolean(url)]));
-
-// The pre-order note describes the FALLBACK; once every edition has a real
-// checkout link it would be stale copy — drop it.
-if (Object.values(ROAR.checkoutReady).every(Boolean)) {
-  document.getElementById("checkout-note").remove();
-}
 
 // Until a Payment Link exists, a Buy button opens a pre-order email rather
 // than pretending to be a store. Honest, and it's the manual fulfillment path.
@@ -754,8 +803,7 @@ for (const [key, {label, price}] of Object.entries(EDITIONS)) {
     `Name (for the licence):\n`);
   el.href = `mailto:${ROAR.supportEmail}?subject=${subject}&body=${body}`;
   el.textContent = key === "supporter" ? "Support ROAR" : `Request ${label} licence`;
-  el.setAttribute("aria-describedby", "checkout-note");
-  el.title = "Checkout coming soon — this opens a pre-order email";
+  el.title = "This opens a pre-order email";
 }
 
 // Site visit analytics (Google Analytics 4) behind an explicit consent gate.
@@ -816,5 +864,6 @@ if (/^G-[A-Z0-9]+$/.test(ROAR.ga4)) {
   else if (choice !== "denied") roarConsentBanner();
 }
 </script>
+<script type="module" src="downloads.mjs"></script>
 </body>
 </html>

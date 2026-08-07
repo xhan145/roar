@@ -128,6 +128,11 @@ ROAR is not trying to be a giant writing suite. It is a small, sharp desktop too
 
 Current app version: `0.35.2` (`paths.APP_VERSION`).
 
+**Linux Preview:** Windows remains the primary supported platform. An Ubuntu
+24.04/X11 x86_64 AppImage preview build is documented in
+[docs/LINUX.md](docs/LINUX.md); physical microphone, hotkey, and cross-app
+injection checks remain required before a Linux release.
+
 **Shipped**
 
 - Push-to-talk and toggle dictation.

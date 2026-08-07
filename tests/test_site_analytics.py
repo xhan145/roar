@@ -11,6 +11,7 @@ import re
 
 INDEX = pathlib.Path("site/index.html")
 SUCCESS = pathlib.Path("site/purchase/success.html")
+DOWNLOADS = pathlib.Path("site/downloads.mjs")
 
 # The ONLY external script host the site may ever reference.
 ALLOWED_SCRIPT_HOSTS = {"www.googletagmanager.com"}
@@ -21,7 +22,7 @@ def _html():
 
 
 def test_only_the_sanctioned_script_host_appears():
-    for page in (INDEX, SUCCESS):
+    for page in (INDEX, SUCCESS, DOWNLOADS):
         text = page.read_text(encoding="utf-8")
         hosts = set(re.findall(r'https?://([^/"\'\s)]+)/[^"\']*\.js', text))
         assert hosts <= ALLOWED_SCRIPT_HOSTS, (page, hosts)
@@ -74,7 +75,7 @@ def test_no_other_known_trackers_anywhere():
     banned = ("google-analytics.com/analytics.js", "gtag/js?id=G-",  # hardcoded
               "facebook.net", "hotjar", "segment.com", "mixpanel",
               "plausible.io", "clarity.ms", "doubleclick")
-    for page in (INDEX, SUCCESS):
+    for page in (INDEX, SUCCESS, DOWNLOADS):
         text = page.read_text(encoding="utf-8")
         for host in banned:
             assert host not in text, (page, host)

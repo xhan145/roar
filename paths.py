@@ -61,18 +61,18 @@ def _ensure(path: str) -> str:
 # rename the legacy FlowLocal dir onto it.
 
 def config_path() -> str:
-    if is_frozen():
-        return os.path.join(os.environ["APPDATA"], APP_NAME, "config.json")
     if platform_id.is_linux():
         return os.path.join(_linux_config_dir(), "config.json")
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "config.json")
     return os.path.join(_source_root(), "config.json")
 
 
 def models_dir() -> str:
-    if is_frozen():
-        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models")
     if platform_id.is_linux():
         return os.path.join(_linux_data_dir(), "models")
+    if is_frozen():
+        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME, "models")
     return os.path.join(_source_root(), "models")
 
 
@@ -103,10 +103,10 @@ def license_path() -> str:
     history clear, privacy reset, or audio delete can never remove it, and a
     normal MSI upgrade (which replaces program files only) preserves it. Only an
     explicit "Remove License" deletes it."""
-    if is_frozen():
-        return os.path.join(os.environ["APPDATA"], APP_NAME, "license.json")
     if platform_id.is_linux():
         return os.path.join(_linux_config_dir(), "license.json")
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "license.json")
     return os.path.join(_source_root(), "license.json")
 
 
@@ -114,10 +114,10 @@ def legacy_grant_path() -> str:
     """One-time grandfathering grant: a set of FEATURE IDs (never an edition)
     recorded for installs that predate commercial gating. Stored beside the
     license for the same upgrade-survival reasons."""
-    if is_frozen():
-        return os.path.join(os.environ["APPDATA"], APP_NAME, "legacy_grant.json")
     if platform_id.is_linux():
         return os.path.join(_linux_config_dir(), "legacy_grant.json")
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "legacy_grant.json")
     return os.path.join(_source_root(), "legacy_grant.json")
 
 
@@ -126,20 +126,23 @@ def trial_state_path() -> str:
     the same reasons: clearing history/audio, privacy resets, and normal MSI
     upgrades must never touch it, and it is deliberately separate from every
     file that holds personal dictation data."""
-    if is_frozen():
-        return os.path.join(os.environ["APPDATA"], APP_NAME, "trial.json")
     if platform_id.is_linux():
         return os.path.join(_linux_config_dir(), "trial.json")
+    if is_frozen():
+        return os.path.join(os.environ["APPDATA"], APP_NAME, "trial.json")
     return os.path.join(_source_root(), "trial.json")
 
 
 def _data_dir() -> str:
-    """Per-user writable data root (history, audio, log). Frozen: LOCALAPPDATA;
-    source: project root."""
-    if is_frozen():
-        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME)
+    """Per-user writable data root (history, audio, log).
+
+    Linux uses XDG data; frozen Windows uses LOCALAPPDATA; source runs use the
+    project root.
+    """
     if platform_id.is_linux():
         return _linux_data_dir()
+    if is_frozen():
+        return os.path.join(os.environ["LOCALAPPDATA"], APP_NAME)
     return _source_root()
 
 

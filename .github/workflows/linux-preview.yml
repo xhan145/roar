@@ -1,0 +1,105 @@
+name: Linux preview package
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "linux/**"
+      - "roar-linux.spec"
+      - "requirements-linux*.txt"
+      - "requirements-linux.txt"
+      - "assets/**"
+      - "settings.html"
+      - "transcript.html"
+      - "fob.png"
+      - "licenses/**"
+      - "THIRD_PARTY_NOTICES.md"
+      - ".github/workflows/linux-preview.yml"
+      - "tests/test_*linux*.py"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing draft/prerelease tag to receive verified assets; leave empty for artifact-only build
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Ubuntu package dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes python3-venv python3-dev python3-tk python3-gi gir1.2-webkit2-4.1 gir1.2-appindicator3-0.1 libportaudio2 xclip xdotool libnotify-bin dbus-x11 notification-daemon xvfb
+      - name: Install Python dependencies
+        run: |
+          python3 -m venv --system-site-packages .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements-linux.txt -r requirements-linux-build.txt pytest PyYAML
+      - name: Install AppImageTool
+        run: |
+          mkdir --parents .tools
+          curl --fail --location --silent --show-error https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage --output .tools/appimagetool
+          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  .tools/appimagetool" | sha256sum --check --status -
+          chmod +x .tools/appimagetool
+      - name: Run Linux-focused tests
+        run: |
+          .venv/bin/python -m pytest tests/test_*linux*.py -v
+      - name: Check package script syntax
+        run: bash -n linux/build_appimage.sh linux/verify_appimage.sh
+      - name: Build and verify AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+        run: |
+          xvfb-run -a dbus-run-session -- bash -c '
+            set -euo pipefail
+            /usr/lib/notification-daemon/notification-daemon &
+            APPIMAGETOOL="$PWD/.tools/appimagetool" bash linux/build_appimage.sh
+            bash linux/verify_appimage.sh dist/ROAR-Linux-*-x86_64.AppImage
+          '
+      - name: Upload verified Linux preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: roar-linux-preview
+          path: |
+            dist/ROAR-Linux-*-x86_64.AppImage
+            dist/ROAR-Linux-*-x86_64.AppImage.sha256
+          if-no-files-found: error
+
+  attach:
+    needs: build
+    if: "${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' }}"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download verified Linux preview
+        uses: actions/download-artifact@v4
+        with:
+          name: roar-linux-preview
+          path: verified-linux
+      - name: Confirm target is an existing draft or prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          release_json="$(gh release view "$TAG" --json isDraft,isPrerelease)"
+          if ! python3 -c 'import json, sys; release = json.load(sys.stdin); raise SystemExit(not (release["isDraft"] or release["isPrerelease"]))' <<<"$release_json"; then
+            echo "error: $TAG is not an existing draft or prerelease" >&2
+            exit 1
+          fi
+      - name: Upload verified assets to existing release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          APPIMAGE="$(find verified-linux -maxdepth 1 -type f -name 'ROAR-Linux-*-x86_64.AppImage' -print -quit)"
+          SHA="${APPIMAGE}.sha256"
+          test -n "$APPIMAGE"
+          test -f "$SHA"
+          gh release upload "$TAG" "$APPIMAGE" "$SHA" --clobber

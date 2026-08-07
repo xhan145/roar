@@ -41,7 +41,8 @@ def test_paid_buttons_never_dead_link_to_hash():
     """With no Payment Link configured a button must explain itself and open
     the pre-order email, not silently do nothing."""
     html = _html()
-    assert "Checkout coming soon" in html
+    assert "Card checkout is coming soon" not in html
+    assert 'id="checkout-note"' not in html
     assert "mailto:" in html
 
 

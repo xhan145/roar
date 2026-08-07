@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ROAR site release manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "repository", "generated_at", "platforms"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "repository": {"const": "xhan145/roar"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["windows", "linux"],
+      "properties": {
+        "windows": {"$ref": "#/$defs/windowsRecord"},
+        "linux": {"$ref": "#/$defs/linuxRecord"}
+      }
+    }
+  },
+  "$defs": {
+    "unavailableStable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "channel"],
+      "properties": {
+        "available": {"const": false},
+        "channel": {"const": "stable"}
+      }
+    },
+    "unavailablePreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "channel"],
+      "properties": {
+        "available": {"const": false},
+        "channel": {"const": "preview"}
+      }
+    },
+    "windowsAvailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "channel", "version", "release_name", "published_at", "architecture", "package_type", "asset_name", "asset_url", "asset_size_bytes", "sha256", "release_notes_url"],
+      "properties": {
+        "available": {"const": true},
+        "channel": {"const": "stable"},
+        "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "release_name": {"type": "string", "minLength": 1},
+        "published_at": {"type": "string", "format": "date-time"},
+        "architecture": {"const": "x86_64"},
+        "package_type": {"const": "exe"},
+        "asset_name": {"type": "string", "pattern": "^ROAR-Setup-\\d+\\.\\d+\\.\\d+\\.exe$"},
+        "asset_url": {"type": "string", "format": "uri"},
+        "asset_size_bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "release_notes_url": {"type": "string", "format": "uri"}
+      }
+    },
+    "linuxAvailable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available", "channel", "version", "release_name", "published_at", "architecture", "package_type", "asset_name", "asset_url", "asset_size_bytes", "sha256", "release_notes_url", "tested_environments", "known_limitations_url"],
+      "properties": {
+        "available": {"const": true},
+        "channel": {"const": "preview"},
+        "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+        "release_name": {"type": "string", "minLength": 1},
+        "published_at": {"type": "string", "format": "date-time"},
+        "architecture": {"const": "x86_64"},
+        "package_type": {"const": "AppImage"},
+        "asset_name": {"type": "string", "pattern": "^ROAR-Linux-\\d+\\.\\d+\\.\\d+-x86_64\\.AppImage$"},
+        "asset_url": {"type": "string", "format": "uri"},
+        "asset_size_bytes": {"type": "integer", "minimum": 1},
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "release_notes_url": {"type": "string", "format": "uri"},
+        "tested_environments": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "known_limitations_url": {"const": "/linux/"}
+      }
+    },
+    "windowsRecord": {
+      "oneOf": [{"$ref": "#/$defs/windowsAvailable"}, {"$ref": "#/$defs/unavailableStable"}]
+    },
+    "linuxRecord": {
+      "oneOf": [{"$ref": "#/$defs/linuxAvailable"}, {"$ref": "#/$defs/unavailablePreview"}]
+    }
+  }
+}
