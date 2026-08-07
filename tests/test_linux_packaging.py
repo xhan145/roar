@@ -71,6 +71,7 @@ def test_linux_spec_executes_with_linux_only_collection(monkeypatch):
         "webview.platforms.gtk",
         "gi",
         "pynput.keyboard._xorg",
+        "pynput.mouse._xorg",
     } <= set(analysis.hiddenimports)
     assert namespace["exe"].name == "ROAR-linux"
     assert namespace["coll"].name == "ROAR-linux"

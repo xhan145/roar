@@ -21,6 +21,7 @@ hiddenimports += [
     "webview.platforms.gtk",
     "gi",
     "pynput.keyboard._xorg",
+    "pynput.mouse._xorg",
 ]
 
 datas += [
