@@ -58,6 +58,10 @@ set -e
 cat "$smoke_log"
 
 if ((smoke_status != 0)); then
+  app_log="$XDG_DATA_HOME/ROAR/roar.log"
+  if [[ -f "$app_log" ]]; then
+    cat "$app_log"
+  fi
   printf 'error: ROAR smoke test exited with status %s\n' "$smoke_status" >&2
   exit "$smoke_status"
 fi

@@ -447,6 +447,35 @@ def test_build_recipe_rejects_nonzero_packaged_smoke(packaging_fixture):
     assert not (root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage.sha256").exists()
 
 
+def test_verifier_surfaces_frozen_app_log_when_smoke_crashes(packaging_fixture):
+    root, env = packaging_fixture
+    artifact = root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage"
+    artifact.parent.mkdir()
+    _write_executable(
+        artifact,
+        r'''
+        #!/usr/bin/env bash
+        mkdir -p "$XDG_DATA_HOME/ROAR"
+        printf 'Traceback: missing pynput backend\n' > "$XDG_DATA_HOME/ROAR/roar.log"
+        exit 23
+        ''',
+    )
+    artifact.with_name(artifact.name + ".sha256").write_text(
+        "a" * 64 + f"  {artifact.name}\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+
+    result = _run_bash(
+        root,
+        env,
+        f'bash linux/verify_appimage.sh "dist/{artifact.name}"',
+    )
+
+    assert result.returncode == 23
+    assert "Traceback: missing pynput backend" in result.stdout + result.stderr
+
+
 @pytest.mark.parametrize(
     "output",
     [
