@@ -43,6 +43,7 @@ def test_linux_preview_build_uses_pinned_tool_and_runs_package_checks():
     assert "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage" in install["run"]
     assert "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0" in install["run"]
     assert "dbus-x11" in ubuntu_dependencies["run"].split()
+    assert "notification-daemon" in ubuntu_dependencies["run"].split()
     assert "python -m pytest tests/test_*linux*.py -v" in run_commands
     assert "bash -n linux/build_appimage.sh linux/verify_appimage.sh" in run_commands
     assert "bash linux/build_appimage.sh" in run_commands

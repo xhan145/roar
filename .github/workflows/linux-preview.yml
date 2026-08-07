@@ -33,7 +33,7 @@ jobs:
       - name: Install Ubuntu package dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes python3-venv python3-dev python3-tk python3-gi gir1.2-webkit2-4.1 gir1.2-appindicator3-0.1 libportaudio2 xclip xdotool libnotify-bin dbus-x11 xvfb
+          sudo apt-get install --yes python3-venv python3-dev python3-tk python3-gi gir1.2-webkit2-4.1 gir1.2-appindicator3-0.1 libportaudio2 xclip xdotool libnotify-bin dbus-x11 notification-daemon xvfb
       - name: Install Python dependencies
         run: |
           python3 -m venv --system-site-packages .venv
