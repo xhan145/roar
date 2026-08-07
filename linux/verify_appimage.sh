@@ -59,12 +59,13 @@ else
 fi
 set -e
 cat "$smoke_log"
+app_log="$XDG_DATA_HOME/ROAR/roar.log"
+if [[ -f "$app_log" ]]; then
+  cat "$app_log"
+  cat "$app_log" >> "$smoke_log"
+fi
 
 if ((smoke_status != 0)); then
-  app_log="$XDG_DATA_HOME/ROAR/roar.log"
-  if [[ -f "$app_log" ]]; then
-    cat "$app_log"
-  fi
   if ((smoke_status == 124)); then
     printf 'error: ROAR smoke test timed out after %s seconds\n' \
       "$smoke_timeout" >&2

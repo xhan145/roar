@@ -482,6 +482,30 @@ def test_verifier_surfaces_frozen_app_log_when_smoke_crashes(packaging_fixture):
     assert "Traceback: missing pynput backend" in result.stdout + result.stderr
 
 
+def test_verifier_accepts_success_markers_from_frozen_app_log(packaging_fixture):
+    root, env = packaging_fixture
+    binary = root / "ROAR-linux"
+    _write_executable(
+        binary,
+        r'''
+        #!/usr/bin/env bash
+        mkdir -p "$XDG_DATA_HOME/ROAR"
+        printf 'ROAR: hotkeys registered\nROAR: clean exit\n' \
+          > "$XDG_DATA_HOME/ROAR/roar.log"
+        ''',
+    )
+
+    result = _run_bash(
+        root,
+        env,
+        'bash linux/verify_appimage.sh --frozen "$PWD/ROAR-linux"',
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "ROAR: hotkeys registered" in result.stdout
+    assert "ROAR: clean exit" in result.stdout
+
+
 def test_verifier_bounds_a_hung_smoke_process(packaging_fixture):
     root, env = packaging_fixture
     artifact = root / "dist/ROAR-Linux-0.35.2-x86_64.AppImage"
